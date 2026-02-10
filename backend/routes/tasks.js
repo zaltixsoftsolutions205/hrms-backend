@@ -1,0 +1,16 @@
+const express = require('express');
+const router = express.Router();
+const { createTask, getMyTasks, updateTaskStatus, getAllTasks, getKpiOverview, updateTask } = require('../controllers/taskController');
+const { protect } = require('../middleware/auth');
+const { roleCheck } = require('../middleware/roleCheck');
+
+router.use(protect);
+
+router.post('/', roleCheck('hr', 'admin'), createTask);
+router.get('/my', getMyTasks);
+router.get('/kpi', roleCheck('hr', 'admin'), getKpiOverview);
+router.get('/', roleCheck('hr', 'admin'), getAllTasks);
+router.put('/:id/status', updateTaskStatus);
+router.put('/:id', roleCheck('hr', 'admin'), updateTask);
+
+module.exports = router;

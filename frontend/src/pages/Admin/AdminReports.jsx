@@ -1,0 +1,188 @@
+import { useState } from 'react';
+import { motion } from 'framer-motion';
+import toast from 'react-hot-toast';
+import api from '../../utils/api';
+import Card from '../../components/UI/Card';
+import EmptyState from '../../components/UI/EmptyState';
+import Badge from '../../components/UI/Badge';
+import { formatCurrency, formatDate } from '../../utils/helpers';
+
+const AdminReports = () => {
+  const [activeTab, setActiveTab] = useState('attendance');
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const now = new Date();
+  const [filter, setFilter] = useState({ month: now.getMonth() + 1, year: now.getFullYear() });
+
+  const fetchReport = async () => {
+    setLoading(true);
+    setData(null);
+    try {
+      let res;
+      if (activeTab === 'attendance') {
+        res = await api.get(`/admin/reports/attendance?month=${filter.month}&year=${filter.year}`);
+      } else if (activeTab === 'leave') {
+        res = await api.get(`/admin/reports/leave?year=${filter.year}`);
+      } else if (activeTab === 'payroll') {
+        res = await api.get(`/admin/reports/payroll?month=${filter.month}&year=${filter.year}`);
+      }
+      setData(res.data);
+    } catch { toast.error('Failed to generate report'); }
+    finally { setLoading(false); }
+  };
+
+  const exportCSV = () => {
+    if (!data) return;
+    let csv = '';
+    if (activeTab === 'attendance' && Array.isArray(data)) {
+      csv = 'Employee,ID,Present,Absent,Half Day,Total Hours\n' + data.map(r =>
+        `${r.employee?.name},${r.employee?.employeeId},${r.present},${r.absent},${r.halfDay},${r.totalHours}`
+      ).join('\n');
+    } else if (activeTab === 'payroll' && data.payslips) {
+      csv = 'Employee,ID,Basic,Gross,Net Pay\n' + data.payslips.map(p =>
+        `${p.employee?.name},${p.employee?.employeeId},${p.basicSalary},${p.grossSalary},${p.netSalary}`
+      ).join('\n');
+    }
+    if (!csv) return toast.error('Export not available for this report');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob); const a = document.createElement('a');
+    a.href = url; a.download = `report_${activeTab}_${filter.year}.csv`; a.click();
+    URL.revokeObjectURL(url); toast.success('Exported!');
+  };
+
+  return (
+    <div className="space-y-5 animate-fade-in">
+      <div className="page-header">
+        <div><h2 className="page-title">Reports</h2><p className="page-subtitle">Generate dynamic reports from live data</p></div>
+        {data && <button onClick={exportCSV} className="btn-secondary">⬇ Export CSV</button>}
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-2 flex-wrap">
+        {['attendance', 'leave', 'payroll'].map(t => (
+          <button key={t} onClick={() => { setActiveTab(t); setData(null); }}
+            className={`px-4 py-2 rounded-xl text-sm font-semibold capitalize transition-colors ${activeTab === t ? 'bg-violet-700 text-white' : 'bg-violet-100 text-violet-600 hover:bg-violet-200'}`}>
+            {t}
+          </button>
+        ))}
+      </div>
+
+      {/* Filters */}
+      <Card>
+        <div className="flex flex-wrap items-center gap-3 mb-4">
+          {(activeTab === 'attendance' || activeTab === 'payroll') && (
+            <select className="input-field w-auto" value={filter.month} onChange={e => setFilter(f => ({ ...f, month: parseInt(e.target.value) }))}>
+              {Array.from({ length: 12 }, (_, i) => <option key={i + 1} value={i + 1}>{new Date(0, i).toLocaleString('default', { month: 'long' })}</option>)}
+            </select>
+          )}
+          <select className="input-field w-auto" value={filter.year} onChange={e => setFilter(f => ({ ...f, year: parseInt(e.target.value) }))}>
+            {[now.getFullYear(), now.getFullYear() - 1].map(y => <option key={y} value={y}>{y}</option>)}
+          </select>
+          <button onClick={fetchReport} disabled={loading} className="btn-primary">
+            {loading ? 'Generating...' : '📊 Generate Report'}
+          </button>
+        </div>
+
+        {!data && !loading && (
+          <EmptyState icon="📊" title="No report generated" message="Set filters and click Generate Report." />
+        )}
+
+        {loading && <div className="py-10 text-center text-violet-400 text-sm animate-pulse">Generating report...</div>}
+
+        {/* Attendance Report */}
+        {data && activeTab === 'attendance' && Array.isArray(data) && (
+          <>
+            <div className="overflow-x-auto">
+              <table className="data-table">
+                <thead><tr><th>Employee</th><th>Present</th><th>Absent</th><th>Half Day</th><th>Total Hours</th></tr></thead>
+                <tbody>
+                  {data.map((r, i) => (
+                    <tr key={i}>
+                      <td><p className="font-medium">{r.employee?.name}</p><p className="text-xs text-violet-400">{r.employee?.employeeId}</p></td>
+                      <td className="text-green-600 font-semibold">{r.present}</td>
+                      <td className="text-red-600 font-semibold">{r.absent}</td>
+                      <td className="text-golden-600 font-semibold">{r.halfDay}</td>
+                      <td>{r.totalHours}h</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+
+        {/* Leave Report */}
+        {data && activeTab === 'leave' && data.leaves && (
+          <>
+            <div className="grid grid-cols-4 gap-3 mb-4">
+              {[
+                { label: 'Total Requests', value: data.stats.total, color: 'violet' },
+                { label: 'Approved', value: data.stats.approved, color: 'green' },
+                { label: 'Rejected', value: data.stats.rejected, color: 'red' },
+                { label: 'Pending', value: data.stats.pending, color: 'golden' },
+              ].map(s => (
+                <div key={s.label} className="glass-card p-3 text-center">
+                  <p className="text-xs text-violet-500 mb-1">{s.label}</p>
+                  <p className="text-xl font-bold text-violet-900">{s.value}</p>
+                </div>
+              ))}
+            </div>
+            <div className="overflow-x-auto">
+              <table className="data-table">
+                <thead><tr><th>Employee</th><th>Type</th><th>From</th><th>To</th><th>Days</th><th>Status</th></tr></thead>
+                <tbody>
+                  {data.leaves.map(l => (
+                    <tr key={l._id}>
+                      <td><p className="font-medium">{l.employee?.name}</p><p className="text-xs text-violet-400">{l.employee?.employeeId}</p></td>
+                      <td className="capitalize">{l.type}</td>
+                      <td>{formatDate(l.fromDate)}</td>
+                      <td>{formatDate(l.toDate)}</td>
+                      <td>{l.totalDays}</td>
+                      <td><Badge status={l.status} /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+
+        {/* Payroll Report */}
+        {data && activeTab === 'payroll' && data.payslips && (
+          <>
+            <div className="grid grid-cols-3 gap-3 mb-4">
+              {[
+                { label: 'Employees', value: data.summary.totalEmployees },
+                { label: 'Total Gross', value: formatCurrency(data.summary.totalGross) },
+                { label: 'Total Net', value: formatCurrency(data.summary.totalNet) },
+              ].map(s => (
+                <div key={s.label} className="glass-card p-3 text-center">
+                  <p className="text-xs text-violet-500 mb-1">{s.label}</p>
+                  <p className="text-lg font-bold text-violet-900">{s.value}</p>
+                </div>
+              ))}
+            </div>
+            <div className="overflow-x-auto">
+              <table className="data-table">
+                <thead><tr><th>Employee</th><th>Basic</th><th>Gross</th><th>Deductions</th><th>Net Pay</th></tr></thead>
+                <tbody>
+                  {data.payslips.map(p => (
+                    <tr key={p._id}>
+                      <td><p className="font-medium">{p.employee?.name}</p><p className="text-xs text-violet-400">{p.employee?.employeeId}</p></td>
+                      <td>{formatCurrency(p.basicSalary)}</td>
+                      <td>{formatCurrency(p.grossSalary)}</td>
+                      <td className="text-red-600">{formatCurrency(p.deductions?.reduce((s,d)=>s+d.amount,0))}</td>
+                      <td className="font-bold text-golden-600">{formatCurrency(p.netSalary)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+      </Card>
+    </div>
+  );
+};
+
+export default AdminReports;
