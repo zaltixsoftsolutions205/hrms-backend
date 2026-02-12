@@ -24,13 +24,13 @@ const generatePayslipPDF = (payslipData) => {
       // ── Header with Zaltix branding ──
       doc.rect(0, 0, 595, 100).fill('#4C1D95');
 
-      // Logo: golden rounded square with "ZS"
-      doc.roundedRect(50, 18, 48, 48, 10).fill('#D97706');
-      doc.fillColor('#ffffff').fontSize(20).font('Helvetica-Bold').text('ZS', 50, 30, { width: 48, align: 'center' });
+      // Logo on white background
+      const logoPath = path.join(__dirname, '../../frontend/public/logo.png');
+      doc.roundedRect(46, 12, 166, 56, 8).fill('#ffffff');
+      doc.image(logoPath, 52, 17, { width: 154 });
 
-      // Company name & subtitle
-      doc.fillColor('#ffffff').fontSize(20).font('Helvetica-Bold').text('Zaltix Soft Solutions', 110, 22);
-      doc.fillColor('#c4b5fd').fontSize(11).font('Helvetica').text('Payslip', 110, 47);
+      // Payslip subtitle
+      doc.fillColor('#c4b5fd').fontSize(11).font('Helvetica').text('Payslip', 228, 43);
 
       // Period
       doc.fillColor('#F59E0B').fontSize(14).font('Helvetica-Bold').text(`${monthNames[month - 1]} ${year}`, 400, 30, { align: 'right', width: 145 });

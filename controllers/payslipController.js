@@ -7,6 +7,7 @@ const { payslipNotificationTemplate } = require('../utils/emailTemplates');
 const generatePayslipPDF = require('../utils/generatePayslipPDF');
 const moment = require('moment');
 const path = require('path');
+const fs = require('fs');
 
 const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -124,15 +125,14 @@ exports.downloadPayslip = async (req, res) => {
       }
     }
 
-    if (!payslip.pdfPath) {
+    const absolutePath = path.join(__dirname, '..', payslip.pdfPath || '');
+    if (!payslip.pdfPath || !fs.existsSync(absolutePath)) {
       // Re-generate PDF on the fly
       const employee = await User.findById(payslip.employee._id).populate('department');
       const pdfPath = await generatePayslipPDF({ employee, ...payslip.toObject() });
       payslip.pdfPath = pdfPath;
       await payslip.save();
     }
-
-    const absolutePath = path.join(__dirname, '..', payslip.pdfPath);
     res.download(absolutePath);
   } catch (err) {
     res.status(500).json({ message: err.message });
