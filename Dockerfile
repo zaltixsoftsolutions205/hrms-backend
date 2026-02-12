@@ -12,7 +12,7 @@ RUN apk update && apk upgrade && \
 
 WORKDIR /app
 
-# Copy only package files first (layer caching optimization)
+
 COPY package.json package-lock.json ./
 
 # Install only production dependencies
