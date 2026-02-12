@@ -15,6 +15,7 @@ const seed = async () => {
   const existing = await User.findOne({ email: 'admin@hrms.com' });
   if (!existing) {
     await User.create({
+      employeeId: 'ADMIN001',
       name: 'System Administrator',
       email: 'admin@hrms.com',
       password: 'Admin@123',

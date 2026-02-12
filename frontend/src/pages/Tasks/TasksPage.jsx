@@ -8,6 +8,12 @@ import Badge from '../../components/UI/Badge';
 import EmptyState from '../../components/UI/EmptyState';
 import { formatDate, daysUntil } from '../../utils/helpers';
 
+const SI = ({ d, d2, size = 16, color }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className={color || ''}>
+    <path d={d} />{d2 && <path d={d2} />}
+  </svg>
+);
+
 const priorityColors = { low: 'text-gray-500', medium: 'text-golden-600', high: 'text-red-600' };
 
 const TasksPage = () => {
@@ -41,11 +47,11 @@ const TasksPage = () => {
     <div className="space-y-6 animate-fade-in">
       {/* KPI */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-        <KpiCard label="Total Tasks" value={data.kpi?.total ?? '—'} icon="📋" color="violet" />
-        <KpiCard label="Completed" value={data.kpi?.completed ?? '—'} icon="✅" color="green" />
-        <KpiCard label="In Progress" value={data.kpi?.inProgress ?? '—'} icon="🔄" color="golden" />
-        <KpiCard label="Not Started" value={data.kpi?.notStarted ?? '—'} icon="⏳" color="violet" />
-        <KpiCard label="Completion %" value={data.kpi?.completionRate !== undefined ? `${data.kpi.completionRate}%` : '—'} icon="📈" color="golden" />
+        <KpiCard label="Total Tasks" value={data.kpi?.total ?? '—'} icon={<SI d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" size={14} color="text-violet-600" />} color="violet" />
+        <KpiCard label="Completed" value={data.kpi?.completed ?? '—'} icon={<SI d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" size={14} color="text-green-600" />} color="green" />
+        <KpiCard label="In Progress" value={data.kpi?.inProgress ?? '—'} icon={<SI d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" size={14} color="text-amber-500" />} color="golden" />
+        <KpiCard label="Not Started" value={data.kpi?.notStarted ?? '—'} icon={<SI d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" size={14} color="text-violet-600" />} color="violet" />
+        <KpiCard label="Completion %" value={data.kpi?.completionRate !== undefined ? `${data.kpi.completionRate}%` : '—'} icon={<SI d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" size={14} color="text-amber-500" />} color="golden" />
       </div>
 
       {/* List */}
@@ -63,7 +69,7 @@ const TasksPage = () => {
         </div>
 
         {filteredTasks.length === 0 ? (
-          <EmptyState icon="✅" title="No tasks" message="You have no tasks assigned yet." />
+          <EmptyState icon={<SI d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" size={40} color="text-violet-400" />} title="No tasks" message="You have no tasks assigned yet." />
         ) : (
           <div className="space-y-3">
             {filteredTasks.map(task => {

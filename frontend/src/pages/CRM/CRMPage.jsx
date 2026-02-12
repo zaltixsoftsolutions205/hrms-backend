@@ -8,7 +8,13 @@ import Badge from '../../components/UI/Badge';
 import EmptyState from '../../components/UI/EmptyState';
 import { formatDate, formatDateTime } from '../../utils/helpers';
 
-const statusColors = { new: '🆕', interested: '⭐', 'not-interested': '❌', converted: '🎉' };
+const SI = ({ d, d2, size = 16, color }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className={color || ''}>
+    <path d={d} />{d2 && <path d={d2} />}
+  </svg>
+);
+
+const statusColors = { new: '+', interested: '*', 'not-interested': 'x', converted: 'v' };
 
 const CRMPage = () => {
   const [data, setData] = useState({ leads: [], stats: {} });
@@ -75,12 +81,12 @@ const CRMPage = () => {
     <div className="space-y-6 animate-fade-in">
       {/* KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-        <KpiCard label="Total Leads" value={data.stats?.total ?? '—'} icon="👥" color="violet" />
-        <KpiCard label="New" value={data.stats?.new ?? '—'} icon="🆕" color="violet" />
-        <KpiCard label="Interested" value={data.stats?.interested ?? '—'} icon="⭐" color="golden" />
-        <KpiCard label="Converted" value={data.stats?.converted ?? '—'} icon="🎉" color="green" />
-        <KpiCard label="Not Interested" value={data.stats?.notInterested ?? '—'} icon="❌" color="red" />
-        <KpiCard label="Conversion %" value={data.stats?.conversionRate !== undefined ? `${data.stats.conversionRate}%` : '—'} icon="📈" color="golden" />
+        <KpiCard label="Total Leads" value={data.stats?.total ?? '—'} icon={<SI d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" size={14} color="text-violet-600" />} color="violet" />
+        <KpiCard label="New" value={data.stats?.new ?? '—'} icon={<SI d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" size={14} color="text-violet-600" />} color="violet" />
+        <KpiCard label="Interested" value={data.stats?.interested ?? '—'} icon={<SI d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" size={14} color="text-amber-500" />} color="golden" />
+        <KpiCard label="Converted" value={data.stats?.converted ?? '—'} icon={<SI d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" size={14} color="text-green-600" />} color="green" />
+        <KpiCard label="Not Interested" value={data.stats?.notInterested ?? '—'} icon={<SI d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" size={14} color="text-red-500" />} color="red" />
+        <KpiCard label="Conversion %" value={data.stats?.conversionRate !== undefined ? `${data.stats.conversionRate}%` : '—'} icon={<SI d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" size={14} color="text-amber-500" />} color="golden" />
       </div>
 
       {/* List */}
@@ -99,7 +105,7 @@ const CRMPage = () => {
         </div>
 
         {data.leads.length === 0 ? (
-          <EmptyState icon="🎯" title="No leads yet" message="Start adding leads to build your pipeline."
+          <EmptyState icon={<SI d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" size={40} color="text-violet-400" />} title="No leads yet" message="Start adding leads to build your pipeline."
             action={{ label: 'Add Lead', onClick: () => setShowAddModal(true) }} />
         ) : (
           <div className="overflow-x-auto">
@@ -226,7 +232,7 @@ const CRMPage = () => {
                 <div className="space-y-2 max-h-48 overflow-y-auto">
                   {[...selectedLead.activities].reverse().map((act, i) => (
                     <div key={i} className="flex gap-3 p-3 bg-violet-50 rounded-xl">
-                      <span className="text-base">{act.type === 'call' ? '📞' : act.type === 'meeting' ? '🤝' : act.type === 'follow-up' ? '🔁' : '📝'}</span>
+                      <span className="flex-shrink-0">{act.type === 'call' ? <SI d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.948V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" size={16} color="text-violet-500" /> : act.type === 'meeting' ? <SI d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" size={16} color="text-violet-500" /> : act.type === 'follow-up' ? <SI d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" size={16} color="text-violet-500" /> : <SI d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" size={16} color="text-violet-500" />}</span>
                       <div className="flex-1">
                         <p className="text-sm font-medium text-violet-900">{act.note}</p>
                         <p className="text-xs text-violet-400 mt-0.5">{formatDateTime(act.date)} · {act.by?.name || 'You'}</p>
@@ -240,10 +246,10 @@ const CRMPage = () => {
               <form onSubmit={handleAddActivity} className="mt-3 flex gap-2">
                 <select className="input-field w-auto flex-shrink-0" value={activityForm.type}
                   onChange={e => setActivityForm(f => ({ ...f, type: e.target.value }))}>
-                  <option value="call">📞 Call</option>
-                  <option value="meeting">🤝 Meeting</option>
-                  <option value="follow-up">🔁 Follow-up</option>
-                  <option value="note">📝 Note</option>
+                  <option value="call">Call</option>
+                  <option value="meeting">Meeting</option>
+                  <option value="follow-up">Follow-up</option>
+                  <option value="note">Note</option>
                 </select>
                 <input className="input-field flex-1" placeholder="Log activity note..."
                   value={activityForm.note} onChange={e => setActivityForm(f => ({ ...f, note: e.target.value }))} />

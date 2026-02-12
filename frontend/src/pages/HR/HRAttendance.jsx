@@ -5,6 +5,12 @@ import Card from '../../components/UI/Card';
 import Badge from '../../components/UI/Badge';
 import EmptyState from '../../components/UI/EmptyState';
 
+const SI = ({ d, d2, size = 16, color }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className={color || ''}>
+    <path d={d} />{d2 && <path d={d2} />}
+  </svg>
+);
+
 const HRAttendance = () => {
   const [records, setRecords] = useState([]);
   const [employees, setEmployees] = useState([]);
@@ -48,7 +54,7 @@ const HRAttendance = () => {
     <div className="space-y-5 animate-fade-in">
       <div className="page-header">
         <div><h2 className="page-title">Attendance Management</h2><p className="page-subtitle">{records.length} records found</p></div>
-        <button onClick={exportCSV} className="btn-secondary">⬇ Export CSV</button>
+        <button onClick={exportCSV} className="btn-secondary flex items-center gap-1.5"><SI d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" size={15} color="text-violet-600" /> Export CSV</button>
       </div>
 
       <Card>
@@ -75,7 +81,7 @@ const HRAttendance = () => {
         {loading ? (
           <div className="py-10 text-center text-violet-400 text-sm">Loading...</div>
         ) : records.length === 0 ? (
-          <EmptyState icon="📅" title="No attendance records" message="No records found for the selected filters." />
+          <EmptyState icon={<SI d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" size={40} color="text-violet-400" />} title="No attendance records" message="No records found for the selected filters." />
         ) : (
           <div className="overflow-x-auto">
             <table className="data-table">

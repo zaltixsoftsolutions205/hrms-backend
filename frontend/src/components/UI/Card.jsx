@@ -24,11 +24,11 @@ export const KpiCard = ({ label, value, icon, color = 'violet', trend }) => (
         )}
       </div>
       {icon && (
-        <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-xl ${
-          color === 'golden' ? 'bg-golden-100 text-golden-600' :
-          color === 'green' ? 'bg-green-100 text-green-600' :
-          color === 'red' ? 'bg-red-100 text-red-600' :
-          'bg-violet-100 text-violet-600'
+        <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-xl border ${
+          color === 'golden' ? 'border-golden-300 bg-golden-50 text-golden-600' :
+          color === 'green' ? 'border-green-300 bg-green-50 text-green-600' :
+          color === 'red' ? 'border-red-300 bg-red-50 text-red-600' :
+          'border-violet-300 bg-violet-50 text-violet-600'
         }`}>
           {icon}
         </div>

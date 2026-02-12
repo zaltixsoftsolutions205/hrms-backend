@@ -8,6 +8,12 @@ import Badge from '../../components/UI/Badge';
 import EmptyState from '../../components/UI/EmptyState';
 import { formatDate, capitalize } from '../../utils/helpers';
 
+const SI = ({ d, d2, size = 16, color }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className={color || ''}>
+    <path d={d} />{d2 && <path d={d2} />}
+  </svg>
+);
+
 const LeavePage = () => {
   const [data, setData] = useState({ leaves: [], balance: {} });
   const [showModal, setShowModal] = useState(false);
@@ -73,7 +79,7 @@ const LeavePage = () => {
       {/* Leave List */}
       <Card>
         {data.leaves.length === 0 ? (
-          <EmptyState icon="🌿" title="No leave requests" message="You haven't applied for any leaves yet."
+          <EmptyState icon={<SI d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" size={40} color="text-violet-400" />} title="No leave requests" message="You haven't applied for any leaves yet."
             action={{ label: 'Apply Leave', onClick: () => setShowModal(true) }} />
         ) : (
           <div className="space-y-3">

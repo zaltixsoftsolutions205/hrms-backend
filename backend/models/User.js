@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema(
   {
-    employeeId: { type: String, unique: true },
+    employeeId: { type: String, required: true, unique: true, trim: true },
     name: { type: String, required: true, trim: true },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     password: { type: String, required: true, minlength: 6 },
@@ -26,12 +26,7 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Auto-generate employeeId
 userSchema.pre('save', async function (next) {
-  if (!this.employeeId) {
-    const count = await mongoose.model('User').countDocuments();
-    this.employeeId = `EMP${String(count + 1).padStart(4, '0')}`;
-  }
   if (this.isModified('password')) {
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);

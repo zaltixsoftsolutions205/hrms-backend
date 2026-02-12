@@ -7,13 +7,19 @@ const crypto = require('crypto');
 
 // HR / Admin: Create employee
 exports.createEmployee = async (req, res) => {
-  const { name, email, role, departmentId, designation, phone, joiningDate, basicSalary, allowances, deductions, address } = req.body;
+  const { name, email, role, departmentId, designation, phone, joiningDate, basicSalary, allowances, deductions, address, employeeId } = req.body;
   try {
+    if (!employeeId || !employeeId.trim()) return res.status(400).json({ message: 'Employee ID is required' });
+
+    const idExists = await User.findOne({ employeeId: employeeId.trim() });
+    if (idExists) return res.status(400).json({ message: 'Employee ID already exists' });
+
     const exists = await User.findOne({ email });
     if (exists) return res.status(400).json({ message: 'Email already registered' });
 
     const tempPassword = crypto.randomBytes(5).toString('hex');
     const employee = await User.create({
+      employeeId: employeeId.trim(),
       name, email, password: tempPassword, role: role || 'employee',
       department: departmentId || null, designation, phone,
       joiningDate: joiningDate ? new Date(joiningDate) : null,
@@ -41,7 +47,7 @@ exports.sendOfferLetter = async (req, res) => {
     try {
       await sendMail({
         to: employee.email,
-        subject: 'Offer Letter — HRMS Corp',
+        subject: 'Offer Letter — Zaltix Soft Solutions',
         html: offerLetterTemplate({
           employeeName: employee.name,
           position: employee.designation || 'Team Member',
@@ -93,8 +99,8 @@ exports.sendCredentials = async (req, res) => {
 
     await Notification.create({
       recipient: employee._id,
-      title: 'Welcome to HRMS!',
-      message: 'Your HRMS credentials have been sent to your email.',
+      title: 'Welcome to Zaltix Soft Solutions!',
+      message: 'Your login credentials have been sent to your email.',
       type: 'credential',
     });
 
@@ -104,10 +110,10 @@ exports.sendCredentials = async (req, res) => {
   }
 };
 
-// HR / Admin: Get all employees
+// HR / Admin: Get all employees (active only)
 exports.getAllEmployees = async (req, res) => {
   try {
-    const filter = { role: { $ne: 'admin' } };
+    const filter = { role: { $ne: 'admin' }, isActive: true };
     if (req.user.role === 'hr') filter.role = { $in: ['employee', 'sales'] };
     const employees = await User.find(filter).populate('department').sort({ createdAt: -1 });
     res.json(employees);
@@ -142,6 +148,22 @@ exports.updateEmployee = async (req, res) => {
     await employee.save();
     const updated = await User.findById(employee._id).populate('department');
     res.json(updated);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// HR / Admin: Delete employee (soft delete — disable login, remove from active lists)
+exports.deleteEmployee = async (req, res) => {
+  try {
+    const employee = await User.findById(req.params.id);
+    if (!employee) return res.status(404).json({ message: 'Employee not found' });
+    if (employee.role === 'admin') return res.status(403).json({ message: 'Cannot delete an admin account' });
+
+    employee.isActive = false;
+    await employee.save();
+
+    res.json({ message: `${employee.name} has been deleted and their login has been disabled.` });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

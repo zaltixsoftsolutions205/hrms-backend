@@ -6,6 +6,12 @@ import Card from '../../components/UI/Card';
 import Modal from '../../components/UI/Modal';
 import EmptyState from '../../components/UI/EmptyState';
 
+const SI = ({ d, d2, size = 16, color }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className={color || ''}>
+    <path d={d} />{d2 && <path d={d2} />}
+  </svg>
+);
+
 const AdminDepartments = () => {
   const [departments, setDepartments] = useState([]);
   const [employees, setEmployees] = useState([]);
@@ -64,7 +70,7 @@ const AdminDepartments = () => {
       </div>
 
       {departments.length === 0 ? (
-        <EmptyState icon="🏢" title="No departments" message="Create your first department."
+        <EmptyState icon={<SI d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" size={40} color="text-violet-400" />} title="No departments" message="Create your first department."
           action={{ label: 'Create', onClick: () => setShowModal(true) }} />
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -72,8 +78,8 @@ const AdminDepartments = () => {
             <motion.div key={dept._id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
               className="glass-card p-5">
               <div className="flex items-start justify-between mb-3">
-                <div className="w-10 h-10 bg-violet-100 rounded-xl flex items-center justify-center text-xl flex-shrink-0">
-                  🏢
+                <div className="w-10 h-10 bg-violet-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <SI d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" size={20} color="text-violet-600" />
                 </div>
                 <div className="flex gap-1">
                   <button onClick={() => openEdit(dept)} className="btn-ghost btn-sm text-xs">Edit</button>

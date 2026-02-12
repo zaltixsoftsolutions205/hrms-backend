@@ -7,6 +7,12 @@ import Badge from '../../components/UI/Badge';
 import EmptyState from '../../components/UI/EmptyState';
 import { formatDate } from '../../utils/helpers';
 
+const SI = ({ d, d2, size = 16, color }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className={color || ''}>
+    <path d={d} />{d2 && <path d={d2} />}
+  </svg>
+);
+
 const HRLeaves = () => {
   const [leaves, setLeaves] = useState([]);
   const [selected, setSelected] = useState(null);
@@ -51,7 +57,7 @@ const HRLeaves = () => {
         </div>
 
         {leaves.length === 0 ? (
-          <EmptyState icon="🌿" title="No leave requests" message={`No ${filter || ''} leave requests found.`} />
+          <EmptyState icon={<SI d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" size={40} color="text-violet-400" />} title="No leave requests" message={`No ${filter || ''} leave requests found.`} />
         ) : (
           <div className="space-y-3">
             {leaves.map(leave => (
@@ -114,10 +120,10 @@ const HRLeaves = () => {
             </div>
             <div className="flex gap-3">
               <button onClick={() => handleAction('approved')} disabled={loading} className="btn-primary flex-1 bg-green-600 hover:bg-green-700">
-                ✓ Approve
+                <span className="flex items-center justify-center gap-1.5"><SI d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" size={15} color="text-white" /> Approve</span>
               </button>
               <button onClick={() => handleAction('rejected')} disabled={loading} className="btn-danger flex-1">
-                ✕ Reject
+                <span className="flex items-center justify-center gap-1.5"><SI d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" size={15} color="text-white" /> Reject</span>
               </button>
               <button onClick={() => setSelected(null)} className="btn-secondary">Cancel</button>
             </div>

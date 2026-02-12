@@ -48,11 +48,13 @@ const Navbar = ({ onMenuToggle, pageTitle }) => {
   };
 
   return (
-    <header className="sticky top-0 z-20 bg-white/80 backdrop-blur-md border-b border-violet-100 px-4 lg:px-6 py-3.5 flex items-center justify-between">
+    <header className="sticky top-0 z-20 bg-white/90 backdrop-blur-md border-b border-violet-200 px-4 lg:px-6 py-4 flex items-center justify-between">
       {/* Left */}
       <div className="flex items-center gap-4">
         <button onClick={onMenuToggle} className="lg:hidden w-9 h-9 flex items-center justify-center rounded-lg hover:bg-violet-100 text-violet-600 transition-colors">
-          <span className="text-lg">☰</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" className="w-5 h-5">
+            <path d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
         </button>
         <div>
           <h2 className="text-base font-bold text-violet-900 leading-none">{pageTitle}</h2>
@@ -66,7 +68,9 @@ const Navbar = ({ onMenuToggle, pageTitle }) => {
         <div className="relative">
           <button onClick={() => setShowNotif(!showNotif)}
             className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-violet-100 text-violet-600 transition-colors relative">
-            <span className="text-lg">🔔</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+              <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
             {unreadCount > 0 && (
               <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-golden-500 rounded-full text-white text-[9px] font-bold flex items-center justify-center">
                 {unreadCount > 9 ? '9+' : unreadCount}
@@ -90,7 +94,9 @@ const Navbar = ({ onMenuToggle, pageTitle }) => {
                 <div className="max-h-72 overflow-y-auto">
                   {notifications.length === 0 ? (
                     <div className="py-8 text-center text-sm text-violet-400">
-                      <p className="text-2xl mb-2">🔕</p>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7 text-violet-300 mx-auto mb-2">
+                        <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9M3 3l18 18" />
+                      </svg>
                       No notifications
                     </div>
                   ) : (

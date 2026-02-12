@@ -3,47 +3,91 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 import { getInitials } from '../../utils/helpers';
 
+const Ic = ({ d, d2, circle, color = 'violet' }) => {
+  const colors = {
+    violet: 'bg-violet-100 text-violet-600',
+    golden: 'bg-amber-100 text-amber-600',
+    blue:   'bg-blue-100 text-blue-600',
+    green:  'bg-green-100 text-green-600',
+    red:    'bg-red-100 text-red-600',
+  };
+  return (
+    <span className={`inline-flex items-center justify-center w-7 h-7 rounded-lg flex-shrink-0 ${colors[color]}`}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-[15px] h-[15px]">
+        {circle && <circle cx={circle[0]} cy={circle[1]} r={circle[2]} />}
+        <path d={d} />
+        {d2 && <path d={d2} />}
+      </svg>
+    </span>
+  );
+};
+
+const NAV_ICONS = {
+  '/dashboard':      <Ic color="violet"  d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />,
+  '/profile':        <Ic color="blue"    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />,
+  '/attendance':     <Ic color="green"   d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />,
+  '/leaves':         <Ic color="blue"    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />,
+  '/payslips':       <Ic color="golden"  d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />,
+  '/tasks':          <Ic color="violet"  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />,
+  '/crm':            <Ic color="golden"  d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />,
+  '/hr/employees':   <Ic color="violet"  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />,
+  '/hr/attendance':  <Ic color="green"   d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />,
+  '/hr/leaves':      <Ic color="blue"    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7l2 2 4-4" />,
+  '/hr/tasks':       <Ic color="violet"  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />,
+  '/hr/payslips':    <Ic color="golden"  d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />,
+  '/admin/employees':   <Ic color="violet"  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />,
+  '/admin/departments': <Ic color="blue"    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />,
+  '/admin/attendance':  <Ic color="green"   d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />,
+  '/admin/leaves':      <Ic color="blue"    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />,
+  '/admin/tasks':       <Ic color="violet"  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />,
+  '/admin/payslips':    <Ic color="golden"  d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />,
+  '/admin/policies':    <Ic color="green"   d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />,
+  '/admin/reports':     <Ic color="golden"  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />,
+  '/admin/crm':         <Ic color="golden"  d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />,
+  '/change-password':   <Ic color="red"     d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />,
+};
+
 const navConfig = {
   employee: [
-    { path: '/dashboard', label: 'Dashboard', icon: '⬡' },
-    { path: '/profile', label: 'My Profile', icon: '👤' },
-    { path: '/attendance', label: 'Attendance', icon: '📅' },
-    { path: '/leaves', label: 'Leave Requests', icon: '🌿' },
-    { path: '/payslips', label: 'Payslips', icon: '💳' },
-    { path: '/tasks', label: 'My Tasks', icon: '✅' },
+    { path: '/dashboard', label: 'Dashboard' },
+    { path: '/profile', label: 'My Profile' },
+    { path: '/attendance', label: 'Attendance' },
+    { path: '/leaves', label: 'Leave Requests' },
+    { path: '/payslips', label: 'Payslips' },
+    { path: '/tasks', label: 'My Tasks' },
   ],
   sales: [
-    { path: '/dashboard', label: 'Dashboard', icon: '⬡' },
-    { path: '/profile', label: 'My Profile', icon: '👤' },
-    { path: '/attendance', label: 'Attendance', icon: '📅' },
-    { path: '/leaves', label: 'Leave Requests', icon: '🌿' },
-    { path: '/payslips', label: 'Payslips', icon: '💳' },
-    { path: '/tasks', label: 'My Tasks', icon: '✅' },
-    { path: '/crm', label: 'CRM — Leads', icon: '🎯' },
+    { path: '/dashboard', label: 'Dashboard' },
+    { path: '/profile', label: 'My Profile' },
+    { path: '/attendance', label: 'Attendance' },
+    { path: '/leaves', label: 'Leave Requests' },
+    { path: '/payslips', label: 'Payslips' },
+    { path: '/tasks', label: 'My Tasks' },
+    { path: '/crm', label: 'CRM — Leads' },
   ],
   hr: [
-    { path: '/dashboard', label: 'Dashboard', icon: '⬡' },
-    { path: '/hr/employees', label: 'Employees', icon: '👥' },
-    { path: '/hr/attendance', label: 'Attendance', icon: '📅' },
-    { path: '/hr/leaves', label: 'Leave Approvals', icon: '🌿' },
-    { path: '/hr/tasks', label: 'Work & KPI', icon: '✅' },
-    { path: '/hr/payslips', label: 'Payslips', icon: '💳' },
-    { path: '/profile', label: 'My Profile', icon: '👤' },
-    { path: '/leaves', label: 'My Leave', icon: '🏖️' },
-    { path: '/attendance', label: 'My Attendance', icon: '🗓️' },
+    { path: '/dashboard', label: 'Dashboard' },
+    { path: '/hr/employees', label: 'Employees' },
+    { path: '/hr/attendance', label: 'Attendance' },
+    { path: '/hr/leaves', label: 'Leave Approvals' },
+    { path: '/hr/tasks', label: 'Work & KPI' },
+    { path: '/hr/payslips', label: 'Payslips' },
+    { path: '/profile', label: 'My Profile' },
+    { path: '/leaves', label: 'My Leave' },
+    { path: '/attendance', label: 'My Attendance' },
   ],
   admin: [
-    { path: '/dashboard', label: 'Dashboard', icon: '⬡' },
-    { path: '/profile', label: 'My Profile', icon: '👤' },
-    { path: '/admin/employees', label: 'Employees', icon: '👥' },
-    { path: '/admin/departments', label: 'Departments', icon: '🏢' },
-    { path: '/admin/attendance', label: 'Attendance', icon: '📅' },
-    { path: '/admin/leaves', label: 'Leave Management', icon: '🌿' },
-    { path: '/admin/tasks', label: 'Work & KPI', icon: '✅' },
-    { path: '/admin/payslips', label: 'Payroll', icon: '💳' },
-    { path: '/admin/policies', label: 'Leave Policies', icon: '📋' },
-    { path: '/admin/reports', label: 'Reports', icon: '📊' },
-    { path: '/admin/crm', label: 'CRM Analytics', icon: '🎯' },
+    { path: '/dashboard', label: 'Dashboard' },
+    { path: '/profile', label: 'My Profile' },
+    { path: '/admin/employees', label: 'Employees' },
+    { path: '/admin/departments', label: 'Departments' },
+    { path: '/admin/attendance', label: 'Attendance' },
+    { path: '/admin/leaves', label: 'Leave Management' },
+    { path: '/admin/tasks', label: 'Work & KPI' },
+    { path: '/admin/payslips', label: 'Payroll' },
+    { path: '/admin/policies', label: 'Leave Policies' },
+    { path: '/admin/reports', label: 'Reports' },
+    { path: '/admin/crm', label: 'CRM Analytics' },
   ],
 };
 
@@ -69,22 +113,17 @@ const Sidebar = ({ isOpen, onClose }) => {
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 h-full w-64 bg-violet-950 z-40 flex flex-col shadow-2xl transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:z-auto ${
+        className={`fixed top-0 left-0 h-full w-64 bg-violet-50/90 backdrop-blur-xl border-r border-violet-200 z-40 flex flex-col shadow-lg transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:z-auto ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         {/* Logo */}
-        <div className="px-6 py-5 border-b border-violet-800/50">
+        <div className="px-5 py-4 border-b border-violet-200">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-golden-500 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-lg">
-              HR
-            </div>
-            <div>
-              <h1 className="text-white font-bold text-base leading-none">HRMS System</h1>
-              <p className="text-violet-400 text-xs mt-0.5">
-                {user?.role === 'admin' ? 'Administrator' : user?.role === 'hr' ? 'HR Manager' : user?.role === 'sales' ? 'Sales CRM' : 'Employee Portal'}
-              </p>
-            </div>
+            <img src="/logo.png" alt="Zaltix Soft Solutions" className="h-10 object-contain" style={{ filter: 'none' }} />
+            <p className="text-violet-600 text-xs leading-snug">
+              {user?.role === 'admin' ? 'Administrator' : user?.role === 'hr' ? 'HR Manager' : user?.role === 'sales' ? 'Sales CRM' : 'Employee Portal'}
+            </p>
           </div>
         </div>
 
@@ -94,28 +133,30 @@ const Sidebar = ({ isOpen, onClose }) => {
             <NavLink key={item.path} to={item.path} onClick={onClose}
               className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
             >
-              <span className="text-base leading-none">{item.icon}</span>
+              {NAV_ICONS[item.path]}
               <span>{item.label}</span>
             </NavLink>
           ))}
         </nav>
 
         {/* User Info + Logout */}
-        <div className="px-4 py-4 border-t border-violet-800/50">
+        <div className="px-4 py-4 border-t border-violet-200">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-9 h-9 rounded-xl bg-violet-700 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-violet-600 ring-2 ring-golden-400/60 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
               {getInitials(user?.name)}
             </div>
             <div className="min-w-0">
-              <p className="text-white text-sm font-semibold truncate">{user?.name}</p>
-              <p className="text-violet-400 text-xs truncate">{user?.employeeId}</p>
+              <p className="text-violet-900 text-sm font-semibold truncate">{user?.name}</p>
+              <p className="text-violet-500 text-xs truncate">{user?.employeeId}</p>
             </div>
           </div>
           <NavLink to="/change-password" className="nav-item text-xs mb-1">
-            <span>🔐</span> Change Password
+            {NAV_ICONS['/change-password']}
+            <span>Change Password</span>
           </NavLink>
-          <button onClick={handleLogout} className="w-full nav-item text-red-400 hover:text-red-300 hover:bg-red-900/20">
-            <span>🚪</span> Logout
+          <button onClick={handleLogout} className="w-full nav-item text-red-600 hover:text-red-700 hover:bg-red-50">
+            <Ic color="red" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            <span>Logout</span>
           </button>
         </div>
       </aside>

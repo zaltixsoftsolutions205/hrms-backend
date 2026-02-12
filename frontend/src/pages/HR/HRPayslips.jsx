@@ -6,6 +6,12 @@ import Modal from '../../components/UI/Modal';
 import EmptyState from '../../components/UI/EmptyState';
 import { formatCurrency, monthName } from '../../utils/helpers';
 
+const SI = ({ d, d2, size = 16, color }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className={color || ''}>
+    <path d={d} />{d2 && <path d={d2} />}
+  </svg>
+);
+
 const HRPayslips = () => {
   const [payslips, setPayslips] = useState([]);
   const [employees, setEmployees] = useState([]);
@@ -19,7 +25,7 @@ const HRPayslips = () => {
     employeeId: '', month: now.getMonth() + 1, year: now.getFullYear(),
     basicSalary: '', workingDays: 26,
     allowances: [{ name: 'HRA', amount: 0 }, { name: 'Travel Allowance', amount: 0 }],
-    deductions: [{ name: 'PF', amount: 0 }, { name: 'Tax', amount: 0 }],
+    deductions: [{ name: 'PF', amount: 0 }, { name: 'ESI', amount: 0 }, { name: 'Tax', amount: 0 }],
   });
   const [selectedEmpSalary, setSelectedEmpSalary] = useState(null);
 
@@ -43,14 +49,16 @@ const HRPayslips = () => {
         ...f, employeeId: id,
         basicSalary: emp.basicSalary || '',
         allowances: emp.allowances?.length ? emp.allowances : [{ name: 'HRA', amount: 0 }],
-        deductions: emp.deductions?.length ? emp.deductions : [{ name: 'PF', amount: 0 }],
+        deductions: emp.deductions?.length ? emp.deductions : [{ name: 'PF', amount: 0 }, { name: 'ESI', amount: 0 }],
       }));
     } else {
       setForm(f => ({ ...f, employeeId: id }));
     }
   };
 
-  const grossSalary = parseFloat(form.basicSalary || 0) + form.allowances.reduce((s, a) => s + parseFloat(a.amount || 0), 0);
+  const basicVal = parseFloat(form.basicSalary || 0);
+  const totalAllowances = form.allowances.reduce((s, a) => s + parseFloat(a.amount || 0), 0);
+  const grossSalary = basicVal + totalAllowances;
   const totalDeductions = form.deductions.reduce((s, d) => s + parseFloat(d.amount || 0), 0);
   const netSalary = grossSalary - totalDeductions;
 
@@ -111,7 +119,7 @@ const HRPayslips = () => {
         </div>
 
         {payslips.length === 0 ? (
-          <EmptyState icon="💳" title="No payslips" message="Generate payslips for employees."
+          <EmptyState icon={<SI d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" size={40} color="text-violet-400" />} title="No payslips" message="Generate payslips for employees."
             action={{ label: 'Generate', onClick: () => setShowModal(true) }} />
         ) : (
           <div className="overflow-x-auto">
@@ -133,7 +141,7 @@ const HRPayslips = () => {
                     <td>
                       <button onClick={() => handleDownload(ps._id, ps.employee, ps.month, ps.year)}
                         disabled={downloading === ps._id} className="btn-primary btn-sm">
-                        {downloading === ps._id ? '...' : '⬇ PDF'}
+                        {downloading === ps._id ? '...' : <span className="flex items-center gap-1"><SI d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" size={13} color="text-white" /> PDF</span>}
                       </button>
                     </td>
                   </tr>
@@ -212,8 +220,11 @@ const HRPayslips = () => {
 
           {/* Summary */}
           <div className="bg-gradient-to-r from-violet-50 to-golden-50 rounded-xl p-4 space-y-2 text-sm">
+            <p className="text-xs text-violet-400 mb-1">Basic salary is pro-rated by attendance: (Present Days / Working Days) x Basic</p>
+            <div className="flex justify-between"><span className="text-gray-600">Basic Salary</span><span className="font-semibold">{formatCurrency(basicVal)}</span></div>
+            <div className="flex justify-between"><span className="text-gray-600">Allowances</span><span className="font-semibold">{formatCurrency(totalAllowances)}</span></div>
             <div className="flex justify-between"><span className="text-gray-600">Gross Salary</span><span className="font-semibold">{formatCurrency(grossSalary)}</span></div>
-            <div className="flex justify-between"><span className="text-gray-600">Total Deductions</span><span className="font-semibold text-red-600">- {formatCurrency(totalDeductions)}</span></div>
+            <div className="flex justify-between"><span className="text-gray-600">Total Deductions (PF + ESI + Tax + ...)</span><span className="font-semibold text-red-600">- {formatCurrency(totalDeductions)}</span></div>
             <div className="flex justify-between border-t border-violet-200 pt-2"><span className="font-bold text-violet-900">Net Pay</span><span className="font-bold text-golden-600 text-lg">{formatCurrency(netSalary)}</span></div>
           </div>
 

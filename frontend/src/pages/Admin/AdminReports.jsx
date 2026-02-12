@@ -7,6 +7,12 @@ import EmptyState from '../../components/UI/EmptyState';
 import Badge from '../../components/UI/Badge';
 import { formatCurrency, formatDate } from '../../utils/helpers';
 
+const SI = ({ d, d2, size = 16, color }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className={color || ''}>
+    <path d={d} />{d2 && <path d={d2} />}
+  </svg>
+);
+
 const AdminReports = () => {
   const [activeTab, setActiveTab] = useState('attendance');
   const [data, setData] = useState(null);
@@ -54,7 +60,7 @@ const AdminReports = () => {
     <div className="space-y-5 animate-fade-in">
       <div className="page-header">
         <div><h2 className="page-title">Reports</h2><p className="page-subtitle">Generate dynamic reports from live data</p></div>
-        {data && <button onClick={exportCSV} className="btn-secondary">⬇ Export CSV</button>}
+        {data && <button onClick={exportCSV} className="btn-secondary flex items-center gap-1.5"><SI d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" size={15} color="text-violet-600" /> Export CSV</button>}
       </div>
 
       {/* Tabs */}
@@ -79,12 +85,12 @@ const AdminReports = () => {
             {[now.getFullYear(), now.getFullYear() - 1].map(y => <option key={y} value={y}>{y}</option>)}
           </select>
           <button onClick={fetchReport} disabled={loading} className="btn-primary">
-            {loading ? 'Generating...' : '📊 Generate Report'}
+            {loading ? 'Generating...' : <span className="flex items-center gap-1.5"><SI d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" size={15} /> Generate Report</span>}
           </button>
         </div>
 
         {!data && !loading && (
-          <EmptyState icon="📊" title="No report generated" message="Set filters and click Generate Report." />
+          <EmptyState icon={<SI d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" size={40} color="text-violet-400" />} title="No report generated" message="Set filters and click Generate Report." />
         )}
 
         {loading && <div className="py-10 text-center text-violet-400 text-sm animate-pulse">Generating report...</div>}

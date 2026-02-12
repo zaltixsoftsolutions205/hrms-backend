@@ -7,6 +7,7 @@ const { payslipNotificationTemplate } = require('../utils/emailTemplates');
 const generatePayslipPDF = require('../utils/generatePayslipPDF');
 const moment = require('moment');
 const path = require('path');
+const fs = require('fs');
 
 const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -26,20 +27,24 @@ exports.generatePayslip = async (req, res) => {
     const attendanceRecords = await Attendance.find({ employee: employeeId, date: { $gte: startDate, $lte: endDate } });
     const presentDays = attendanceRecords.filter(r => r.status === 'present').length + attendanceRecords.filter(r => r.status === 'half-day').length * 0.5;
 
+    // Pro-rate basic salary based on attendance: (presentDays / workingDays) * basicSalary
+    const actualWorkingDays = workingDays || 26;
+    const proratedBasic = actualWorkingDays > 0 ? Math.round((presentDays / actualWorkingDays) * (basicSalary || 0)) : (basicSalary || 0);
+
     const totalAllowances = (allowances || []).reduce((s, a) => s + (a.amount || 0), 0);
     const totalDeductions = (deductions || []).reduce((s, d) => s + (d.amount || 0), 0);
-    const grossSalary = (basicSalary || 0) + totalAllowances;
+    const grossSalary = proratedBasic + totalAllowances;
     const netSalary = grossSalary - totalDeductions;
 
     const payslip = await Payslip.create({
       employee: employeeId,
       month, year,
-      basicSalary: basicSalary || employee.basicSalary,
+      basicSalary: proratedBasic,
       allowances: allowances || employee.allowances,
       deductions: deductions || employee.deductions,
       grossSalary, netSalary,
       generatedBy: req.user._id,
-      workingDays: workingDays || 26,
+      workingDays: actualWorkingDays,
       presentDays,
       status: 'published',
     });
@@ -120,15 +125,14 @@ exports.downloadPayslip = async (req, res) => {
       }
     }
 
-    if (!payslip.pdfPath) {
+    const absolutePath = path.join(__dirname, '..', payslip.pdfPath || '');
+    if (!payslip.pdfPath || !fs.existsSync(absolutePath)) {
       // Re-generate PDF on the fly
       const employee = await User.findById(payslip.employee._id).populate('department');
       const pdfPath = await generatePayslipPDF({ employee, ...payslip.toObject() });
       payslip.pdfPath = pdfPath;
       await payslip.save();
     }
-
-    const absolutePath = path.join(__dirname, '..', payslip.pdfPath);
     res.download(absolutePath);
   } catch (err) {
     res.status(500).json({ message: err.message });

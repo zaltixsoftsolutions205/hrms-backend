@@ -4,9 +4,14 @@ import toast from 'react-hot-toast';
 import api from '../../utils/api';
 import Card from '../../components/UI/Card';
 import Modal from '../../components/UI/Modal';
-import Badge from '../../components/UI/Badge';
 import EmptyState from '../../components/UI/EmptyState';
 import { formatDate, getInitials, formatCurrency } from '../../utils/helpers';
+
+const SI = ({ d, d2, size = 16, color }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className={color || ''}>
+    <path d={d} />{d2 && <path d={d2} />}
+  </svg>
+);
 
 const HREmployees = () => {
   const [employees, setEmployees] = useState([]);
@@ -16,7 +21,7 @@ const HREmployees = () => {
   const [selectedEmp, setSelectedEmp] = useState(null);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
-  const [form, setForm] = useState({ name: '', email: '', role: 'employee', departmentId: '', designation: '', phone: '', joiningDate: '', basicSalary: '' });
+  const [form, setForm] = useState({ employeeId: '', name: '', email: '', role: 'employee', departmentId: '', designation: '', phone: '', joiningDate: '', basicSalary: '' });
 
   const fetch = async () => {
     const [empRes, deptRes] = await Promise.all([api.get('/employees'), api.get('/admin/departments')]).catch(() => [{data:[]},{data:[]}]);
@@ -33,7 +38,7 @@ const HREmployees = () => {
       const res = await api.post('/employees', form);
       toast.success(`Employee created! Temp password: ${res.data.tempPassword}`, { duration: 6000 });
       setShowAddModal(false);
-      setForm({ name: '', email: '', role: 'employee', departmentId: '', designation: '', phone: '', joiningDate: '', basicSalary: '' });
+      setForm({ employeeId: '', name: '', email: '', role: 'employee', departmentId: '', designation: '', phone: '', joiningDate: '', basicSalary: '' });
       fetch();
     } catch (err) { toast.error(err.response?.data?.message || 'Failed to create employee'); }
     finally { setLoading(false); }
@@ -53,6 +58,15 @@ const HREmployees = () => {
     } catch (err) { toast.error(err.response?.data?.message || 'Failed to send credentials'); }
   };
 
+  const handleDelete = async (emp) => {
+    if (!window.confirm(`Are you sure you want to delete ${emp.name} (${emp.employeeId})? This will disable their login and remove them from active lists.`)) return;
+    try {
+      await api.delete(`/employees/${emp._id}`);
+      toast.success(`${emp.name} has been deleted.`);
+      fetch();
+    } catch (err) { toast.error(err.response?.data?.message || 'Failed to delete employee'); }
+  };
+
   const filtered = employees.filter(e => e.name.toLowerCase().includes(search.toLowerCase()) || e.employeeId?.includes(search) || e.email.toLowerCase().includes(search.toLowerCase()));
 
   return (
@@ -64,19 +78,19 @@ const HREmployees = () => {
 
       <Card>
         <div className="mb-4">
-          <input className="input-field max-w-xs" placeholder="🔍 Search by name, ID or email..."
+          <input className="input-field max-w-xs" placeholder="Search by name, ID or email..."
             value={search} onChange={e => setSearch(e.target.value)} />
         </div>
 
         {filtered.length === 0 ? (
-          <EmptyState icon="👥" title="No employees" message="Add your first employee to get started."
+          <EmptyState icon={<SI d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" size={40} color="text-violet-400" />} title="No employees" message="Add your first employee to get started."
             action={{ label: 'Add Employee', onClick: () => setShowAddModal(true) }} />
         ) : (
           <div className="overflow-x-auto">
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Employee</th><th>Department</th><th>Role</th><th>Joining</th><th>Salary</th><th>Status</th><th>Actions</th>
+                  <th>Employee</th><th>Department</th><th>Role</th><th>Joining</th><th>Salary</th><th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -97,12 +111,12 @@ const HREmployees = () => {
                     <td className="capitalize">{emp.role}</td>
                     <td>{formatDate(emp.joiningDate)}</td>
                     <td>{emp.basicSalary > 0 ? formatCurrency(emp.basicSalary) : '—'}</td>
-                    <td><Badge status={emp.isActive ? 'present' : 'absent'} label={emp.isActive ? 'Active' : 'Inactive'} /></td>
                     <td>
                       <div className="flex gap-1">
-                        <button onClick={() => sendOffer(emp)} className="btn-ghost btn-sm text-xs">📧 Offer</button>
-                        <button onClick={() => sendCreds(emp)} className="btn-ghost btn-sm text-xs">🔐 Creds</button>
+                        <button onClick={() => sendOffer(emp)} className="btn-ghost btn-sm text-xs flex items-center gap-1"><SI d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" size={13} color="text-violet-600" /> Offer</button>
+                        <button onClick={() => sendCreds(emp)} className="btn-ghost btn-sm text-xs flex items-center gap-1"><SI d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" size={13} color="text-violet-600" /> Creds</button>
                         <button onClick={() => { setSelectedEmp(emp); setShowEditModal(true); }} className="btn-secondary btn-sm text-xs">Edit</button>
+                        <button onClick={() => handleDelete(emp)} className="btn-sm text-xs text-red-600 hover:bg-red-50 rounded-lg px-2 py-1 transition-colors">Delete</button>
                       </div>
                     </td>
                   </tr>
@@ -116,7 +130,8 @@ const HREmployees = () => {
       {/* Add Employee Modal */}
       <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)} title="Add New Employee" size="lg">
         <form onSubmit={handleCreate} className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
+            <div><label className="input-label">Employee ID *</label><input className="input-field" required value={form.employeeId} onChange={e => setForm(f => ({ ...f, employeeId: e.target.value }))} placeholder="e.g. EMP0001" /></div>
             <div><label className="input-label">Full Name *</label><input className="input-field" required value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Full name" /></div>
             <div><label className="input-label">Email *</label><input type="email" className="input-field" required value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="Email address" /></div>
           </div>
@@ -167,7 +182,7 @@ const EditEmployeeForm = ({ emp, departments, onDone }) => {
   const [form, setForm] = useState({
     name: emp.name, designation: emp.designation || '', phone: emp.phone || '',
     department: emp.department?._id || '', joiningDate: emp.joiningDate ? new Date(emp.joiningDate).toISOString().split('T')[0] : '',
-    basicSalary: emp.basicSalary || 0, isActive: emp.isActive, role: emp.role,
+    basicSalary: emp.basicSalary || 0, role: emp.role,
   });
   const [loading, setLoading] = useState(false);
 
@@ -208,10 +223,6 @@ const EditEmployeeForm = ({ emp, departments, onDone }) => {
           <option value="sales">Sales</option>
           <option value="hr">HR</option>
         </select>
-      </div>
-      <div className="flex items-center gap-2">
-        <input type="checkbox" id="isActive" checked={form.isActive} onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))} className="w-4 h-4 accent-violet-600" />
-        <label htmlFor="isActive" className="text-sm font-medium text-violet-900">Active Employee</label>
       </div>
       <div className="flex gap-3">
         <button onClick={handleSave} className="btn-primary flex-1" disabled={loading}>{loading ? 'Saving...' : 'Save Changes'}</button>

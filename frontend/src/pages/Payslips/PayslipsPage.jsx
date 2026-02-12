@@ -6,6 +6,12 @@ import Card from '../../components/UI/Card';
 import EmptyState from '../../components/UI/EmptyState';
 import { formatCurrency, monthName } from '../../utils/helpers';
 
+const SI = ({ d, d2, size = 16, color }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className={color || ''}>
+    <path d={d} />{d2 && <path d={d2} />}
+  </svg>
+);
+
 const PayslipsPage = () => {
   const [payslips, setPayslips] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -38,12 +44,15 @@ const PayslipsPage = () => {
         {loading ? (
           <div className="py-10 text-center text-violet-400 text-sm">Loading...</div>
         ) : payslips.length === 0 ? (
-          <EmptyState icon="💳" title="No payslips yet" message="Your payslips will appear here once published by HR." />
+          <EmptyState icon={<SI d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" size={40} color="text-violet-400" />} title="No payslips yet" message="Your payslips will appear here once published by HR." />
         ) : (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {payslips.map(ps => (
               <motion.div key={ps._id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
                 className="border border-violet-100 rounded-2xl p-4 hover:bg-violet-50/40 transition-colors">
+                <div className="mb-3 pb-3 border-b border-violet-100">
+                  <img src="/logo.png" alt="Zaltix Soft Solutions" className="h-7 object-contain" />
+                </div>
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <p className="font-bold text-violet-900">{monthName(ps.month)} {ps.year}</p>
@@ -72,7 +81,7 @@ const PayslipsPage = () => {
                 <button onClick={() => handleDownload(ps._id, ps.month, ps.year)}
                   disabled={downloading === ps._id}
                   className="w-full btn-primary btn-sm flex items-center justify-center gap-2">
-                  {downloading === ps._id ? 'Downloading...' : '⬇ Download PDF'}
+                  {downloading === ps._id ? 'Downloading...' : <span className="flex items-center gap-1.5"><SI d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" size={14} /> Download PDF</span>}
                 </button>
               </motion.div>
             ))}

@@ -6,6 +6,12 @@ import Card, { KpiCard } from '../../components/UI/Card';
 import Badge from '../../components/UI/Badge';
 import EmptyState from '../../components/UI/EmptyState';
 
+const SI = ({ d, d2, size = 16, color }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className={color || ''}>
+    <path d={d} />{d2 && <path d={d2} />}
+  </svg>
+);
+
 const AttendancePage = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -77,16 +83,16 @@ const AttendancePage = () => {
           <div className="flex gap-3 ml-auto">
             {!today?.checkIn && (
               <button onClick={handleCheckIn} disabled={actionLoading} className="btn-primary">
-                {actionLoading ? '...' : '🟢 Check In'}
+                {actionLoading ? '...' : <span className="flex items-center gap-1.5"><SI d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" size={15} color="text-green-600" /> Check In</span>}
               </button>
             )}
             {today?.checkIn && !today?.checkOut && (
               <button onClick={handleCheckOut} disabled={actionLoading} className="btn-danger">
-                {actionLoading ? '...' : '🔴 Check Out'}
+                {actionLoading ? '...' : <span className="flex items-center gap-1.5"><SI d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" size={15} color="text-red-500" /> Check Out</span>}
               </button>
             )}
             {today?.checkIn && today?.checkOut && (
-              <span className="badge-green px-4 py-2 text-sm font-semibold">Day Complete ✓</span>
+              <span className="badge-green px-4 py-2 text-sm font-semibold flex items-center gap-1.5">Day Complete <SI d="M5 13l4 4L19 7" size={14} color="text-green-600" /></span>
             )}
           </div>
         </div>
@@ -94,10 +100,10 @@ const AttendancePage = () => {
 
       {/* Monthly Summary */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <KpiCard label="Present" value={data?.summary?.present ?? '—'} icon="✅" color="green" />
-        <KpiCard label="Absent" value={data?.summary?.absent ?? '—'} icon="❌" color="red" />
-        <KpiCard label="Half Day" value={data?.summary?.halfDay ?? '—'} icon="🌗" color="golden" />
-        <KpiCard label="Total Hours" value={data?.summary?.totalWorkHours ? `${data.summary.totalWorkHours}h` : '—'} icon="⏱" color="violet" />
+        <KpiCard label="Present" value={data?.summary?.present ?? '—'} icon={<SI d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" size={14} color="text-green-600" />} color="green" />
+        <KpiCard label="Absent" value={data?.summary?.absent ?? '—'} icon={<SI d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" size={14} color="text-red-500" />} color="red" />
+        <KpiCard label="Half Day" value={data?.summary?.halfDay ?? '—'} icon={<SI d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" size={14} color="text-blue-500" />} color="golden" />
+        <KpiCard label="Total Hours" value={data?.summary?.totalWorkHours ? `${data.summary.totalWorkHours}h` : '—'} icon={<SI d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" size={14} color="text-amber-500" />} color="violet" />
       </div>
 
       {/* Filter */}
@@ -119,7 +125,7 @@ const AttendancePage = () => {
         {loading ? (
           <div className="py-10 text-center text-violet-400 text-sm">Loading...</div>
         ) : data?.records?.length === 0 ? (
-          <EmptyState icon="📅" title="No attendance records" message="No records found for the selected period." />
+          <EmptyState icon={<SI d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" size={40} color="text-violet-400" />} title="No attendance records" message="No records found for the selected period." />
         ) : (
           <div className="overflow-x-auto">
             <table className="data-table">

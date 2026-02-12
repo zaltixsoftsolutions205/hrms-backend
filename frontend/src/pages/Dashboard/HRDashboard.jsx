@@ -8,6 +8,21 @@ import Spinner from '../../components/UI/Spinner';
 import { formatDate } from '../../utils/helpers';
 import { useAuth } from '../../contexts/AuthContext';
 
+const DI = ({ d, size = 20 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+    <path d={d} />
+  </svg>
+);
+
+const plusCircleD = "M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z";
+const calendarD = "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z";
+const clockD = "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z";
+const clipboardCheckD = "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4";
+const creditCardD = "M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z";
+const usersD = "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z";
+const checkCircleD = "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z";
+const clipboardListD = "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h.01M12 12h.01M9 16h6";
+
 const HRDashboard = () => {
   const { user } = useAuth();
   const [stats, setStats] = useState(null);
@@ -50,32 +65,32 @@ const HRDashboard = () => {
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           <Link to="/hr/employees"
             className="bg-violet-100 text-violet-700 p-4 rounded-xl flex flex-col items-center gap-2 hover:opacity-80 transition-opacity">
-            <span className="text-2xl">➕</span>
+            <DI d={plusCircleD} size={24} />
             <span className="text-xs font-semibold text-center">Add Employee</span>
           </Link>
           <Link to="/hr/attendance"
             className="bg-blue-100 text-blue-700 p-4 rounded-xl flex flex-col items-center gap-2 hover:opacity-80 transition-opacity">
-            <span className="text-2xl">📅</span>
+            <DI d={calendarD} size={24} />
             <span className="text-xs font-semibold text-center">View Attendance</span>
           </Link>
           <Link to="/hr/leaves"
             className="bg-green-100 text-green-700 p-4 rounded-xl flex flex-col items-center gap-2 hover:opacity-80 transition-opacity">
-            <span className="text-2xl">🌿</span>
+            <DI d={clockD} size={24} />
             <span className="text-xs font-semibold text-center">Leave Requests</span>
           </Link>
           <Link to="/hr/tasks"
             className="bg-golden-100 text-golden-700 p-4 rounded-xl flex flex-col items-center gap-2 hover:opacity-80 transition-opacity">
-            <span className="text-2xl">✅</span>
+            <DI d={clipboardCheckD} size={24} />
             <span className="text-xs font-semibold text-center">Assign Work</span>
           </Link>
           <Link to="/hr/payslips"
             className="bg-red-100 text-red-700 p-4 rounded-xl flex flex-col items-center gap-2 hover:opacity-80 transition-opacity">
-            <span className="text-2xl">💳</span>
+            <DI d={creditCardD} size={24} />
             <span className="text-xs font-semibold text-center">Generate Payslip</span>
           </Link>
           <Link to="/attendance"
             className="bg-violet-100 text-violet-700 p-4 rounded-xl flex flex-col items-center gap-2 hover:opacity-80 transition-opacity">
-            <span className="text-2xl">🗓️</span>
+            <DI d={calendarD} size={24} />
             <span className="text-xs font-semibold text-center">My Attendance</span>
           </Link>
         </div>
@@ -83,10 +98,10 @@ const HRDashboard = () => {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard label="Total Employees" value={stats?.totalEmployees ?? '—'} icon="👥" color="violet" />
-        <KpiCard label="Present Today" value={stats?.presentToday ?? '—'} icon="✅" color="green" />
-        <KpiCard label="Pending Leaves" value={stats?.pendingLeaves ?? '—'} icon="🌿" color="golden" />
-        <KpiCard label="Open Tasks" value={stats?.openTasks ?? '—'} icon="📋" color="violet" />
+        <KpiCard label="Total Employees" value={stats?.totalEmployees ?? '—'} icon={<DI d={usersD} />} color="violet" />
+        <KpiCard label="Present Today" value={stats?.presentToday ?? '—'} icon={<DI d={checkCircleD} />} color="green" />
+        <KpiCard label="Pending Leaves" value={stats?.pendingLeaves ?? '—'} icon={<DI d={clockD} />} color="golden" />
+        <KpiCard label="Open Tasks" value={stats?.openTasks ?? '—'} icon={<DI d={clipboardListD} />} color="violet" />
       </div>
 
       <div className="grid lg:grid-cols-2 gap-5">

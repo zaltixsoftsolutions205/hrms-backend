@@ -6,6 +6,12 @@ import api from '../utils/api';
 import { useAuth } from '../contexts/AuthContext';
 import Card from '../components/UI/Card';
 
+const SI = ({ d, d2, size = 16, color }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className={color || ''}>
+    <path d={d} />{d2 && <path d={d2} />}
+  </svg>
+);
+
 const ChangePassword = () => {
   const [form, setForm] = useState({ currentPassword: '', newPassword: '', confirm: '' });
   const [loading, setLoading] = useState(false);
@@ -32,7 +38,7 @@ const ChangePassword = () => {
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
         {user?.isFirstLogin && (
           <div className="mb-6 p-4 bg-golden-50 border border-golden-200 rounded-xl">
-            <p className="text-sm font-medium text-golden-800">⚠️ First Login Detected</p>
+            <p className="text-sm font-medium text-golden-800 flex items-center gap-1.5"><SI d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" size={15} color="text-amber-500" /> First Login Detected</p>
             <p className="text-xs text-golden-600 mt-1">You must change your password before continuing.</p>
           </div>
         )}

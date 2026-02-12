@@ -7,6 +7,28 @@ import { KpiCard } from '../../components/UI/Card';
 import Spinner from '../../components/UI/Spinner';
 import { formatCurrency } from '../../utils/helpers';
 
+const DI = ({ d, d2, circle, size = 20 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+    {circle && <circle cx={circle[0]} cy={circle[1]} r={circle[2]} />}
+    <path d={d} />
+    {d2 && <path d={d2} />}
+  </svg>
+);
+
+const usersD = "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z";
+const checkCircleD = "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z";
+const clockD = "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z";
+const clipboardListD = "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h.01M12 12h.01M9 16h6";
+const crmD = "M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7";
+const sparklesD = "M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z";
+const plusCircleD = "M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z";
+const calendarD = "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z";
+const clipboardCheckD = "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4";
+const creditCardD = "M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z";
+const buildingD = "M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4";
+const documentD = "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z";
+const chartBarD = "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z";
+
 const COLORS = ['#7C3AED', '#D97706', '#16a34a', '#dc2626'];
 
 const AdminDashboard = () => {
@@ -61,12 +83,12 @@ const AdminDashboard = () => {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-        <KpiCard label="Total Employees" value={stats?.totalEmployees ?? '—'} icon="👥" color="violet" />
-        <KpiCard label="Present Today" value={stats?.presentToday ?? '—'} icon="✅" color="green" />
-        <KpiCard label="Pending Leaves" value={stats?.pendingLeaves ?? '—'} icon="🌿" color="golden" />
-        <KpiCard label="Open Tasks" value={stats?.openTasks ?? '—'} icon="📋" color="violet" />
-        <KpiCard label="Total Leads" value={stats?.totalLeads ?? '—'} icon="🎯" color="golden" />
-        <KpiCard label="Converted Leads" value={stats?.convertedLeads ?? '—'} icon="🎉" color="green" />
+        <KpiCard label="Total Employees" value={stats?.totalEmployees ?? '—'} icon={<DI d={usersD} />} color="violet" />
+        <KpiCard label="Present Today" value={stats?.presentToday ?? '—'} icon={<DI d={checkCircleD} />} color="green" />
+        <KpiCard label="Pending Leaves" value={stats?.pendingLeaves ?? '—'} icon={<DI d={clockD} />} color="golden" />
+        <KpiCard label="Open Tasks" value={stats?.openTasks ?? '—'} icon={<DI d={clipboardListD} />} color="violet" />
+        <KpiCard label="Total Leads" value={stats?.totalLeads ?? '—'} icon={<DI d={crmD} />} color="golden" />
+        <KpiCard label="Converted Leads" value={stats?.convertedLeads ?? '—'} icon={<DI d={sparklesD} />} color="green" />
       </div>
 
       <div className="grid lg:grid-cols-2 gap-5">
@@ -123,18 +145,18 @@ const AdminDashboard = () => {
         <h3 className="font-bold text-violet-900 mb-4">Quick Actions</h3>
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
           {[
-            { label: 'Add Employee', path: '/admin/employees', icon: '➕', color: 'bg-violet-100 text-violet-700' },
-            { label: 'Attendance', path: '/admin/attendance', icon: '📅', color: 'bg-blue-100 text-blue-700' },
-            { label: 'Leave Approvals', path: '/admin/leaves', icon: '🌿', color: 'bg-green-100 text-green-700' },
-            { label: 'Assign Tasks', path: '/admin/tasks', icon: '✅', color: 'bg-golden-100 text-golden-700' },
-            { label: 'Payroll', path: '/admin/payslips', icon: '💳', color: 'bg-red-100 text-red-700' },
-            { label: 'Departments', path: '/admin/departments', icon: '🏢', color: 'bg-blue-100 text-blue-700' },
-            { label: 'Leave Policies', path: '/admin/policies', icon: '📋', color: 'bg-green-100 text-green-700' },
-            { label: 'Reports', path: '/admin/reports', icon: '📊', color: 'bg-golden-100 text-golden-700' },
+            { label: 'Add Employee', path: '/admin/employees', icon: plusCircleD, color: 'bg-violet-100 text-violet-700' },
+            { label: 'Attendance', path: '/admin/attendance', icon: calendarD, color: 'bg-blue-100 text-blue-700' },
+            { label: 'Leave Approvals', path: '/admin/leaves', icon: clockD, color: 'bg-green-100 text-green-700' },
+            { label: 'Assign Tasks', path: '/admin/tasks', icon: clipboardCheckD, color: 'bg-golden-100 text-golden-700' },
+            { label: 'Payroll', path: '/admin/payslips', icon: creditCardD, color: 'bg-red-100 text-red-700' },
+            { label: 'Departments', path: '/admin/departments', icon: buildingD, color: 'bg-blue-100 text-blue-700' },
+            { label: 'Leave Policies', path: '/admin/policies', icon: documentD, color: 'bg-green-100 text-green-700' },
+            { label: 'Reports', path: '/admin/reports', icon: chartBarD, color: 'bg-golden-100 text-golden-700' },
           ].map(item => (
             <Link key={item.path} to={item.path}
               className={`${item.color} p-4 rounded-xl flex flex-col items-center gap-2 hover:opacity-80 transition-opacity`}>
-              <span className="text-2xl">{item.icon}</span>
+              <DI d={item.icon} size={24} />
               <span className="text-xs font-semibold text-center">{item.label}</span>
             </Link>
           ))}

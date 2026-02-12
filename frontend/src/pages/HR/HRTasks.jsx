@@ -7,6 +7,12 @@ import Badge from '../../components/UI/Badge';
 import EmptyState from '../../components/UI/EmptyState';
 import { formatDate } from '../../utils/helpers';
 
+const SI = ({ d, d2, size = 16, color }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className={color || ''}>
+    <path d={d} />{d2 && <path d={d2} />}
+  </svg>
+);
+
 const HRTasks = () => {
   const [tasks, setTasks] = useState([]);
   const [kpiData, setKpiData] = useState([]);
@@ -54,7 +60,7 @@ const HRTasks = () => {
         {['tasks', 'kpi'].map(t => (
           <button key={t} onClick={() => setActiveTab(t)}
             className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${activeTab === t ? 'bg-violet-700 text-white' : 'bg-violet-100 text-violet-600 hover:bg-violet-200'}`}>
-            {t === 'tasks' ? '📋 Task List' : '📊 KPI Overview'}
+            {t === 'tasks' ? <span className="flex items-center gap-1.5"><SI d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" size={14} /> Task List</span> : <span className="flex items-center gap-1.5"><SI d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" size={14} /> KPI Overview</span>}
           </button>
         ))}
       </div>
@@ -68,7 +74,7 @@ const HRTasks = () => {
             </select>
           </div>
           {tasks.length === 0 ? (
-            <EmptyState icon="📋" title="No tasks" message="Assign work to employees."
+            <EmptyState icon={<SI d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" size={40} color="text-violet-400" />} title="No tasks" message="Assign work to employees."
               action={{ label: 'Assign Task', onClick: () => setShowModal(true) }} />
           ) : (
             <div className="overflow-x-auto">
@@ -100,7 +106,7 @@ const HRTasks = () => {
       ) : (
         <div className="space-y-3">
           {kpiData.length === 0 ? (
-            <EmptyState icon="📊" title="No KPI data" message="Assign tasks to employees to see KPI overview." />
+            <EmptyState icon={<SI d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" size={40} color="text-violet-400" />} title="No KPI data" message="Assign tasks to employees to see KPI overview." />
           ) : (
             kpiData.map(item => (
               <div key={item.employee._id} className="glass-card p-5">

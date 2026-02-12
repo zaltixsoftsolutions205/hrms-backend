@@ -45,7 +45,7 @@ const Layout = () => {
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Navbar onMenuToggle={() => setSidebarOpen(!sidebarOpen)} pageTitle={title} />
-        <main className="flex-1 overflow-y-auto bg-gradient-to-br from-violet-50/50 via-white to-golden-50/20 p-4 lg:p-6">
+        <main className="flex-1 overflow-y-auto bg-gradient-to-br from-violet-50/60 via-white to-white p-4 lg:p-8">
           <Outlet />
         </main>
       </div>

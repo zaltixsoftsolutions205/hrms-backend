@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { PageLoader } from './components/UI/Spinner';
 import Layout from './components/Layout/Layout';
+import PWAInstallBanner from './components/PWAInstallBanner';
 
 // Pages
 import Login from './pages/Login';
@@ -94,6 +95,7 @@ const App = () => (
   <BrowserRouter>
     <AuthProvider>
       <AppRoutes />
+      <PWAInstallBanner />
     </AuthProvider>
   </BrowserRouter>
 );

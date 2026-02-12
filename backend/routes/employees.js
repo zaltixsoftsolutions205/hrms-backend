@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { createEmployee, sendOfferLetter, sendCredentials, getAllEmployees, getEmployee, updateEmployee, updateOwnProfile } = require('../controllers/employeeController');
+const { createEmployee, sendOfferLetter, sendCredentials, getAllEmployees, getEmployee, updateEmployee, updateOwnProfile, deleteEmployee } = require('../controllers/employeeController');
 const { protect } = require('../middleware/auth');
 const { roleCheck } = require('../middleware/roleCheck');
 
@@ -14,5 +14,6 @@ router.get('/', roleCheck('hr', 'admin'), getAllEmployees);
 router.get('/:id', getEmployee);
 router.put('/me/profile', updateOwnProfile);
 router.put('/:id', roleCheck('hr', 'admin'), updateEmployee);
+router.delete('/:id', roleCheck('hr', 'admin'), deleteEmployee);
 
 module.exports = router;
