@@ -1,0 +1,130 @@
+services:
+
+  # ===========================================================================
+  # HRMS Backend API
+  # ===========================================================================
+  hrms-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: hrms-backend
+    restart: unless-stopped
+
+    ports:
+      - "${PORT:-5000}:5000"
+
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      # -----------------------------------------------------------------------
+      # Option A: MongoDB Atlas (remote) — set MONGO_URI in your .env file
+      # MONGO_URI: ${MONGO_URI}
+      #
+      # Option B: Local MongoDB container — uncomment the mongo service below
+      # and set MONGO_URI to: mongodb://mongo:27017/hrms_db
+      # -----------------------------------------------------------------------
+      MONGO_URI: ${MONGO_URI}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      # Add any other env vars your app needs below:
+      # SMTP_HOST: ${SMTP_HOST}
+      # SMTP_PORT: ${SMTP_PORT}
+      # SMTP_USER: ${SMTP_USER}
+      # SMTP_PASS: ${SMTP_PASS}
+
+    volumes:
+      # Persist uploaded files across container restarts
+      - hrms_uploads:/app/uploads
+
+    networks:
+      - hrms_network
+
+    # Healthcheck mirrors the HEALTHCHECK in Dockerfile
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "http://localhost:5000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+    # Resource limits (tune to your server specs)
+    deploy:
+      resources:
+        limits:
+          cpus: "1.00"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
+
+    # Log rotation so logs don't fill your disk
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+    depends_on:
+      mongo:
+        condition: service_healthy   # only start after mongo is ready
+                                     # remove this block if using Atlas
+
+
+  # ===========================================================================
+  # MongoDB (LOCAL — comment out this entire service if using Atlas)
+  # ===========================================================================
+  mongo:
+    image: mongo:7-jammy
+    container_name: hrms-mongo
+    restart: unless-stopped
+
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASS}
+      MONGO_INITDB_DATABASE: hrms_db
+
+    volumes:
+      # Named volume keeps your data safe across container restarts
+      - mongo_data:/data/db
+      # Optional: seed/init scripts go here
+      # - ./seed.js:/docker-entrypoint-initdb.d/seed.js:ro
+
+    networks:
+      - hrms_network
+
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    # Expose only internally — remove port mapping in production
+    # (only uncomment for local development/debugging)
+    # ports:
+    #   - "27017:27017"
+
+
+# =============================================================================
+# Named Volumes
+# =============================================================================
+volumes:
+  mongo_data:
+    driver: local
+  hrms_uploads:
+    driver: local
+
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  hrms_network:
+    driver: bridge
