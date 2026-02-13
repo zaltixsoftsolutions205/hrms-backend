@@ -58,10 +58,11 @@ jobs:
             echo "Removing old myapp container if exists..."
             docker rm -f myapp || true
 
-            echo "Starting new container..."
+            echo "Starting new container with env file..."
             docker run -d \
               --name myapp \
               -p 5000:5000 \
+              --env-file /home/ubuntu/hrms/.env \
               --restart always \
               $IMAGE_URI
 
