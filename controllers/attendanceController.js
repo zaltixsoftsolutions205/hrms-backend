@@ -2,10 +2,16 @@ const Attendance = require('../models/Attendance');
 const User = require('../models/User');
 const moment = require('moment');
 
+// IST helpers — adds 5h30m to UTC, then reads as if UTC string = IST string
+// Works on any server timezone (UTC, IST, anything)
+const istNow = () => new Date(Date.now() + 5.5 * 60 * 60 * 1000);
+const istDate = () => istNow().toISOString().slice(0, 10);   // YYYY-MM-DD
+const istTime = () => istNow().toISOString().slice(11, 16);  // HH:mm
+
 // Employee: Check-in
 exports.checkIn = async (req, res) => {
-  const today = moment().format('YYYY-MM-DD');
-  const now = moment().format('HH:mm');
+  const today = istDate();
+  const now = istTime();
   try {
     const existing = await Attendance.findOne({ employee: req.user._id, date: today });
     if (existing) return res.status(400).json({ message: 'Already checked in today' });
@@ -24,8 +30,8 @@ exports.checkIn = async (req, res) => {
 
 // Employee: Check-out
 exports.checkOut = async (req, res) => {
-  const today = moment().format('YYYY-MM-DD');
-  const now = moment().format('HH:mm');
+  const today = istDate();
+  const now = istTime();
   try {
     const record = await Attendance.findOne({ employee: req.user._id, date: today });
     if (!record) return res.status(404).json({ message: 'No check-in found for today' });
@@ -64,7 +70,7 @@ exports.getMyAttendance = async (req, res) => {
       totalWorkHours: records.reduce((sum, r) => sum + (r.workHours || 0), 0).toFixed(2),
     };
 
-    const today = moment().format('YYYY-MM-DD');
+    const today = istDate();
     const todayRecord = await Attendance.findOne({ employee: req.user._id, date: today });
 
     res.json({ records, summary, todayRecord: todayRecord || null });
@@ -75,7 +81,7 @@ exports.getMyAttendance = async (req, res) => {
 
 // HR / Admin: Get all attendance
 exports.getAllAttendance = async (req, res) => {
-  const { month, year, employeeId, departmentId } = req.query;
+  const { month, year, employeeId, departmentId, date } = req.query;
   try {
     let empFilter = {};
     if (departmentId) empFilter.department = departmentId;
@@ -85,7 +91,9 @@ exports.getAllAttendance = async (req, res) => {
     const empIds = employees.map(e => e._id);
 
     let filter = { employee: { $in: empIds } };
-    if (month && year) {
+    if (date) {
+      filter.date = date;
+    } else if (month && year) {
       const start = `${year}-${String(month).padStart(2, '0')}-01`;
       const end = moment(start).endOf('month').format('YYYY-MM-DD');
       filter.date = { $gte: start, $lte: end };
