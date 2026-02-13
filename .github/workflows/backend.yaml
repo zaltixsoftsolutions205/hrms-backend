@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout
+      # 1️⃣ Checkout Repository
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -20,7 +20,7 @@ jobs:
         with:
           aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region:            us-east-1   # REQUIRED for public ECR
+          aws-region:            us-east-1
 
       # 3️⃣ Login to Public ECR
       - name: Login to Public ECR
@@ -28,7 +28,7 @@ jobs:
           aws ecr-public get-login-password --region us-east-1 \
           | docker login --username AWS --password-stdin public.ecr.aws
 
-      # 4️⃣ Build & Push Image
+      # 4️⃣ Build & Push Docker Image
       - name: Build and Push
         run: |
           IMAGE_URI=public.ecr.aws/n2e2a2z5/hrms-backend:latest
@@ -45,11 +45,24 @@ jobs:
           script: |
             IMAGE_URI=public.ecr.aws/n2e2a2z5/hrms-backend:latest
 
+            echo "Pulling latest image..."
             docker pull $IMAGE_URI
-            docker stop myapp || true
-            docker rm myapp || true
+
+            echo "Stopping any container using port 5000..."
+            CONTAINER_ID=$(docker ps -q --filter "publish=5000")
+            if [ ! -z "$CONTAINER_ID" ]; then
+              docker stop $CONTAINER_ID
+              docker rm $CONTAINER_ID
+            fi
+
+            echo "Removing old myapp container if exists..."
+            docker rm -f myapp || true
+
+            echo "Starting new container..."
             docker run -d \
               --name myapp \
               -p 5000:5000 \
               --restart always \
               $IMAGE_URI
+
+            echo "Deployment successful 🚀"
