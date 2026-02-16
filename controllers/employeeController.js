@@ -1,13 +1,15 @@
 const User = require('../models/User');
 const Department = require('../models/Department');
 const Notification = require('../models/Notification');
+const Document = require('../models/Document');
 const { sendMail } = require('../config/mail');
 const { offerLetterTemplate, credentialsTemplate } = require('../utils/emailTemplates');
+const { getRequiredDocs } = require('./documentController');
 const crypto = require('crypto');
 
 // HR / Admin: Create employee
 exports.createEmployee = async (req, res) => {
-  const { name, email, role, departmentId, designation, phone, joiningDate, basicSalary, allowances, deductions, address, employeeId } = req.body;
+  const { name, email, role, departmentId, designation, phone, joiningDate, basicSalary, allowances, deductions, address, employeeId, employeeType } = req.body;
   try {
     if (!employeeId || !employeeId.trim()) return res.status(400).json({ message: 'Employee ID is required' });
 
@@ -28,7 +30,16 @@ exports.createEmployee = async (req, res) => {
       deductions: deductions || [],
       address: address || '',
       isFirstLogin: true,
+      employeeType: employeeType || null,
     });
+
+    // Seed required document slots for new employees with onboarding type
+    if (employeeType && ['fresher', 'experienced'].includes(employeeType)) {
+      const requiredDocs = getRequiredDocs(employeeType);
+      await Document.insertMany(
+        requiredDocs.map(docType => ({ employee: employee._id, docType, status: 'pending_upload' }))
+      );
+    }
 
     const populated = await User.findById(employee._id).populate('department');
     res.status(201).json({ employee: populated, tempPassword });
@@ -194,17 +205,20 @@ exports.updateEmployee = async (req, res) => {
   }
 };
 
-// HR / Admin: Delete employee (soft delete — disable login, remove from active lists)
+// HR / Admin: Delete employee (hard delete — permanently removes from database)
 exports.deleteEmployee = async (req, res) => {
   try {
     const employee = await User.findById(req.params.id);
     if (!employee) return res.status(404).json({ message: 'Employee not found' });
     if (employee.role === 'admin') return res.status(403).json({ message: 'Cannot delete an admin account' });
 
-    employee.isActive = false;
-    await employee.save();
+    const name = employee.name;
+    await employee.deleteOne();
 
-    res.json({ message: `${employee.name} has been deleted and their login has been disabled.` });
+    // Also delete any onboarding documents for this employee
+    await Document.deleteMany({ employee: req.params.id });
+
+    res.json({ message: `${name} has been permanently deleted.` });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

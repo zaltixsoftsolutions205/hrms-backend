@@ -19,6 +19,7 @@ const userSchema = new mongoose.Schema(
     isFirstLogin: { type: Boolean, default: true },
     isActive: { type: Boolean, default: true },
     profilePicture: { type: String, default: '' },
+    employeeType: { type: String, enum: ['fresher', 'experienced'], default: null },
     emergencyContact: { name: String, phone: String, relation: String },
     resetPasswordToken: { type: String, default: null },
     resetPasswordExpires: { type: Date, default: null },

@@ -12,6 +12,11 @@ const attendanceSchema = new mongoose.Schema(
     // Late / early detection (office: 09:30 – 18:30)
     isLate: { type: Boolean, default: false },
     isEarlyLeave: { type: Boolean, default: false },
+    // Location at check-in
+    checkInLocation: {
+      lat: { type: Number, default: null },
+      lng: { type: Number, default: null },
+    },
     // HR regularization workflow
     regularizationStatus: { type: String, enum: ['pending', 'approved', 'rejected'], default: null },
     regularizationReason: { type: String, default: '' },

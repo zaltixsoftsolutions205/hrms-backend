@@ -31,6 +31,7 @@ app.use('/api/tasks', require('./routes/tasks'));
 app.use('/api/leads', require('./routes/leads'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/notifications', require('./routes/notifications'));
+app.use('/api/documents', require('./routes/documents'));
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ status: 'OK', timestamp: new Date() }));

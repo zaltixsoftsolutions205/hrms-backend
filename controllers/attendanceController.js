@@ -12,6 +12,18 @@ const istTime = () => istNow().toISOString().slice(11, 16);  // HH:mm
 const OFFICE_START = '09:30'; // late if check-in after this
 const OFFICE_END   = '18:30'; // early leave if check-out before this
 
+// Haversine formula — returns distance in metres between two GPS coordinates
+const haversineDistance = (lat1, lng1, lat2, lng2) => {
+  const R = 6371000; // Earth radius in metres
+  const toRad = (deg) => (deg * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
+
 // Employee: Check-in
 exports.checkIn = async (req, res) => {
   const today = istDate();
@@ -20,6 +32,28 @@ exports.checkIn = async (req, res) => {
     const existing = await Attendance.findOne({ employee: req.user._id, date: today });
     if (existing) return res.status(400).json({ message: 'Already checked in today' });
 
+    // Geo-fence check
+    const OFFICE_LAT    = parseFloat(process.env.OFFICE_LAT);
+    const OFFICE_LNG    = parseFloat(process.env.OFFICE_LNG);
+    const OFFICE_RADIUS = parseFloat(process.env.OFFICE_RADIUS_METERS) || 200;
+
+    if (OFFICE_LAT && OFFICE_LNG) {
+      const { lat, lng } = req.body;
+      if (lat == null || lng == null) {
+        return res.status(400).json({ message: 'Location is required to check in. Please allow location access and try again.', code: 'LOCATION_REQUIRED' });
+      }
+      const distance = Math.round(haversineDistance(parseFloat(lat), parseFloat(lng), OFFICE_LAT, OFFICE_LNG));
+      if (distance > OFFICE_RADIUS) {
+        return res.status(403).json({
+          message: `You are ${distance}m away from the office. Check-in is only allowed within ${OFFICE_RADIUS}m of the office.`,
+          code: 'OUT_OF_RANGE',
+          distance,
+          allowed: OFFICE_RADIUS,
+        });
+      }
+    }
+
+    const { lat, lng } = req.body;
     const isLate = now > OFFICE_START;
     const record = await Attendance.create({
       employee: req.user._id,
@@ -27,6 +61,7 @@ exports.checkIn = async (req, res) => {
       checkIn: now,
       status: 'present',
       isLate,
+      checkInLocation: (lat != null && lng != null) ? { lat: parseFloat(lat), lng: parseFloat(lng) } : undefined,
     });
     res.status(201).json(record);
   } catch (err) {
