@@ -124,37 +124,20 @@ exports.sendCredentials = async (req, res) => {
 // Any logged-in employee: get teammates in same department
 exports.getTeamMembers = async (req, res) => {
   try {
-    // Get this user's department name
-    const fresh = await User.findById(req.user._id).select('department').populate('department', 'name').lean();
-    const deptName = fresh?.department?.name || null;
-    if (!deptName) return res.json({ team: [], deptName: null });
+    const me = await User.findById(req.user._id).select('department').populate('department', 'name').lean();
+    if (!me?.department) return res.json({ team: [], deptName: null });
 
-    // Use aggregation $lookup to match by department name — avoids all ObjectId issues
-    const mongoose = require('mongoose');
-    const myId = new mongoose.Types.ObjectId(req.user._id);
-    const team = await User.aggregate([
-      {
-        $lookup: {
-          from: 'departments',
-          localField: 'department',
-          foreignField: '_id',
-          as: 'dept',
-        },
-      },
-      { $unwind: { path: '$dept', preserveNullAndEmpty: false } },
-      {
-        $match: {
-          'dept.name': deptName,
-          _id: { $ne: myId },
-        },
-      },
-      {
-        $project: {
-          name: 1, employeeId: 1, designation: 1, role: 1, isActive: 1,
-        },
-      },
-      { $sort: { name: 1 } },
-    ]);
+    const deptId = me.department._id;
+    const deptName = me.department.name;
+
+    const team = await User.find({
+      department: deptId,
+      _id: { $ne: req.user._id },
+      isActive: { $ne: false },
+    })
+      .select('name employeeId designation role isActive')
+      .sort({ name: 1 })
+      .lean();
 
     res.json({ team, deptName });
   } catch (err) {
