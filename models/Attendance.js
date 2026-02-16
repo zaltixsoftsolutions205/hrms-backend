@@ -9,6 +9,13 @@ const attendanceSchema = new mongoose.Schema(
     status: { type: String, enum: ['present', 'absent', 'half-day'], default: 'present' },
     workHours: { type: Number, default: 0 }, // in hours
     notes: { type: String, default: '' },
+    // Late / early detection (office: 09:30 – 18:30)
+    isLate: { type: Boolean, default: false },
+    isEarlyLeave: { type: Boolean, default: false },
+    // HR regularization workflow
+    regularizationStatus: { type: String, enum: ['pending', 'approved', 'rejected'], default: null },
+    regularizationReason: { type: String, default: '' },
+    regularizationComment: { type: String, default: '' },
   },
   { timestamps: true }
 );

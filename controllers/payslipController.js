@@ -125,15 +125,23 @@ exports.downloadPayslip = async (req, res) => {
       }
     }
 
-    const absolutePath = path.join(__dirname, '..', payslip.pdfPath || '');
+    const toAbs = (p) => path.join(__dirname, '..', (p || '').replace(/^[/\\]/, ''));
+    let absolutePath = toAbs(payslip.pdfPath);
     if (!payslip.pdfPath || !fs.existsSync(absolutePath)) {
       // Re-generate PDF on the fly
       const employee = await User.findById(payslip.employee._id).populate('department');
-      const pdfPath = await generatePayslipPDF({ employee, ...payslip.toObject() });
+      const pdfPath = await generatePayslipPDF({ ...payslip.toObject(), employee });
       payslip.pdfPath = pdfPath;
       await payslip.save();
+      absolutePath = toAbs(payslip.pdfPath);
     }
-    res.download(absolutePath);
+    if (!fs.existsSync(absolutePath)) {
+      return res.status(500).json({ message: 'PDF generation failed' });
+    }
+    const filename = path.basename(absolutePath);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    fs.createReadStream(absolutePath).pipe(res);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
