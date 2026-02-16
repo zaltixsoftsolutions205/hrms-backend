@@ -46,19 +46,19 @@ const TasksPage = () => {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* KPI */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         <KpiCard label="Total Tasks" value={data.kpi?.total ?? '—'} icon={<SI d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" size={14} color="text-violet-600" />} color="violet" />
         <KpiCard label="Completed" value={data.kpi?.completed ?? '—'} icon={<SI d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" size={14} color="text-green-600" />} color="green" />
         <KpiCard label="In Progress" value={data.kpi?.inProgress ?? '—'} icon={<SI d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" size={14} color="text-amber-500" />} color="golden" />
         <KpiCard label="Not Started" value={data.kpi?.notStarted ?? '—'} icon={<SI d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" size={14} color="text-violet-600" />} color="violet" />
-        <KpiCard label="Completion %" value={data.kpi?.completionRate !== undefined ? `${data.kpi.completionRate}%` : '—'} icon={<SI d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" size={14} color="text-amber-500" />} color="golden" />
+        <KpiCard label="Completion %" value={data.kpi?.completionRate !== undefined ? `${data.kpi.completionRate}%` : '—'} icon={<SI d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" size={14} color="text-amber-500" />} color="golden" className="col-span-2 sm:col-span-1" />
       </div>
 
       {/* List */}
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
           <h3 className="font-bold text-violet-900">My Tasks</h3>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {['', 'not-started', 'in-progress', 'completed'].map(s => (
               <button key={s} onClick={() => setFilter(s)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${filter === s ? 'bg-violet-700 text-white' : 'bg-violet-100 text-violet-600 hover:bg-violet-200'}`}>
@@ -86,7 +86,7 @@ const TasksPage = () => {
                         <span className={`text-xs font-semibold capitalize ${priorityColors[task.priority]}`}>↑ {task.priority}</span>
                       </div>
                       {task.description && <p className="text-sm text-gray-600 mb-2 line-clamp-1">{task.description}</p>}
-                      <div className="flex items-center gap-3 text-xs text-violet-500">
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-violet-500">
                         <span>Assigned by: {task.assignedBy?.name}</span>
                         <span>Due: {formatDate(task.deadline)}</span>
                         {daysLeft !== undefined && (

@@ -14,11 +14,126 @@ const SI = ({ d, d2, size = 16, color }) => (
   </svg>
 );
 
+const WEEK_DAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+const TYPE_STYLE = {
+  casual: 'bg-violet-100 text-violet-700 font-semibold',
+  sick:   'bg-red-100 text-red-600 font-semibold',
+  other:  'bg-amber-100 text-amber-700 font-semibold',
+};
+
+const STATUS_OPACITY = {
+  approved: '',
+  pending:  'opacity-60',
+  rejected: 'opacity-30 line-through',
+};
+
+const LeaveCalendar = ({ leaves, calMonth, calYear, onPrev, onNext }) => {
+  // Expand each leave into individual days for the calendar
+  const dayMap = {};
+  leaves.forEach(leave => {
+    let d = new Date(leave.fromDate);
+    const end = new Date(leave.toDate);
+    d.setHours(0, 0, 0, 0);
+    end.setHours(0, 0, 0, 0);
+    while (d <= end) {
+      const key = d.toISOString().split('T')[0];
+      if (!dayMap[key] || dayMap[key].status === 'pending') {
+        dayMap[key] = { status: leave.status, type: leave.type };
+      }
+      d.setDate(d.getDate() + 1);
+    }
+  });
+
+  const firstDayOfWeek = new Date(calYear, calMonth - 1, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth, 0).getDate();
+  const todayStr = new Date().toISOString().split('T')[0];
+
+  return (
+    <div>
+      {/* Navigation header */}
+      <div className="flex items-center justify-between mb-4">
+        <button onClick={onPrev}
+          className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-violet-100 text-violet-600 transition-colors">
+          <SI d="M15 19l-7-7 7-7" size={16} />
+        </button>
+        <h4 className="font-bold text-violet-900 text-sm sm:text-base">
+          {MONTH_NAMES[calMonth - 1]} {calYear}
+        </h4>
+        <button onClick={onNext}
+          className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-violet-100 text-violet-600 transition-colors">
+          <SI d="M9 5l7 7-7 7" size={16} />
+        </button>
+      </div>
+
+      {/* Legend */}
+      <div className="flex flex-wrap gap-2 sm:gap-3 mb-4">
+        {[
+          { label: 'Casual',   cls: 'bg-violet-100 text-violet-700' },
+          { label: 'Sick',     cls: 'bg-red-100 text-red-600' },
+          { label: 'Other',    cls: 'bg-amber-100 text-amber-700' },
+        ].map(l => (
+          <span key={l.label} className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-0.5 rounded-full ${l.cls}`}>
+            <span className="w-1.5 h-1.5 rounded-full bg-current" />{l.label}
+          </span>
+        ))}
+        <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-400">
+          <span className="w-1.5 h-1.5 rounded-full bg-current opacity-30" />Pending/Rejected = faded
+        </span>
+      </div>
+
+      {/* Day headers */}
+      <div className="grid grid-cols-7 gap-1 mb-1">
+        {WEEK_DAYS.map(d => (
+          <div key={d} className="text-center text-[10px] sm:text-xs font-semibold text-violet-400 py-0.5">{d}</div>
+        ))}
+      </div>
+
+      {/* Day cells */}
+      <div className="grid grid-cols-7 gap-1">
+        {Array.from({ length: firstDayOfWeek }, (_, i) => <div key={`b${i}`} />)}
+        {Array.from({ length: daysInMonth }, (_, i) => {
+          const day = i + 1;
+          const dateStr = `${calYear}-${String(calMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+          const info = dayMap[dateStr];
+          const isToday = dateStr === todayStr;
+          return (
+            <div key={day} title={info ? `${info.type} leave (${info.status})` : dateStr}
+              className="aspect-square flex items-center justify-center">
+              <span className={`w-7 h-7 flex items-center justify-center rounded-full text-[11px] sm:text-xs transition-all
+                ${info ? TYPE_STYLE[info.type] || TYPE_STYLE.other : 'text-violet-300'}
+                ${info ? STATUS_OPACITY[info.status] : ''}
+                ${isToday ? 'ring-2 ring-violet-500 ring-offset-1' : ''}
+              `}>
+                {day}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 const LeavePage = () => {
   const [data, setData] = useState({ leaves: [], balance: {} });
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ type: 'casual', fromDate: '', toDate: '', reason: '' });
   const [loading, setLoading] = useState(false);
+
+  const now = new Date();
+  const [calMonth, setCalMonth] = useState(now.getMonth() + 1);
+  const [calYear, setCalYear]   = useState(now.getFullYear());
+
+  const prevMonth = () => {
+    if (calMonth === 1) { setCalMonth(12); setCalYear(y => y - 1); }
+    else setCalMonth(m => m - 1);
+  };
+  const nextMonth = () => {
+    if (calMonth === 12) { setCalMonth(1); setCalYear(y => y + 1); }
+    else setCalMonth(m => m + 1);
+  };
 
   const fetch = async () => {
     try {
@@ -41,8 +156,6 @@ const LeavePage = () => {
     finally { setLoading(false); }
   };
 
-  const balanceColors = { casual: 'violet', sick: 'blue', other: 'golden' };
-
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Leave Balance */}
@@ -52,7 +165,7 @@ const LeavePage = () => {
             className="glass-card p-5">
             <p className="kpi-label capitalize">{type} Leave</p>
             <div className="flex items-end justify-between mt-1">
-              <p className="text-2xl font-bold text-violet-900">{bal.remaining}</p>
+              <p className="text-xl sm:text-2xl font-bold text-violet-900">{bal.remaining}</p>
               <p className="text-xs text-violet-500">{bal.used}/{bal.total} used</p>
             </div>
             <div className="h-1.5 bg-violet-200 rounded-full mt-3 overflow-hidden">
@@ -64,6 +177,17 @@ const LeavePage = () => {
           </motion.div>
         ))}
       </div>
+
+      {/* Leave Calendar */}
+      <Card>
+        <LeaveCalendar
+          leaves={data.leaves}
+          calMonth={calMonth}
+          calYear={calYear}
+          onPrev={prevMonth}
+          onNext={nextMonth}
+        />
+      </Card>
 
       {/* Header */}
       <div className="page-header">
@@ -87,8 +211,8 @@ const LeavePage = () => {
               <motion.div key={leave._id} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                 className="p-4 border border-violet-100 rounded-xl hover:bg-violet-50/40 transition-colors">
                 <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <span className="font-semibold text-violet-900 capitalize">{leave.type} Leave</span>
                       <Badge status={leave.status} />
                     </div>
@@ -100,7 +224,7 @@ const LeavePage = () => {
                       <p className="text-xs text-violet-500 mt-1 italic">Note: {leave.approverComments}</p>
                     )}
                   </div>
-                  <p className="text-xs text-violet-400 whitespace-nowrap">{formatDate(leave.createdAt)}</p>
+                  <p className="text-xs text-violet-400 whitespace-nowrap flex-shrink-0">{formatDate(leave.createdAt)}</p>
                 </div>
               </motion.div>
             ))}

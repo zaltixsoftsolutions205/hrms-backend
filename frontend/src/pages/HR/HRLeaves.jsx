@@ -47,7 +47,7 @@ const HRLeaves = () => {
       </div>
 
       <Card>
-        <div className="flex gap-2 mb-5">
+        <div className="flex flex-wrap gap-2 mb-5">
           {['pending', 'approved', 'rejected', ''].map(s => (
             <button key={s} onClick={() => setFilter(s)}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${filter === s ? 'bg-violet-700 text-white' : 'bg-violet-100 text-violet-600 hover:bg-violet-200'}`}>

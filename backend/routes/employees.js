@@ -1,10 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const { createEmployee, sendOfferLetter, sendCredentials, getAllEmployees, getEmployee, updateEmployee, updateOwnProfile, deleteEmployee } = require('../controllers/employeeController');
+const { createEmployee, sendOfferLetter, sendCredentials, getAllEmployees, getEmployee, updateEmployee, updateOwnProfile, deleteEmployee, getTeamMembers } = require('../controllers/employeeController');
 const { protect } = require('../middleware/auth');
 const { roleCheck } = require('../middleware/roleCheck');
 
 router.use(protect);
+
+// Any authenticated employee
+router.get('/team', getTeamMembers);
 
 // HR / Admin routes
 router.post('/', roleCheck('hr', 'admin'), createEmployee);

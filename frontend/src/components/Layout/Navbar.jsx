@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../../utils/api';
 import { formatDateTime } from '../../utils/helpers';
+
+const DASHBOARD_PATHS = ['/dashboard', '/hr/dashboard', '/admin/dashboard'];
 
 const Navbar = ({ onMenuToggle, pageTitle }) => {
   const [notifications, setNotifications] = useState([]);
@@ -10,6 +12,8 @@ const Navbar = ({ onMenuToggle, pageTitle }) => {
   const [showNotif, setShowNotif] = useState(false);
   const notifRef = useRef(null);
   const navigate = useNavigate();
+  const location = useLocation();
+  const showBack = !DASHBOARD_PATHS.includes(location.pathname);
 
   const fetchNotifications = async () => {
     try {
@@ -48,17 +52,28 @@ const Navbar = ({ onMenuToggle, pageTitle }) => {
   };
 
   return (
-    <header className="sticky top-0 z-20 bg-white/90 backdrop-blur-md border-b border-violet-200 px-4 lg:px-6 py-4 flex items-center justify-between">
+    <header className="sticky top-0 z-20 bg-white/90 backdrop-blur-md border-b border-violet-200 px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3">
       {/* Left */}
-      <div className="flex items-center gap-4">
-        <button onClick={onMenuToggle} className="lg:hidden w-9 h-9 flex items-center justify-center rounded-lg hover:bg-violet-100 text-violet-600 transition-colors">
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+        <button onClick={onMenuToggle} className="lg:hidden w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-lg hover:bg-violet-100 text-violet-600 transition-colors">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" className="w-5 h-5">
             <path d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </button>
-        <div>
-          <h2 className="text-base font-bold text-violet-900 leading-none">{pageTitle}</h2>
-          <p className="text-xs text-violet-400 mt-0.5">{new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+        {showBack && (
+          <button onClick={() => navigate(-1)}
+            className="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-lg hover:bg-violet-100 text-violet-600 transition-colors"
+            title="Go back">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+              <path d="M19 12H5M12 5l-7 7 7 7" />
+            </svg>
+          </button>
+        )}
+        <div className="min-w-0">
+          <h2 className="text-base lg:text-xl font-bold text-violet-900 leading-none truncate">{pageTitle}</h2>
+          <p className="text-[10px] sm:text-xs text-violet-400 mt-0.5 hidden sm:block">
+            {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+          </p>
         </div>
       </div>
 

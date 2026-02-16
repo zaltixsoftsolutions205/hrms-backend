@@ -98,8 +98,8 @@ const AdminReports = () => {
         {/* Attendance Report */}
         {data && activeTab === 'attendance' && Array.isArray(data) && (
           <>
-            <div className="overflow-x-auto">
-              <table className="data-table">
+            <div className="overflow-x-auto -mx-5 px-5">
+              <table className="data-table min-w-[480px]">
                 <thead><tr><th>Employee</th><th>Present</th><th>Absent</th><th>Half Day</th><th>Total Hours</th></tr></thead>
                 <tbody>
                   {data.map((r, i) => (
@@ -120,7 +120,7 @@ const AdminReports = () => {
         {/* Leave Report */}
         {data && activeTab === 'leave' && data.leaves && (
           <>
-            <div className="grid grid-cols-4 gap-3 mb-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
               {[
                 { label: 'Total Requests', value: data.stats.total, color: 'violet' },
                 { label: 'Approved', value: data.stats.approved, color: 'green' },
@@ -133,8 +133,8 @@ const AdminReports = () => {
                 </div>
               ))}
             </div>
-            <div className="overflow-x-auto">
-              <table className="data-table">
+            <div className="overflow-x-auto -mx-5 px-5">
+              <table className="data-table min-w-[500px]">
                 <thead><tr><th>Employee</th><th>Type</th><th>From</th><th>To</th><th>Days</th><th>Status</th></tr></thead>
                 <tbody>
                   {data.leaves.map(l => (
@@ -156,7 +156,7 @@ const AdminReports = () => {
         {/* Payroll Report */}
         {data && activeTab === 'payroll' && data.payslips && (
           <>
-            <div className="grid grid-cols-3 gap-3 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
               {[
                 { label: 'Employees', value: data.summary.totalEmployees },
                 { label: 'Total Gross', value: formatCurrency(data.summary.totalGross) },
@@ -168,8 +168,8 @@ const AdminReports = () => {
                 </div>
               ))}
             </div>
-            <div className="overflow-x-auto">
-              <table className="data-table">
+            <div className="overflow-x-auto -mx-5 px-5">
+              <table className="data-table min-w-[480px]">
                 <thead><tr><th>Employee</th><th>Basic</th><th>Gross</th><th>Deductions</th><th>Net Pay</th></tr></thead>
                 <tbody>
                   {data.payslips.map(p => (

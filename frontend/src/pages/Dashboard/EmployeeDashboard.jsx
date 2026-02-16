@@ -9,8 +9,8 @@ import Badge from '../../components/UI/Badge';
 import Spinner from '../../components/UI/Spinner';
 import { formatDate, formatCurrency, getInitials, monthName } from '../../utils/helpers';
 
-const DI = ({ d, d2, circle, size = 20 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+const DI = ({ d, d2, circle, size = 20, className = '' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className={className}>
     {circle && <circle cx={circle[0]} cy={circle[1]} r={circle[2]} />}
     <path d={d} />
     {d2 && <path d={d2} />}
@@ -39,6 +39,9 @@ const EmployeeDashboard = () => {
   const [todayRecord, setTodayRecord] = useState(null);
   const [loading, setLoading] = useState(true);
   const [checkLoading, setCheckLoading] = useState(false);
+  const [team, setTeam] = useState([]);
+  const [teamDept, setTeamDept] = useState(null);
+  const [showTeam, setShowTeam] = useState(false);
 
   const fetchDashboard = () => {
     const now = new Date();
@@ -60,6 +63,7 @@ const EmployeeDashboard = () => {
     }
 
     Promise.all(promises).finally(() => setLoading(false));
+    api.get('/employees/team').then(r => { setTeam(r.data.team || []); setTeamDept(r.data.deptName || null); }).catch(() => {});
   };
 
   useEffect(() => { fetchDashboard(); }, [user?.role]);
@@ -67,11 +71,32 @@ const EmployeeDashboard = () => {
   const handleCheckIn = async () => {
     setCheckLoading(true);
     try {
-      await api.post('/attendance/check-in');
+      // Get GPS location before check-in
+      const position = await new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+          reject(new Error('Geolocation is not supported by your browser.'));
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0,
+        });
+      });
+      const { latitude: lat, longitude: lng } = position.coords;
+      await api.post('/attendance/check-in', { lat, lng });
       toast.success('Checked in successfully!');
       fetchDashboard();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Check-in failed');
+      if (err.code === 1) {
+        toast.error('Location access denied. Please allow location permission and try again.');
+      } else if (err.code === 2) {
+        toast.error('Location unavailable. Please check your GPS/network and try again.');
+      } else if (err.code === 3) {
+        toast.error('Location request timed out. Please try again.');
+      } else {
+        toast.error(err.response?.data?.message || err.message || 'Check-in failed');
+      }
     } finally {
       setCheckLoading(false);
     }
@@ -111,30 +136,30 @@ const EmployeeDashboard = () => {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-5 animate-fade-in">
       {/* Welcome Banner */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-        className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-violet-900 to-violet-700 p-6 text-white shadow-lg">
+        className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-violet-900 to-violet-700 p-4 sm:p-6 text-white shadow-lg">
         <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full -translate-y-12 translate-x-12" />
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center text-2xl font-bold flex-shrink-0">
+        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+          <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded-2xl flex items-center justify-center text-xl sm:text-2xl font-bold flex-shrink-0">
             {getInitials(user?.name)}
           </div>
-          <div>
+          <div className="min-w-0">
             <p className="text-violet-200 text-sm">{getGreeting()},</p>
-            <h2 className="text-2xl font-bold">{user?.name}</h2>
-            <p className="text-violet-300 text-sm">{user?.designation || user?.role} • {user?.department?.name || 'No Department'} • {user?.employeeId}</p>
+            <h2 className="text-xl sm:text-2xl font-bold truncate">{user?.name}</h2>
+            <p className="text-violet-300 text-xs sm:text-sm truncate">{user?.designation || user?.role} • {user?.department?.name || 'No Department'} • {user?.employeeId}</p>
           </div>
         </div>
         {/* Today check-in status + action buttons */}
-        <div className="mt-4 flex flex-wrap items-center gap-4">
-          <div className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 ${
+        <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 self-start sm:self-auto ${
             todayRecord ? 'bg-green-400/20 text-green-200' : 'bg-white/10 text-violet-200'
           }`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${todayRecord ? 'bg-green-300' : 'bg-violet-400'}`} />
+            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${todayRecord ? 'bg-green-300' : 'bg-violet-400'}`} />
             {todayRecord ? `Checked in at ${todayRecord.checkIn}${todayRecord.checkOut ? ` • Out: ${todayRecord.checkOut}` : ''}` : 'Not checked in today'}
           </div>
-          <div className="flex items-center gap-2 ml-auto">
+          <div className="flex items-center gap-2 sm:ml-auto flex-wrap">
             {!todayRecord?.checkIn && (
               <button onClick={handleCheckIn} disabled={checkLoading}
                 className="px-4 py-1.5 bg-green-500 hover:bg-green-400 disabled:opacity-50 rounded-lg text-xs font-semibold text-white transition-colors">
@@ -161,58 +186,58 @@ const EmployeeDashboard = () => {
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
         className="glass-card p-5">
         <h3 className="font-bold text-violet-900 mb-4">Quick Actions</h3>
-        <div className={`grid grid-cols-2 ${user?.role === 'sales' ? 'sm:grid-cols-5' : 'sm:grid-cols-4'} gap-3`}>
+        <div className={`grid grid-cols-2 ${user?.role === 'sales' ? 'sm:grid-cols-3 lg:grid-cols-5' : 'sm:grid-cols-4'} gap-3`}>
           <Link to="/leaves"
-            className="bg-green-100 text-green-700 p-4 rounded-xl flex flex-col items-center gap-2 hover:opacity-80 transition-opacity">
-            <DI d={clockD} size={24} />
-            <span className="text-xs font-semibold text-center">Apply Leave</span>
+            className="bg-green-100 text-green-700 p-3 sm:p-4 rounded-xl flex flex-col items-center gap-1.5 sm:gap-2 hover:opacity-80 transition-opacity">
+            <DI d={clockD} className="w-5 h-5 sm:w-6 sm:h-6" />
+            <span className="text-[11px] sm:text-xs font-semibold text-center">Apply Leave</span>
           </Link>
           <Link to="/attendance"
-            className="bg-violet-100 text-violet-700 p-4 rounded-xl flex flex-col items-center gap-2 hover:opacity-80 transition-opacity">
-            <DI d={calendarD} size={24} />
-            <span className="text-xs font-semibold text-center">My Attendance</span>
+            className="bg-violet-100 text-violet-700 p-3 sm:p-4 rounded-xl flex flex-col items-center gap-1.5 sm:gap-2 hover:opacity-80 transition-opacity">
+            <DI d={calendarD} className="w-5 h-5 sm:w-6 sm:h-6" />
+            <span className="text-[11px] sm:text-xs font-semibold text-center">My Attendance</span>
           </Link>
           <Link to="/tasks"
-            className="bg-blue-100 text-blue-700 p-4 rounded-xl flex flex-col items-center gap-2 hover:opacity-80 transition-opacity">
-            <DI d={clipboardCheckD} size={24} />
-            <span className="text-xs font-semibold text-center">My Tasks</span>
+            className="bg-blue-100 text-blue-700 p-3 sm:p-4 rounded-xl flex flex-col items-center gap-1.5 sm:gap-2 hover:opacity-80 transition-opacity">
+            <DI d={clipboardCheckD} className="w-5 h-5 sm:w-6 sm:h-6" />
+            <span className="text-[11px] sm:text-xs font-semibold text-center">My Tasks</span>
           </Link>
           <Link to="/payslips"
-            className="bg-golden-100 text-golden-700 p-4 rounded-xl flex flex-col items-center gap-2 hover:opacity-80 transition-opacity">
-            <DI d={creditCardD} size={24} />
-            <span className="text-xs font-semibold text-center">View Payslips</span>
+            className="bg-golden-100 text-golden-700 p-3 sm:p-4 rounded-xl flex flex-col items-center gap-1.5 sm:gap-2 hover:opacity-80 transition-opacity">
+            <DI d={creditCardD} className="w-5 h-5 sm:w-6 sm:h-6" />
+            <span className="text-[11px] sm:text-xs font-semibold text-center">View Payslips</span>
           </Link>
           {user?.role === 'sales' && (
             <Link to="/crm"
-              className="bg-violet-100 text-violet-700 p-4 rounded-xl flex flex-col items-center gap-2 hover:opacity-80 transition-opacity">
-              <DI d={crmD} size={24} />
-              <span className="text-xs font-semibold text-center">CRM Leads</span>
+              className="bg-violet-100 text-violet-700 p-3 sm:p-4 rounded-xl flex flex-col items-center gap-1.5 sm:gap-2 hover:opacity-80 transition-opacity">
+              <DI d={crmD} className="w-5 h-5 sm:w-6 sm:h-6" />
+              <span className="text-[11px] sm:text-xs font-semibold text-center">CRM Leads</span>
             </Link>
           )}
         </div>
       </motion.div>
 
       {/* KPI Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 items-stretch">
         <motion.div custom={0} variants={cardVariants} initial="hidden" animate="visible">
-          <KpiCard label="Days Present (Month)" value={attendance?.present ?? '—'} icon={<DI d={checkCircleD} />} color="green" />
+          <KpiCard label="Days Present (Month)" value={attendance?.present ?? '—'} icon={<DI d={checkCircleD} />} color="green" to="/attendance" />
         </motion.div>
         <motion.div custom={1} variants={cardVariants} initial="hidden" animate="visible">
-          <KpiCard label="Days Absent" value={attendance?.absent ?? '—'} icon={<DI d={xCircleD} />} color="red" />
+          <KpiCard label="Days Absent" value={attendance?.absent ?? '—'} icon={<DI d={xCircleD} />} color="red" to="/attendance" />
         </motion.div>
         <motion.div custom={2} variants={cardVariants} initial="hidden" animate="visible">
-          <KpiCard label="Tasks Completed" value={tasks?.completed ?? '—'} icon={<DI d={clipboardCheckD} />} color="violet" />
+          <KpiCard label="Tasks Completed" value={tasks?.completed ?? '—'} icon={<DI d={clipboardCheckD} />} color="violet" to="/tasks" />
         </motion.div>
         <motion.div custom={3} variants={cardVariants} initial="hidden" animate="visible">
-          <KpiCard label="Leave Balance (Casual)" value={leaves?.balance?.casual?.remaining ?? '—'} icon={<DI d={clockD} />} color="green" />
+          <KpiCard label="Leave Balance (Casual)" value={leaves?.balance?.casual?.remaining ?? '—'} icon={<DI d={clockD} />} color="green" to="/leaves" />
         </motion.div>
       </div>
 
       {/* Bottom Grid */}
-      <div className="grid lg:grid-cols-2 gap-5">
+      <div className="grid lg:grid-cols-2 gap-5 items-stretch">
         {/* Leave Balance */}
         <motion.div initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}
-          className="glass-card p-5">
+          className="glass-card p-5 h-full">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-bold text-violet-900">Leave Balance</h3>
             <Link to="/leaves" className="text-xs text-golden-600 hover:text-golden-700 font-semibold">Apply / View All →</Link>
@@ -245,7 +270,7 @@ const EmployeeDashboard = () => {
 
         {/* Latest Payslip */}
         <motion.div initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.25 }}
-          className="glass-card p-5">
+          className="glass-card p-5 h-full">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-bold text-violet-900">Latest Payslip</h3>
             <Link to="/payslips" className="text-xs text-golden-600 hover:text-golden-700 font-semibold">View All →</Link>
@@ -277,6 +302,49 @@ const EmployeeDashboard = () => {
         </motion.div>
       </div>
 
+      {/* My Team */}
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+        className="glass-card p-5">
+        <button className="w-full flex items-center justify-between" onClick={() => setShowTeam(v => !v)}>
+          <div className="flex items-center gap-2">
+            <DI d={usersD} className="w-5 h-5 text-violet-600" />
+            <h3 className="font-bold text-violet-900">My Team</h3>
+            {teamDept && <span className="text-xs text-violet-500 font-medium">· {teamDept}</span>}
+            {team.length > 0 && (
+              <span className="text-xs bg-violet-100 text-violet-700 font-semibold px-2 py-0.5 rounded-full">{team.length}</span>
+            )}
+          </div>
+          <span className={`text-violet-400 transition-transform duration-200 ${showTeam ? 'rotate-180' : ''}`}>
+            <DI d="M19 9l-7 7-7-7" className="w-4 h-4" />
+          </span>
+        </button>
+
+        {showTeam && (
+          <div className="mt-4">
+            {team.length === 0 ? (
+              <p className="text-sm text-violet-400 text-center py-4">
+                {teamDept ? `No other members in ${teamDept} yet.` : 'No department assigned to your profile. Ask HR to assign your department.'}
+              </p>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                {team.map(member => (
+                  <div key={member._id} className={`flex items-center gap-3 p-3 rounded-xl border ${member.isActive === false ? 'bg-gray-50 border-gray-100 opacity-50' : 'bg-violet-50/60 border-violet-100'}`}>
+                    <div className="w-9 h-9 rounded-full bg-violet-200 text-violet-700 flex items-center justify-center text-sm font-bold flex-shrink-0">
+                      {getInitials(member.name)}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-violet-900 truncate">{member.name}</p>
+                      <p className="text-[11px] text-violet-500 truncate capitalize">{member.designation || member.role}</p>
+                      <p className="text-[10px] text-violet-400">{member.employeeId}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </motion.div>
+
       {/* CRM Stats for Sales */}
       {user?.role === 'sales' && (
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
@@ -288,10 +356,10 @@ const EmployeeDashboard = () => {
           {crmStats ? (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
-                { label: 'Total Leads', value: crmStats.total, icon: <DI d={usersD} />, color: 'violet' },
-                { label: 'Interested', value: crmStats.interested, icon: <DI d={starD} />, color: 'golden' },
-                { label: 'Converted', value: crmStats.converted, icon: <DI d={sparklesD} />, color: 'green' },
-                { label: 'Conversion %', value: `${crmStats.conversionRate}%`, icon: <DI d={trendingUpD} />, color: 'golden' },
+                { label: 'Total Leads', value: crmStats.total, icon: <DI d={usersD} />, color: 'violet', to: '/crm' },
+                { label: 'Interested', value: crmStats.interested, icon: <DI d={starD} />, color: 'golden', to: '/crm' },
+                { label: 'Converted', value: crmStats.converted, icon: <DI d={sparklesD} />, color: 'green', to: '/crm' },
+                { label: 'Conversion %', value: `${crmStats.conversionRate}%`, icon: <DI d={trendingUpD} />, color: 'golden', to: '/crm' },
               ].map(item => <KpiCard key={item.label} {...item} />)}
             </div>
           ) : (

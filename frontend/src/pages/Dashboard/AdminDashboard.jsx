@@ -7,8 +7,8 @@ import { KpiCard } from '../../components/UI/Card';
 import Spinner from '../../components/UI/Spinner';
 import { formatCurrency } from '../../utils/helpers';
 
-const DI = ({ d, d2, circle, size = 20 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+const DI = ({ d, d2, circle, size = 20, className = '' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className={className}>
     {circle && <circle cx={circle[0]} cy={circle[1]} r={circle[2]} />}
     <path d={d} />
     {d2 && <path d={d2} />}
@@ -63,38 +63,62 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-5 animate-fade-in">
       {/* Banner */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-        className="rounded-2xl bg-gradient-to-r from-violet-950 to-violet-800 p-6 text-white shadow-xl">
-        <div className="flex flex-wrap items-center justify-between gap-4">
+        className="rounded-2xl bg-gradient-to-r from-violet-950 to-violet-800 p-5 sm:p-6 text-white shadow-xl">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <p className="text-violet-300 text-sm">Administrator</p>
-            <h2 className="text-2xl font-bold mt-0.5">System Overview</h2>
+            <h2 className="text-xl sm:text-2xl font-bold mt-0.5">System Overview</h2>
             <p className="text-violet-300 text-sm mt-1">{new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
           </div>
-          <div className="text-right">
+          <div className="sm:text-right">
             <p className="text-xs text-violet-300">Monthly Payroll</p>
-            <p className="text-2xl font-bold text-golden-400">{payroll ? formatCurrency(payroll.summary?.totalNet) : '—'}</p>
+            <p className="text-xl sm:text-2xl font-bold text-golden-400">{payroll ? formatCurrency(payroll.summary?.totalNet) : '—'}</p>
             <p className="text-xs text-violet-400">{payroll?.summary?.totalEmployees || 0} employees</p>
           </div>
         </div>
       </motion.div>
 
+      {/* Quick Actions */}
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+        className="glass-card p-4 sm:p-5">
+        <h3 className="font-bold text-violet-900 mb-3 sm:mb-4">Quick Actions</h3>
+        <div className="grid grid-cols-4 sm:grid-cols-4 gap-2 sm:gap-3">
+          {[
+            { label: 'Add Employee', path: '/admin/employees', icon: plusCircleD, color: 'bg-violet-100 text-violet-700' },
+            { label: 'Attendance', path: '/admin/attendance', icon: calendarD, color: 'bg-blue-100 text-blue-700' },
+            { label: 'Leave Approvals', path: '/admin/leaves', icon: clockD, color: 'bg-green-100 text-green-700' },
+            { label: 'Assign Tasks', path: '/admin/tasks', icon: clipboardCheckD, color: 'bg-golden-100 text-golden-700' },
+            { label: 'Payroll', path: '/admin/payslips', icon: creditCardD, color: 'bg-red-100 text-red-700' },
+            { label: 'Departments', path: '/admin/departments', icon: buildingD, color: 'bg-blue-100 text-blue-700' },
+            { label: 'Leave Policies', path: '/admin/policies', icon: documentD, color: 'bg-green-100 text-green-700' },
+            { label: 'Reports', path: '/admin/reports', icon: chartBarD, color: 'bg-golden-100 text-golden-700' },
+          ].map(item => (
+            <Link key={item.path} to={item.path}
+              className={`${item.color} p-2.5 sm:p-4 rounded-xl flex flex-col items-center gap-1 sm:gap-2 hover:opacity-80 transition-opacity`}>
+              <DI d={item.icon} className="w-5 h-5 sm:w-6 sm:h-6" />
+              <span className="text-[10px] sm:text-xs font-semibold text-center leading-tight">{item.label}</span>
+            </Link>
+          ))}
+        </div>
+      </motion.div>
+
       {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-        <KpiCard label="Total Employees" value={stats?.totalEmployees ?? '—'} icon={<DI d={usersD} />} color="violet" />
-        <KpiCard label="Present Today" value={stats?.presentToday ?? '—'} icon={<DI d={checkCircleD} />} color="green" />
-        <KpiCard label="Pending Leaves" value={stats?.pendingLeaves ?? '—'} icon={<DI d={clockD} />} color="golden" />
-        <KpiCard label="Open Tasks" value={stats?.openTasks ?? '—'} icon={<DI d={clipboardListD} />} color="violet" />
-        <KpiCard label="Total Leads" value={stats?.totalLeads ?? '—'} icon={<DI d={crmD} />} color="golden" />
-        <KpiCard label="Converted Leads" value={stats?.convertedLeads ?? '—'} icon={<DI d={sparklesD} />} color="green" />
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4 items-stretch">
+        <KpiCard label="Total Employees" value={stats?.totalEmployees ?? '—'} icon={<DI d={usersD} />} color="violet" to="/admin/employees" />
+        <KpiCard label="Present Today" value={stats?.presentToday ?? '—'} icon={<DI d={checkCircleD} />} color="green" to="/admin/attendance" />
+        <KpiCard label="Pending Leaves" value={stats?.pendingLeaves ?? '—'} icon={<DI d={clockD} />} color="golden" to="/admin/leaves" />
+        <KpiCard label="Open Tasks" value={stats?.openTasks ?? '—'} icon={<DI d={clipboardListD} />} color="violet" to="/admin/tasks" />
+        <KpiCard label="Total Leads" value={stats?.totalLeads ?? '—'} icon={<DI d={crmD} />} color="golden" to="/admin/crm" />
+        <KpiCard label="Converted Leads" value={stats?.convertedLeads ?? '—'} icon={<DI d={sparklesD} />} color="green" to="/admin/crm" />
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-5">
+      <div className="grid lg:grid-cols-2 gap-4 sm:gap-5 items-stretch">
         {/* Payroll Bar Chart */}
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-          className="glass-card p-5">
+          className="glass-card p-5 h-full">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-bold text-violet-900">Payroll Summary (This Month)</h3>
             <Link to="/admin/payslips" className="text-xs text-golden-600 font-semibold hover:text-golden-700">View →</Link>
@@ -115,7 +139,7 @@ const AdminDashboard = () => {
 
         {/* CRM Pie Chart */}
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-          className="glass-card p-5">
+          className="glass-card p-5 h-full">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-bold text-violet-900">CRM Conversion</h3>
             <Link to="/admin/crm" className="text-xs text-golden-600 font-semibold hover:text-golden-700">Analytics →</Link>
@@ -138,30 +162,6 @@ const AdminDashboard = () => {
           )}
         </motion.div>
       </div>
-
-      {/* Quick Actions */}
-      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
-        className="glass-card p-5">
-        <h3 className="font-bold text-violet-900 mb-4">Quick Actions</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
-          {[
-            { label: 'Add Employee', path: '/admin/employees', icon: plusCircleD, color: 'bg-violet-100 text-violet-700' },
-            { label: 'Attendance', path: '/admin/attendance', icon: calendarD, color: 'bg-blue-100 text-blue-700' },
-            { label: 'Leave Approvals', path: '/admin/leaves', icon: clockD, color: 'bg-green-100 text-green-700' },
-            { label: 'Assign Tasks', path: '/admin/tasks', icon: clipboardCheckD, color: 'bg-golden-100 text-golden-700' },
-            { label: 'Payroll', path: '/admin/payslips', icon: creditCardD, color: 'bg-red-100 text-red-700' },
-            { label: 'Departments', path: '/admin/departments', icon: buildingD, color: 'bg-blue-100 text-blue-700' },
-            { label: 'Leave Policies', path: '/admin/policies', icon: documentD, color: 'bg-green-100 text-green-700' },
-            { label: 'Reports', path: '/admin/reports', icon: chartBarD, color: 'bg-golden-100 text-golden-700' },
-          ].map(item => (
-            <Link key={item.path} to={item.path}
-              className={`${item.color} p-4 rounded-xl flex flex-col items-center gap-2 hover:opacity-80 transition-opacity`}>
-              <DI d={item.icon} size={24} />
-              <span className="text-xs font-semibold text-center">{item.label}</span>
-            </Link>
-          ))}
-        </div>
-      </motion.div>
     </div>
   );
 };

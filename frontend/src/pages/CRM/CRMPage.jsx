@@ -108,8 +108,8 @@ const CRMPage = () => {
           <EmptyState icon={<SI d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" size={40} color="text-violet-400" />} title="No leads yet" message="Start adding leads to build your pipeline."
             action={{ label: 'Add Lead', onClick: () => setShowAddModal(true) }} />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="data-table">
+          <div className="overflow-x-auto -mx-5 px-5">
+            <table className="data-table min-w-[540px]">
               <thead>
                 <tr>
                   <th>Lead</th><th>Phone</th><th>Source</th><th>Status</th><th>Added</th><th>Actions</th>
@@ -243,8 +243,8 @@ const CRMPage = () => {
               )}
 
               {/* Add Activity */}
-              <form onSubmit={handleAddActivity} className="mt-3 flex gap-2">
-                <select className="input-field w-auto flex-shrink-0" value={activityForm.type}
+              <form onSubmit={handleAddActivity} className="mt-3 flex flex-col sm:flex-row gap-2">
+                <select className="input-field sm:w-auto flex-shrink-0" value={activityForm.type}
                   onChange={e => setActivityForm(f => ({ ...f, type: e.target.value }))}>
                   <option value="call">Call</option>
                   <option value="meeting">Meeting</option>
@@ -253,7 +253,7 @@ const CRMPage = () => {
                 </select>
                 <input className="input-field flex-1" placeholder="Log activity note..."
                   value={activityForm.note} onChange={e => setActivityForm(f => ({ ...f, note: e.target.value }))} />
-                <button type="submit" className="btn-primary flex-shrink-0">Log</button>
+                <button type="submit" className="btn-primary sm:flex-shrink-0">Log</button>
               </form>
             </div>
           </div>

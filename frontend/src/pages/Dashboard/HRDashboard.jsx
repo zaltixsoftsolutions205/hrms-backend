@@ -8,8 +8,8 @@ import Spinner from '../../components/UI/Spinner';
 import { formatDate } from '../../utils/helpers';
 import { useAuth } from '../../contexts/AuthContext';
 
-const DI = ({ d, size = 20 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+const DI = ({ d, size = 20, className = '' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className={className}>
     <path d={d} />
   </svg>
 );
@@ -50,65 +50,65 @@ const HRDashboard = () => {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-5 animate-fade-in">
       {/* Banner */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-        className="rounded-2xl bg-gradient-to-r from-violet-800 to-violet-600 p-6 text-white shadow-lg">
-        <h2 className="text-xl font-bold">HR Dashboard</h2>
-        <p className="text-violet-200 text-sm mt-1">Welcome back, {user?.name} · {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+        className="rounded-2xl bg-gradient-to-r from-violet-800 to-violet-600 p-4 sm:p-6 text-white shadow-lg">
+        <h2 className="text-xl sm:text-2xl font-bold">HR Dashboard</h2>
+        <p className="text-violet-200 text-xs sm:text-sm mt-1">Welcome back, {user?.name} · {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
       </motion.div>
 
       {/* Quick Actions */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
-        className="glass-card p-5">
-        <h3 className="font-bold text-violet-900 mb-4">Quick Actions</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        className="glass-card p-4 sm:p-5">
+        <h3 className="font-bold text-violet-900 mb-3 sm:mb-4">Quick Actions</h3>
+        <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
           <Link to="/hr/employees"
-            className="bg-violet-100 text-violet-700 p-4 rounded-xl flex flex-col items-center gap-2 hover:opacity-80 transition-opacity">
-            <DI d={plusCircleD} size={24} />
-            <span className="text-xs font-semibold text-center">Add Employee</span>
+            className="bg-violet-100 text-violet-700 p-3 sm:p-4 rounded-xl flex flex-col items-center gap-1.5 sm:gap-2 hover:opacity-80 transition-opacity">
+            <DI d={plusCircleD} className="w-5 h-5 sm:w-6 sm:h-6" />
+            <span className="text-[10px] sm:text-xs font-semibold text-center leading-tight">Add Employee</span>
           </Link>
           <Link to="/hr/attendance"
-            className="bg-blue-100 text-blue-700 p-4 rounded-xl flex flex-col items-center gap-2 hover:opacity-80 transition-opacity">
-            <DI d={calendarD} size={24} />
-            <span className="text-xs font-semibold text-center">View Attendance</span>
+            className="bg-blue-100 text-blue-700 p-3 sm:p-4 rounded-xl flex flex-col items-center gap-1.5 sm:gap-2 hover:opacity-80 transition-opacity">
+            <DI d={calendarD} className="w-5 h-5 sm:w-6 sm:h-6" />
+            <span className="text-[10px] sm:text-xs font-semibold text-center leading-tight">Attendance</span>
           </Link>
           <Link to="/hr/leaves"
-            className="bg-green-100 text-green-700 p-4 rounded-xl flex flex-col items-center gap-2 hover:opacity-80 transition-opacity">
-            <DI d={clockD} size={24} />
-            <span className="text-xs font-semibold text-center">Leave Requests</span>
+            className="bg-green-100 text-green-700 p-3 sm:p-4 rounded-xl flex flex-col items-center gap-1.5 sm:gap-2 hover:opacity-80 transition-opacity">
+            <DI d={clockD} className="w-5 h-5 sm:w-6 sm:h-6" />
+            <span className="text-[10px] sm:text-xs font-semibold text-center leading-tight">Leave Requests</span>
           </Link>
           <Link to="/hr/tasks"
-            className="bg-golden-100 text-golden-700 p-4 rounded-xl flex flex-col items-center gap-2 hover:opacity-80 transition-opacity">
-            <DI d={clipboardCheckD} size={24} />
-            <span className="text-xs font-semibold text-center">Assign Work</span>
+            className="bg-golden-100 text-golden-700 p-3 sm:p-4 rounded-xl flex flex-col items-center gap-1.5 sm:gap-2 hover:opacity-80 transition-opacity">
+            <DI d={clipboardCheckD} className="w-5 h-5 sm:w-6 sm:h-6" />
+            <span className="text-[10px] sm:text-xs font-semibold text-center leading-tight">Assign Work</span>
           </Link>
           <Link to="/hr/payslips"
-            className="bg-red-100 text-red-700 p-4 rounded-xl flex flex-col items-center gap-2 hover:opacity-80 transition-opacity">
-            <DI d={creditCardD} size={24} />
-            <span className="text-xs font-semibold text-center">Generate Payslip</span>
+            className="bg-red-100 text-red-700 p-3 sm:p-4 rounded-xl flex flex-col items-center gap-1.5 sm:gap-2 hover:opacity-80 transition-opacity">
+            <DI d={creditCardD} className="w-5 h-5 sm:w-6 sm:h-6" />
+            <span className="text-[10px] sm:text-xs font-semibold text-center leading-tight">Payslip</span>
           </Link>
           <Link to="/attendance"
-            className="bg-violet-100 text-violet-700 p-4 rounded-xl flex flex-col items-center gap-2 hover:opacity-80 transition-opacity">
-            <DI d={calendarD} size={24} />
-            <span className="text-xs font-semibold text-center">My Attendance</span>
+            className="bg-violet-100 text-violet-700 p-3 sm:p-4 rounded-xl flex flex-col items-center gap-1.5 sm:gap-2 hover:opacity-80 transition-opacity">
+            <DI d={calendarD} className="w-5 h-5 sm:w-6 sm:h-6" />
+            <span className="text-[10px] sm:text-xs font-semibold text-center leading-tight">My Attendance</span>
           </Link>
         </div>
       </motion.div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard label="Total Employees" value={stats?.totalEmployees ?? '—'} icon={<DI d={usersD} />} color="violet" />
-        <KpiCard label="Present Today" value={stats?.presentToday ?? '—'} icon={<DI d={checkCircleD} />} color="green" />
-        <KpiCard label="Pending Leaves" value={stats?.pendingLeaves ?? '—'} icon={<DI d={clockD} />} color="golden" />
-        <KpiCard label="Open Tasks" value={stats?.openTasks ?? '—'} icon={<DI d={clipboardListD} />} color="violet" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 items-stretch">
+        <KpiCard label="Total Employees" value={stats?.totalEmployees ?? '—'} icon={<DI d={usersD} />} color="violet" to="/hr/employees" />
+        <KpiCard label="Present Today" value={stats?.presentToday ?? '—'} icon={<DI d={checkCircleD} />} color="green" to="/hr/attendance" />
+        <KpiCard label="Pending Leaves" value={stats?.pendingLeaves ?? '—'} icon={<DI d={clockD} />} color="golden" to="/hr/leaves" />
+        <KpiCard label="Open Tasks" value={stats?.openTasks ?? '—'} icon={<DI d={clipboardListD} />} color="violet" to="/hr/tasks" />
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-5">
+      <div className="grid lg:grid-cols-2 gap-4 sm:gap-5 items-stretch">
         {/* Pending Leave Requests */}
         <motion.div initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}
-          className="glass-card p-5">
-          <div className="flex items-center justify-between mb-4">
+          className="glass-card p-4 sm:p-5 h-full">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
             <h3 className="font-bold text-violet-900">Pending Leave Requests</h3>
             <Link to="/hr/leaves" className="text-xs text-golden-600 font-semibold hover:text-golden-700">View All →</Link>
           </div>
@@ -122,8 +122,8 @@ const HRDashboard = () => {
               {pendingLeaves.map(leave => (
                 <Link key={leave._id} to="/hr/leaves"
                   className="flex items-center justify-between p-3 bg-golden-50/60 rounded-xl border border-golden-100 hover:bg-golden-50 transition-colors">
-                  <div>
-                    <p className="text-sm font-semibold text-violet-900">{leave.employee?.name}</p>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-violet-900 truncate">{leave.employee?.name}</p>
                     <p className="text-xs text-violet-500 capitalize">{leave.type} leave · {leave.totalDays} day(s)</p>
                     <p className="text-xs text-violet-400">{formatDate(leave.fromDate)} – {formatDate(leave.toDate)}</p>
                   </div>
@@ -136,8 +136,8 @@ const HRDashboard = () => {
 
         {/* Recent Tasks */}
         <motion.div initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.25 }}
-          className="glass-card p-5">
-          <div className="flex items-center justify-between mb-4">
+          className="glass-card p-4 sm:p-5 h-full">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
             <h3 className="font-bold text-violet-900">Recent Tasks</h3>
             <Link to="/hr/tasks" className="text-xs text-golden-600 font-semibold hover:text-golden-700">Manage →</Link>
           </div>

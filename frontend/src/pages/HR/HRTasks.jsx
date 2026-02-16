@@ -116,7 +116,7 @@ const HRTasks = () => {
                     <p className="text-xs text-violet-500">{item.employee.employeeId}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-2xl font-bold text-golden-600">{item.completionRate}%</p>
+                    <p className="text-xl sm:text-2xl font-bold text-golden-600">{item.completionRate}%</p>
                     <p className="text-xs text-violet-500">completion rate</p>
                   </div>
                 </div>

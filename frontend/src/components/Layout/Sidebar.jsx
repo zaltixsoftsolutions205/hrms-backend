@@ -118,7 +118,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         }`}
       >
         {/* Logo */}
-        <div className="px-5 py-4 border-b border-violet-200">
+        <div className="px-5 h-16 flex items-center border-b border-violet-200">
           <div className="flex items-center gap-3">
             <img src="/logo.png" alt="Zaltix Soft Solutions" className="h-10 object-contain" style={{ filter: 'none' }} />
             <p className="text-violet-600 text-xs leading-snug">

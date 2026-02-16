@@ -5,6 +5,7 @@ const Notification = require('../models/Notification');
 const { sendMail } = require('../config/mail');
 const { payslipNotificationTemplate } = require('../utils/emailTemplates');
 const generatePayslipPDF = require('../utils/generatePayslipPDF');
+const { checkAllDocsApproved } = require('./documentController');
 const moment = require('moment');
 const path = require('path');
 const fs = require('fs');
@@ -21,10 +22,10 @@ exports.generatePayslip = async (req, res) => {
     const employee = await User.findById(employeeId).populate('department');
     if (!employee) return res.status(404).json({ message: 'Employee not found' });
 
-    // Count present days from attendance
-    const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
-    const endDate = moment(startDate).endOf('month').format('YYYY-MM-DD');
-    const attendanceRecords = await Attendance.find({ employee: employeeId, date: { $gte: startDate, $lte: endDate } });
+    // Pay period: 25th of previous month → 24th of current month
+    const periodStart = moment(`${year}-${String(month).padStart(2, '0')}-25`).subtract(1, 'month').format('YYYY-MM-DD');
+    const periodEnd   = moment(`${year}-${String(month).padStart(2, '0')}-24`).format('YYYY-MM-DD');
+    const attendanceRecords = await Attendance.find({ employee: employeeId, date: { $gte: periodStart, $lte: periodEnd } });
     const presentDays = attendanceRecords.filter(r => r.status === 'present').length + attendanceRecords.filter(r => r.status === 'half-day').length * 0.5;
 
     // Pro-rate basic salary based on attendance: (presentDays / workingDays) * basicSalary
@@ -55,6 +56,7 @@ exports.generatePayslip = async (req, res) => {
         employee, month, year, basicSalary: payslip.basicSalary,
         allowances: payslip.allowances, deductions: payslip.deductions,
         grossSalary, netSalary, workingDays: payslip.workingDays, presentDays,
+        periodStart, periodEnd,
       });
       payslip.pdfPath = pdfPath;
       await payslip.save();
@@ -112,6 +114,26 @@ exports.getAllPayslips = async (req, res) => {
   }
 };
 
+// HR / Admin: Delete payslip
+exports.deletePayslip = async (req, res) => {
+  try {
+    const payslip = await Payslip.findById(req.params.id);
+    if (!payslip) return res.status(404).json({ message: 'Payslip not found' });
+
+    // Delete PDF file from disk if it exists
+    if (payslip.pdfPath) {
+      const toAbs = (p) => path.join(__dirname, '..', (p || '').replace(/^[/\\]/, ''));
+      const filePath = toAbs(payslip.pdfPath);
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    }
+
+    await payslip.deleteOne();
+    res.json({ message: 'Payslip deleted' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 // Download payslip PDF
 exports.downloadPayslip = async (req, res) => {
   try {
@@ -123,17 +145,33 @@ exports.downloadPayslip = async (req, res) => {
       if (payslip.employee._id.toString() !== req.user._id.toString()) {
         return res.status(403).json({ message: 'Access denied' });
       }
+      // Document lock: employees must have all required docs approved to download payslips
+      const docsApproved = await checkAllDocsApproved(req.user._id);
+      if (!docsApproved) {
+        return res.status(403).json({ message: 'Your onboarding documents are not fully approved yet. Please upload all required documents and wait for HR approval before downloading payslips.', code: 'DOCS_PENDING' });
+      }
     }
 
-    const absolutePath = path.join(__dirname, '..', payslip.pdfPath || '');
+    const toAbs = (p) => path.join(__dirname, '..', (p || '').replace(/^[/\\]/, ''));
+    let absolutePath = toAbs(payslip.pdfPath);
     if (!payslip.pdfPath || !fs.existsSync(absolutePath)) {
       // Re-generate PDF on the fly
       const employee = await User.findById(payslip.employee._id).populate('department');
-      const pdfPath = await generatePayslipPDF({ employee, ...payslip.toObject() });
+      const ps = payslip.toObject();
+      const pStart = moment(`${ps.year}-${String(ps.month).padStart(2, '0')}-25`).subtract(1, 'month').format('YYYY-MM-DD');
+      const pEnd   = moment(`${ps.year}-${String(ps.month).padStart(2, '0')}-24`).format('YYYY-MM-DD');
+      const pdfPath = await generatePayslipPDF({ ...ps, employee, periodStart: pStart, periodEnd: pEnd });
       payslip.pdfPath = pdfPath;
       await payslip.save();
+      absolutePath = toAbs(payslip.pdfPath);
     }
-    res.download(absolutePath);
+    if (!fs.existsSync(absolutePath)) {
+      return res.status(500).json({ message: 'PDF generation failed' });
+    }
+    const filename = path.basename(absolutePath);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    fs.createReadStream(absolutePath).pipe(res);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

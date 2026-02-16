@@ -4,6 +4,10 @@
  */
 require('dotenv').config();
 const mongoose = require('mongoose');
+const dns = require('dns');
+if (process.env.NODE_ENV !== 'production') {
+  dns.setServers(['8.8.8.8', '8.8.4.4']);
+}
 const User = require('./models/User');
 const LeavePolicy = require('./models/LeavePolicy');
 

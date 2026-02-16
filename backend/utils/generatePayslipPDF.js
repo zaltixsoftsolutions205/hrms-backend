@@ -9,7 +9,11 @@ const fmt = (n) => Number(n || 0).toLocaleString('en-IN');
 const generatePayslipPDF = (payslipData) => {
   return new Promise((resolve, reject) => {
     try {
-      const { employee, month, year, basicSalary, allowances, deductions, grossSalary, netSalary, workingDays, presentDays } = payslipData;
+      const { employee, month, year, basicSalary, allowances, deductions, grossSalary, netSalary, workingDays, presentDays, periodStart, periodEnd } = payslipData;
+
+      // Format pay period label  e.g. "25 Dec 2025 – 24 Jan 2026"
+      const fmtDate = (d) => { if (!d) return ''; const [y, m, day] = d.split('-'); return `${parseInt(day)} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(m)-1]} ${y}`; };
+      const periodLabel = periodStart && periodEnd ? `${fmtDate(periodStart)} – ${fmtDate(periodEnd)}` : `${monthNames[month - 1]} ${year}`;
 
       const uploadsDir = path.join(__dirname, '../uploads/payslips');
       if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
@@ -53,9 +57,10 @@ const generatePayslipPDF = (payslipData) => {
       infoRow('Employee Name', employee.name, 'Employee ID', employee.employeeId, infoY);
       infoRow('Designation', employee.designation || 'N/A', 'Department', employee.department?.name || 'N/A', infoY + 22);
       infoRow('Working Days', String(workingDays || 0), 'Present Days', String(presentDays || 0), infoY + 44);
+      infoRow('Pay Period', periodLabel, '', '', infoY + 66);
 
       // ── Earnings & Deductions side-by-side ──
-      const tableY = 250;
+      const tableY = 278;
 
       // Earnings header
       doc.rect(50, tableY, 240, 26).fill('#EDE9FE');

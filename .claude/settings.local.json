@@ -6,7 +6,18 @@
       "Bash(del /Q \"c:\\\\Users\\\\anjali\\\\hrms-crm\\\\backend\\\\uploads\\\\payslips\\\\*.pdf\")",
       "Bash(powershell -Command:*)",
       "Bash(powershell:*)",
-      "Bash(del \"c:\\\\Users\\\\anjali\\\\hrms-crm\\\\make_favicon.ps1\")"
+      "Bash(del \"c:\\\\Users\\\\anjali\\\\hrms-crm\\\\make_favicon.ps1\")",
+      "Bash(Copy-Item:*)",
+      "Bash(Copy-Item \"c:\\\\Users\\\\anjali\\\\OneDrive\\\\Desktop\\\\hrms-crm\\\\frontend\\\\public\\\\favicon.png\" -Destination \"c:\\\\Users\\\\anjali\\\\OneDrive\\\\Desktop\\\\hrms-crm\\\\frontend\\\\public\\\\pwa-192x192.png\" -Force)",
+      "Bash(Write-Host \"Done\")",
+      "Bash(git checkout:*)",
+      "Bash(python:*)",
+      "Bash(python3:*)",
+      "Bash(magick:*)",
+      "Bash(convert:*)",
+      "Bash(powershell.exe -Command:*)",
+      "Bash(ls:*)",
+      "Read(//c/Users/anjali/OneDrive/Desktop/hrms-crm/**)"
     ]
   }
 }

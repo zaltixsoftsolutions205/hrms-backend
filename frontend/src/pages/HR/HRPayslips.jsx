@@ -18,6 +18,7 @@ const HRPayslips = () => {
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [downloading, setDownloading] = useState(null);
+  const [deleting, setDeleting] = useState(null);
   const now = new Date();
   const [filterMonth, setFilterMonth] = useState('');
   const [filterYear, setFilterYear] = useState('');
@@ -77,6 +78,17 @@ const HRPayslips = () => {
       fetch();
     } catch (err) { toast.error(err.response?.data?.message || 'Failed'); }
     finally { setLoading(false); }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Delete this payslip? This cannot be undone.')) return;
+    setDeleting(id);
+    try {
+      await api.delete(`/payslips/${id}`);
+      setPayslips(p => p.filter(ps => ps._id !== id));
+      toast.success('Payslip deleted');
+    } catch { toast.error('Delete failed'); }
+    finally { setDeleting(null); }
   };
 
   const handleDownload = async (id, emp, month, year) => {
@@ -139,10 +151,18 @@ const HRPayslips = () => {
                     <td>{formatCurrency(ps.grossSalary)}</td>
                     <td className="font-bold text-golden-600">{formatCurrency(ps.netSalary)}</td>
                     <td>
-                      <button onClick={() => handleDownload(ps._id, ps.employee, ps.month, ps.year)}
-                        disabled={downloading === ps._id} className="btn-primary btn-sm">
-                        {downloading === ps._id ? '...' : <span className="flex items-center gap-1"><SI d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" size={13} color="text-white" /> PDF</span>}
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => handleDownload(ps._id, ps.employee, ps.month, ps.year)}
+                          disabled={downloading === ps._id}
+                          className="btn-primary btn-sm flex items-center gap-1">
+                          {downloading === ps._id ? '...' : <><SI d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" size={13} color="text-white" /> PDF</>}
+                        </button>
+                        <button onClick={() => handleDelete(ps._id)}
+                          disabled={deleting === ps._id}
+                          className="btn-danger btn-sm flex items-center justify-center aspect-square">
+                          {deleting === ps._id ? '…' : <SI d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" size={14} color="text-white" />}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -155,8 +175,8 @@ const HRPayslips = () => {
       {/* Generate Payslip Modal */}
       <Modal isOpen={showModal} onClose={() => setShowModal(false)} title="Generate Payslip" size="lg">
         <form onSubmit={handleGenerate} className="space-y-4">
-          <div className="grid grid-cols-3 gap-3">
-            <div className="col-span-3 sm:col-span-1">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
               <label className="input-label">Employee *</label>
               <select className="input-field" required value={form.employeeId} onChange={e => handleEmpSelect(e.target.value)}>
                 <option value="">Select employee</option>

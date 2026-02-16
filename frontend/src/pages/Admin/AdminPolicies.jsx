@@ -91,7 +91,7 @@ const AdminPolicies = () => {
 
       <Modal isOpen={showModal} onClose={() => setShowModal(false)} title={editMode ? 'Edit Policy' : 'Create Leave Policy'}>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="input-label">Policy Name</label>
               <input className="input-field" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
@@ -101,7 +101,7 @@ const AdminPolicies = () => {
               <input type="number" className="input-field" required value={form.year} onChange={e => setForm(f => ({ ...f, year: parseInt(e.target.value) }))} />
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="input-label">Casual Leaves</label>
               <input type="number" className="input-field" value={form.casualLeaves} min={0} onChange={e => setForm(f => ({ ...f, casualLeaves: parseInt(e.target.value) }))} />

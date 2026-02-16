@@ -38,7 +38,7 @@ const AdminCRM = () => {
       ) : (
         <>
           {/* Overall KPIs */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <KpiCard label="Total Leads" value={report.totalLeads} icon={<SI d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" size={14} color="text-violet-600" />} color="violet" />
             <KpiCard label="Total Converted" value={report.totalConverted} icon={<SI d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" size={14} color="text-green-600" />} color="green" />
             <KpiCard label="Overall Conversion" value={`${report.overallConversionRate}%`} icon={<SI d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" size={14} color="text-amber-500" />} color="golden" />
