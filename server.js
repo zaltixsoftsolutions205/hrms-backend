@@ -18,7 +18,7 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Static files (payslip PDFs)
+// Static files (payslip PDFs and profile photos)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Routes

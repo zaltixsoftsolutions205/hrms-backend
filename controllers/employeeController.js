@@ -220,3 +220,176 @@ exports.updateOwnProfile = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+// Employee: Upload profile photo
+exports.uploadProfilePhoto = async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+
+    const employee = await User.findById(req.user._id);
+    if (!employee) return res.status(404).json({ message: 'Employee not found' });
+
+    // Delete old profile photo if exists
+    if (employee.profilePicture) {
+      const path = require('path');
+      const fs = require('fs');
+      const oldPath = path.join(__dirname, '..', employee.profilePicture);
+      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+    }
+
+    // Save new profile photo path
+    employee.profilePicture = `/uploads/profile-photos/${req.file.filename}`;
+    await employee.save();
+
+    const updated = await User.findById(employee._id).populate('department');
+    res.json({ message: 'Profile photo uploaded successfully', employee: updated });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Employee: Get own full profile (including joiningLetter, idCard)
+exports.getMyProfile = async (req, res) => {
+  try {
+    const employee = await User.findById(req.user._id).populate('department');
+    if (!employee) return res.status(404).json({ message: 'Employee not found' });
+    res.json(employee);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// HR / Admin: Attach joining letter and/or ID card for an employee
+exports.attachEmployeeDocs = async (req, res) => {
+  try {
+    const employee = await User.findById(req.params.id);
+    if (!employee) return res.status(404).json({ message: 'Employee not found' });
+
+    const path = require('path');
+    const fs = require('fs');
+
+    if (req.files?.joiningLetter?.[0]) {
+      // Delete old file if exists
+      if (employee.joiningLetter) {
+        const oldPath = path.join(__dirname, '..', employee.joiningLetter);
+        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      }
+      employee.joiningLetter = `/uploads/employee-docs/${req.files.joiningLetter[0].filename}`;
+    }
+    if (req.files?.idCard?.[0]) {
+      if (employee.idCard) {
+        const oldPath = path.join(__dirname, '..', employee.idCard);
+        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      }
+      employee.idCard = `/uploads/employee-docs/${req.files.idCard[0].filename}`;
+    }
+
+    await employee.save();
+    const updated = await User.findById(employee._id).populate('department');
+    res.json({ message: 'Documents attached successfully', employee: updated });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Employee: Get profile completion percentage
+exports.getProfileCompletion = async (req, res) => {
+  try {
+    const employee = await User.findById(req.user._id).populate('department');
+    if (!employee) return res.status(404).json({ message: 'Employee not found' });
+
+    const fields = [
+      { name: 'phone', weight: 10 },
+      { name: 'address', weight: 10 },
+      { name: 'designation', weight: 10 },
+      { name: 'joiningDate', weight: 10 },
+      { name: 'basicSalary', weight: 10 },
+      { name: 'profilePicture', weight: 10 },
+      { name: 'emergencyContact.name', weight: 10 },
+      { name: 'emergencyContact.phone', weight: 10 },
+      { name: 'emergencyContact.relation', weight: 5 },
+      { name: 'documents', weight: 5 }, // 5 points if onboarding docs approved
+    ];
+
+    let totalScore = 0;
+    let maxScore = fields.reduce((s, f) => s + f.weight, 0);
+
+    // Precompute document counts to give partial credit for uploaded documents
+    let requiredDocs = [];
+    let totalRequiredDocs = 0;
+    let uploadedOrApprovedCount = 0;
+    let approvedCount = 0;
+    if (employee.employeeType) {
+      requiredDocs = getRequiredDocs(employee.employeeType) || [];
+      totalRequiredDocs = requiredDocs.length;
+      if (totalRequiredDocs > 0) {
+        uploadedOrApprovedCount = await Document.countDocuments({
+          employee: employee._id,
+          status: { $in: ['uploaded', 'approved'] },
+        });
+        approvedCount = await Document.countDocuments({
+          employee: employee._id,
+          status: 'approved',
+        });
+      }
+    }
+
+    for (const field of fields) {
+      if (field.name === 'documents') {
+        if (employee.employeeType) {
+          if (totalRequiredDocs === 0) {
+            totalScore += field.weight; // nothing required
+          } else {
+            // Give proportional credit based on number of uploaded/approved documents
+            const ratio = Math.min(1, uploadedOrApprovedCount / totalRequiredDocs);
+            totalScore += Math.round(ratio * field.weight);
+          }
+        } else {
+          // No onboarding type, consider documents as complete
+          totalScore += field.weight;
+        }
+      } else {
+        const keys = field.name.split('.');
+        let value = employee;
+        for (const key of keys) {
+          value = value?.[key];
+        }
+        if (value && (typeof value !== 'string' || value.trim())) {
+          totalScore += field.weight;
+        }
+      }
+    }
+
+    const percentage = Math.round((totalScore / maxScore) * 100);
+    const isComplete = percentage === 100;
+
+    res.json({
+      percentage,
+      isComplete,
+      totalScore,
+      maxScore,
+      fields: fields.map((f) => {
+        if (f.name === 'documents') {
+          const completed = employee.employeeType ? (uploadedOrApprovedCount >= totalRequiredDocs) : true;
+          return {
+            name: f.name,
+            weight: f.weight,
+            completed,
+            uploadedCount: uploadedOrApprovedCount,
+            requiredCount: totalRequiredDocs,
+            approvedCount,
+          };
+        }
+        const keys = f.name.split('.');
+        let value = employee;
+        for (const key of keys) {
+          value = value?.[key];
+        }
+        const completed = value && (typeof value !== 'string' || value.trim());
+        return { name: f.name, weight: f.weight, completed };
+      }),
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};

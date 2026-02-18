@@ -144,6 +144,16 @@ exports.downloadPayslip = async (req, res) => {
       if (payslip.employee._id.toString() !== req.user._id.toString()) {
         return res.status(403).json({ message: 'Access denied' });
       }
+      
+      // Profile completion check for employees
+      const employee = await User.findById(req.user._id).populate('department');
+      if (!employee.profilePicture) {
+        return res.status(403).json({ 
+          message: 'Please upload your profile photo before downloading payslips.', 
+          code: 'PHOTO_REQUIRED' 
+        });
+      }
+      
       // Document lock: employees must have all required docs approved to download payslips
       const docsApproved = await checkAllDocsApproved(req.user._id);
       if (!docsApproved) {
@@ -167,7 +177,7 @@ exports.downloadPayslip = async (req, res) => {
     if (!fs.existsSync(absolutePath)) {
       return res.status(500).json({ message: 'PDF generation failed' });
     }
-    const filename = path.basename(absolutePath);
+    const filename = `${payslip.employee.employeeId}_${String(payslip.year)}-${String(payslip.month).padStart(2, '0')}.pdf`;
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     fs.createReadStream(absolutePath).pipe(res);

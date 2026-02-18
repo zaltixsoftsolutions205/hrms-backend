@@ -18,7 +18,7 @@ const generatePayslipPDF = (payslipData) => {
       const uploadsDir = path.join(__dirname, '../uploads/payslips');
       if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
-      const filename = `payslip_${employee.employeeId}_${month}_${year}.pdf`;
+      const filename = `${employee.employeeId}_${String(year)}-${String(month).padStart(2, '0')}.pdf`;
       const filepath = path.join(uploadsDir, filename);
 
       const doc = new PDFDocument({ margin: 50, size: 'A4' });
@@ -31,7 +31,17 @@ const generatePayslipPDF = (payslipData) => {
       // Logo on white background
       const logoPath = path.join(__dirname, '../../frontend/public/logo.png');
       doc.roundedRect(46, 12, 166, 56, 8).fill('#ffffff');
-      doc.image(logoPath, 52, 17, { width: 154 });
+      try {
+        if (fs.existsSync(logoPath)) {
+          doc.image(logoPath, 52, 17, { width: 154 });
+        } else {
+          // Fallback: just show text if logo doesn't exist
+          doc.fillColor('#4C1D95').fontSize(14).font('Helvetica-Bold').text('Zaltix', 62, 35);
+        }
+      } catch (imgErr) {
+        // If image loading fails, just show text
+        doc.fillColor('#4C1D95').fontSize(14).font('Helvetica-Bold').text('Zaltix', 62, 35);
+      }
 
       // Payslip subtitle
       doc.fillColor('#c4b5fd').fontSize(11).font('Helvetica').text('Payslip', 228, 43);

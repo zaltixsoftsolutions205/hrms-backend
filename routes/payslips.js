@@ -8,8 +8,8 @@ router.use(protect);
 
 router.post('/', roleCheck('hr', 'admin'), generatePayslip);
 router.get('/my', getMyPayslips);
-router.get('/', roleCheck('hr', 'admin'), getAllPayslips);
 router.get('/:id/download', downloadPayslip);
+router.get('/', roleCheck('hr', 'admin'), getAllPayslips);
 router.delete('/:id', roleCheck('hr', 'admin'), deletePayslip);
 
 module.exports = router;
