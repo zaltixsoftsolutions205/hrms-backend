@@ -9,12 +9,14 @@ const {
   applyRegularization,
   getRegularizations,
   reviewRegularization,
+  getOfficeInfo,
 } = require('../controllers/attendanceController');
 const { protect } = require('../middleware/auth');
 const { roleCheck } = require('../middleware/roleCheck');
 
 router.use(protect);
 
+router.get('/office-info', getOfficeInfo);
 router.post('/check-in', checkIn);
 router.post('/check-out', checkOut);
 router.get('/my', getMyAttendance);

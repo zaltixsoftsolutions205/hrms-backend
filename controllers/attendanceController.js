@@ -78,6 +78,24 @@ exports.checkOut = async (req, res) => {
     if (!record) return res.status(404).json({ message: 'No check-in found for today' });
     if (record.checkOut) return res.status(400).json({ message: 'Already checked out today' });
 
+    const OFFICE_LAT    = parseFloat(process.env.OFFICE_LAT);
+    const OFFICE_LNG    = parseFloat(process.env.OFFICE_LNG);
+    const OFFICE_RADIUS = parseFloat(process.env.OFFICE_RADIUS_METERS) || 50;
+
+    let outsideRange = false;
+    let checkoutDistance = null;
+
+    if (OFFICE_LAT && OFFICE_LNG) {
+      const { lat, lng } = req.body;
+      if (lat == null || lng == null) {
+        return res.status(400).json({ message: 'Location is required to check out. Please allow location access.', code: 'LOCATION_REQUIRED' });
+      }
+      checkoutDistance = Math.round(haversineDistance(parseFloat(lat), parseFloat(lng), OFFICE_LAT, OFFICE_LNG));
+      if (checkoutDistance > OFFICE_RADIUS) {
+        outsideRange = true;
+      }
+    }
+
     const checkInTime = moment(`${today} ${record.checkIn}`, 'YYYY-MM-DD HH:mm');
     const checkOutTime = moment(`${today} ${now}`, 'YYYY-MM-DD HH:mm');
     const workHours = parseFloat((checkOutTime.diff(checkInTime, 'minutes') / 60).toFixed(2));
@@ -86,11 +104,27 @@ exports.checkOut = async (req, res) => {
     record.workHours = workHours;
     record.isEarlyLeave = now < OFFICE_END;
     if (workHours < 4) record.status = 'half-day';
+
+    // Auto-regularize if checked out from outside office premises
+    if (outsideRange && !record.regularizationStatus) {
+      record.regularizationStatus = 'pending';
+      record.regularizationReason = `Auto: Checked out from outside office (${checkoutDistance}m away, allowed within ${OFFICE_RADIUS}m).`;
+    }
+
     await record.save();
-    res.json(record);
+    res.json({ ...record.toObject(), autoRegularized: outsideRange, distance: checkoutDistance, allowed: OFFICE_RADIUS });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
+};
+
+// Authenticated: office location info for frontend geo-fence + map
+exports.getOfficeInfo = (req, res) => {
+  const lat    = parseFloat(process.env.OFFICE_LAT);
+  const lng    = parseFloat(process.env.OFFICE_LNG);
+  const radius = parseFloat(process.env.OFFICE_RADIUS_METERS) || 200;
+  if (!lat || !lng) return res.json({ enabled: false });
+  res.json({ enabled: true, lat, lng, radius });
 };
 
 // Employee: Get own attendance
@@ -125,7 +159,7 @@ exports.getMyAttendance = async (req, res) => {
 
 // HR / Admin: Get all attendance
 exports.getAllAttendance = async (req, res) => {
-  const { month, year, employeeId, departmentId, date } = req.query;
+  const { month, year, employeeId, departmentId, date, fromDate, toDate } = req.query;
   try {
     let empFilter = {};
     if (departmentId) empFilter.department = departmentId;
@@ -137,6 +171,8 @@ exports.getAllAttendance = async (req, res) => {
     let filter = { employee: { $in: empIds } };
     if (date) {
       filter.date = date;
+    } else if (fromDate && toDate) {
+      filter.date = { $gte: fromDate, $lte: toDate };
     } else if (month && year) {
       const start = `${year}-${String(month).padStart(2, '0')}-01`;
       const end = moment(start).endOf('month').format('YYYY-MM-DD');
