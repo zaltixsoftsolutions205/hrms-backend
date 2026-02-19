@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { createEmployee, sendOfferLetter, sendCredentials, getAllEmployees, getEmployee, updateEmployee, updateOwnProfile, deleteEmployee, getTeamMembers, getProfileCompletion, uploadProfilePhoto, getMyProfile, attachEmployeeDocs } = require('../controllers/employeeController');
+const { createEmployee, sendOfferLetter, sendCredentials, getAllEmployees, getEmployee, updateEmployee, updateOwnProfile, deleteEmployee, getTeamMembers, getProfileCompletion, uploadProfilePhoto, deleteProfilePhoto, getMyProfile, attachEmployeeDocs } = require('../controllers/employeeController');
 const { protect } = require('../middleware/auth');
 const { roleCheck } = require('../middleware/roleCheck');
 const uploadProfilePhoto_middleware = require('../middleware/uploadProfilePhoto');
@@ -13,6 +13,7 @@ router.get('/team', getTeamMembers);
 router.get('/me', getMyProfile);
 router.get('/me/profile-completion', getProfileCompletion);
 router.post('/me/profile-photo', uploadProfilePhoto_middleware.single('file'), uploadProfilePhoto);
+router.delete('/me/profile-photo', deleteProfilePhoto);
 router.put('/me/profile', updateOwnProfile);
 
 // HR / Admin routes

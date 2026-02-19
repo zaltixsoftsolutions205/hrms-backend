@@ -6,6 +6,8 @@ const { sendMail } = require('../config/mail');
 const { offerLetterTemplate, credentialsTemplate } = require('../utils/emailTemplates');
 const { getRequiredDocs } = require('./documentController');
 const crypto = require('crypto');
+const path = require('path');
+const fs = require('fs');
 
 // HR / Admin: Create employee
 exports.createEmployee = async (req, res) => {
@@ -243,6 +245,26 @@ exports.uploadProfilePhoto = async (req, res) => {
 
     const updated = await User.findById(employee._id).populate('department');
     res.json({ message: 'Profile photo uploaded successfully', employee: updated });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Employee: Delete own profile photo
+exports.deleteProfilePhoto = async (req, res) => {
+  try {
+    const employee = await User.findById(req.user._id);
+    if (!employee) return res.status(404).json({ message: 'Employee not found' });
+    if (!employee.profilePicture) return res.status(400).json({ message: 'No profile photo to delete' });
+
+    const filePath = path.join(__dirname, '..', employee.profilePicture);
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+
+    employee.profilePicture = null;
+    await employee.save();
+
+    const updated = await User.findById(employee._id).populate('department');
+    res.json({ message: 'Profile photo deleted', employee: updated });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

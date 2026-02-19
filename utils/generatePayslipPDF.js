@@ -2,148 +2,231 @@ const PDFDocument = require('pdfkit');
 const path = require('path');
 const fs = require('fs');
 
-const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
-const fmt = (n) => Number(n || 0).toLocaleString('en-IN');
+const fmt2 = (n) => Number(n || 0).toFixed(2);
+
+function numberToWords(n) {
+  const ones = ['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten',
+    'Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
+  const tens = ['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+  function convert(n) {
+    if (n === 0) return '';
+    if (n < 20) return ones[n];
+    if (n < 100) return tens[Math.floor(n / 10)] + (n % 10 ? ' ' + ones[n % 10] : '');
+    if (n < 1000) return ones[Math.floor(n / 100)] + ' Hundred' + (n % 100 ? ' ' + convert(n % 100) : '');
+    if (n < 100000) return convert(Math.floor(n / 1000)) + ' Thousand' + (n % 1000 ? ' ' + convert(n % 1000) : '');
+    if (n < 10000000) return convert(Math.floor(n / 100000)) + ' Lakh' + (n % 100000 ? ' ' + convert(n % 100000) : '');
+    return convert(Math.floor(n / 10000000)) + ' Crore' + (n % 10000000 ? ' ' + convert(n % 10000000) : '');
+  }
+  const int = Math.floor(Math.abs(n));
+  return int === 0 ? 'Zero only' : convert(int) + ' only';
+}
 
 const generatePayslipPDF = (payslipData) => {
   return new Promise((resolve, reject) => {
     try {
-      const { employee, month, year, basicSalary, allowances, deductions, grossSalary, netSalary, workingDays, presentDays, periodStart, periodEnd } = payslipData;
-
-      // Format pay period label  e.g. "25 Dec 2025 – 24 Jan 2026"
-      const fmtDate = (d) => { if (!d) return ''; const [y, m, day] = d.split('-'); return `${parseInt(day)} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(m)-1]} ${y}`; };
-      const periodLabel = periodStart && periodEnd ? `${fmtDate(periodStart)} – ${fmtDate(periodEnd)}` : `${monthNames[month - 1]} ${year}`;
+      const {
+        employee, month, year,
+        basicSalary, allowances, deductions,
+        grossSalary, netSalary,
+        workingDays, presentDays,
+      } = payslipData;
 
       const uploadsDir = path.join(__dirname, '../uploads/payslips');
       if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
-      const filename = `${employee.employeeId}_${String(year)}-${String(month).padStart(2, '0')}.pdf`;
+      const filename = `${employee.employeeId}_${year}-${String(month).padStart(2, '0')}.pdf`;
       const filepath = path.join(uploadsDir, filename);
 
-      const doc = new PDFDocument({ margin: 50, size: 'A4' });
+      const doc = new PDFDocument({ margin: 0, size: 'A4' });
       const stream = fs.createWriteStream(filepath);
       doc.pipe(stream);
 
-      // ── Header with Zaltix branding ──
-      doc.rect(0, 0, 595, 100).fill('#4C1D95');
+      const ML = 40;         // left margin
+      const MR = 555;        // right margin
+      const CW = MR - ML;    // 515
+      const RH = 20;         // row height
+      const BORDER  = '#aaaaaa';
+      const HDR_BG  = '#d8d8d8';
+      const SUB_BG  = '#efefef';
+      const TOT_BG  = '#e2e2e2';
 
-      // Logo on white background
-      const logoPath = path.join(__dirname, '../../frontend/public/logo.png');
-      doc.roundedRect(46, 12, 166, 56, 8).fill('#ffffff');
-      try {
-        if (fs.existsSync(logoPath)) {
-          doc.image(logoPath, 52, 17, { width: 154 });
-        } else {
-          // Fallback: just show text if logo doesn't exist
-          doc.fillColor('#4C1D95').fontSize(14).font('Helvetica-Bold').text('Zaltix', 62, 35);
+      /* ── draw one bordered cell with optional fill ── */
+      function cell(text, x, y, w, h, opts = {}) {
+        const {
+          align  = 'left',
+          bold   = false,
+          fsize  = 9,
+          color  = '#111111',
+          bg     = null,
+          pad    = 6,
+        } = opts;
+
+        if (bg) {
+          doc.rect(x, y, w, h).fillColor(bg).fill();
         }
-      } catch (imgErr) {
-        // If image loading fails, just show text
-        doc.fillColor('#4C1D95').fontSize(14).font('Helvetica-Bold').text('Zaltix', 62, 35);
+        doc.rect(x, y, w, h).strokeColor(BORDER).lineWidth(0.4).stroke();
+
+        if (text !== null && text !== undefined && String(text).trim() !== '') {
+          const textY = y + Math.max(2, (h - fsize) / 2);
+          doc.fillColor(color)
+             .fontSize(fsize)
+             .font(bold ? 'Helvetica-Bold' : 'Helvetica')
+             .text(String(text), x + pad, textY, {
+               width: w - pad * 2,
+               align,
+               lineBreak: false,
+             });
+        }
       }
 
-      // Payslip subtitle
-      doc.fillColor('#c4b5fd').fontSize(11).font('Helvetica').text('Payslip', 228, 43);
+      let y = 30;
 
-      // Period
-      doc.fillColor('#F59E0B').fontSize(14).font('Helvetica-Bold').text(`${monthNames[month - 1]} ${year}`, 400, 30, { align: 'right', width: 145 });
-      doc.fillColor('#c4b5fd').fontSize(9).font('Helvetica').text('Salary Statement', 400, 50, { align: 'right', width: 145 });
+      /* ════════════════════════════════════════
+         HEADER — logo + company info
+      ════════════════════════════════════════ */
+      const logoPath = path.join(__dirname, '../../frontend/public/logo.png');
+      let logoW = 0;
+      if (fs.existsSync(logoPath)) {
+        try {
+          doc.image(logoPath, ML, y + 2, { width: 110, height: 46 });
+          logoW = 118;
+        } catch (_) {}
+      }
 
-      // ── Employee Information ──
-      doc.fillColor('#4C1D95').fontSize(12).font('Helvetica-Bold').text('Employee Information', 50, 118);
-      doc.moveTo(50, 134).lineTo(545, 134).strokeColor('#7C3AED').lineWidth(1).stroke();
+      const infoX = ML + logoW;
+      const infoW = MR - infoX;
 
-      const col1 = 50, col2 = 180, col3 = 320, col4 = 450;
-      let infoY = 146;
+      doc.fillColor('#000000').fontSize(14).font('Helvetica-Bold')
+         .text('Zaltix Soft Solutions', infoX, y + 2, { width: infoW, align: 'center' });
+      doc.fillColor('#333333').fontSize(7.5).font('Helvetica')
+         .text('Swarnakanchi Road, Green Hills Colony Rd No.3, above Vajra Food Court,', infoX, y + 20, { width: infoW, align: 'center' });
+      doc.text('Green Hills Colony, Kothapet, Hyderabad, Telangana - 500102', infoX, y + 30, { width: infoW, align: 'center' });
+      doc.text('Email : hr@zaltixsoftsolutions.com   |   Phone : 9966653131', infoX, y + 40, { width: infoW, align: 'center' });
 
-      const infoRow = (label1, value1, label2, value2, y) => {
-        doc.fillColor('#666666').fontSize(9).font('Helvetica').text(label1, col1, y);
-        doc.fillColor('#1a1a1a').fontSize(10).font('Helvetica-Bold').text(value1, col2, y);
-        doc.fillColor('#666666').fontSize(9).font('Helvetica').text(label2, col3, y);
-        doc.fillColor('#1a1a1a').fontSize(10).font('Helvetica-Bold').text(value2, col4, y);
-      };
+      y += 62;
+      doc.moveTo(ML, y).lineTo(MR, y).strokeColor('#000000').lineWidth(1.2).stroke();
+      y += 10;
 
-      infoRow('Employee Name', employee.name, 'Employee ID', employee.employeeId, infoY);
-      infoRow('Designation', employee.designation || 'N/A', 'Department', employee.department?.name || 'N/A', infoY + 22);
-      infoRow('Working Days', String(workingDays || 0), 'Present Days', String(presentDays || 0), infoY + 44);
-      infoRow('Pay Period', periodLabel, '', '', infoY + 66);
+      /* ════════════════════════════════════════
+         TITLE
+      ════════════════════════════════════════ */
+      doc.fillColor('#000000').fontSize(11).font('Helvetica-Bold')
+         .text(`Salary Slip for the Month of ${MONTH_NAMES[month - 1]} ${year}`, ML, y, {
+           width: CW, align: 'center',
+         });
+      y += 18;
+      doc.moveTo(ML, y).lineTo(MR, y).strokeColor('#000000').lineWidth(1.2).stroke();
+      y += 10;
 
-      // ── Earnings & Deductions side-by-side ──
-      const tableY = 278;
+      /* ════════════════════════════════════════
+         EMPLOYEE DETAILS — 4-col grid
+         label | value | label | value
+      ════════════════════════════════════════ */
+      const wdDays  = Number(workingDays || 26);
+      const prsDays = Number(presentDays != null ? presentDays : wdDays);
+      const lwpDays = Math.max(0, wdDays - prsDays);
 
-      // Earnings header
-      doc.rect(50, tableY, 240, 26).fill('#EDE9FE');
-      doc.fillColor('#4C1D95').fontSize(10).font('Helvetica-Bold').text('EARNINGS', 60, tableY + 7);
-      doc.text('Amount (\u20B9)', 190, tableY + 7, { align: 'right', width: 90 });
+      // column widths: label=120, value=137, label=118, value=140 → 515
+      const EC1 = 120, EC2 = 137, EC3 = 118, EC4 = CW - EC1 - EC2 - EC3;
 
-      // Deductions header
-      doc.rect(305, tableY, 240, 26).fill('#EDE9FE');
-      doc.fillColor('#4C1D95').fontSize(10).font('Helvetica-Bold').text('DEDUCTIONS', 315, tableY + 7);
-      doc.text('Amount (\u20B9)', 445, tableY + 7, { align: 'right', width: 90 });
+      const empRows = [
+        ['Employee Code', employee.employeeId,          'Employee Name', employee.name],
+        ['Designation',   employee.designation || '—',  'Department',    employee.department?.name || '—'],
+        ['Working Days',  String(wdDays),               'Present Days',  String(prsDays)],
+        ['LWP Days',      String(lwpDays),              'Paid Days',     String(prsDays)],
+      ];
 
-      // Earnings rows
-      let earnY = tableY + 34;
-      doc.fillColor('#333333').fontSize(9).font('Helvetica');
-
-      doc.text('Basic Salary (Pro-rated)', 60, earnY);
-      doc.text(fmt(basicSalary), 190, earnY, { align: 'right', width: 90 });
-      earnY += 18;
-
-      let totalAllowances = 0;
-      (allowances || []).forEach(a => {
-        doc.text(a.name, 60, earnY);
-        doc.text(fmt(a.amount), 190, earnY, { align: 'right', width: 90 });
-        totalAllowances += (a.amount || 0);
-        earnY += 18;
+      empRows.forEach(([l1, v1, l2, v2]) => {
+        cell(l1,  ML,               y, EC1, RH, { fsize: 8, color: '#555555', bg: SUB_BG });
+        cell(v1,  ML + EC1,         y, EC2, RH, { fsize: 8.5, bold: true });
+        cell(l2,  ML + EC1 + EC2,   y, EC3, RH, { fsize: 8, color: '#555555', bg: SUB_BG });
+        cell(v2,  ML + EC1 + EC2 + EC3, y, EC4, RH, { fsize: 8.5, bold: true });
+        y += RH;
       });
 
-      // Earnings total line
-      earnY += 4;
-      doc.moveTo(50, earnY).lineTo(290, earnY).strokeColor('#DDD6FE').lineWidth(0.5).stroke();
-      earnY += 6;
-      doc.fillColor('#4C1D95').font('Helvetica-Bold').text('Total Earnings', 60, earnY);
-      doc.text(fmt(grossSalary), 190, earnY, { align: 'right', width: 90 });
+      y += 12;
 
-      // Deductions rows
-      let dedY = tableY + 34;
-      let totalDeductions = 0;
-      doc.fillColor('#333333').fontSize(9).font('Helvetica');
+      /* ════════════════════════════════════════
+         EARNINGS | DEDUCTIONS — side by side
+         Left block  : Earnings  (2 cols: label | amount)
+         Right block : Deductions (2 cols: label | amount)
+      ════════════════════════════════════════ */
+      const LB  = 258;          // left block total width
+      const RB  = CW - LB;     // right block total width = 257
+      const LA  = 92;           // amount column in left block
+      const LL  = LB - LA;     // label column in left block  = 166
+      const RA  = 92;           // amount column in right block
+      const RL  = RB - RA;     // label column in right block = 165
 
-      (deductions || []).forEach(d => {
-        doc.text(d.name, 315, dedY);
-        doc.text(fmt(d.amount), 445, dedY, { align: 'right', width: 90 });
-        totalDeductions += (d.amount || 0);
-        dedY += 18;
-      });
+      /* section header */
+      cell('Earnings',   ML,      y, LB, RH, { bold: true, bg: HDR_BG, align: 'center' });
+      cell('Deductions', ML + LB, y, RB, RH, { bold: true, bg: HDR_BG, align: 'center' });
+      y += RH;
 
-      // Deductions total line
-      dedY += 4;
-      doc.moveTo(305, dedY).lineTo(545, dedY).strokeColor('#DDD6FE').lineWidth(0.5).stroke();
-      dedY += 6;
-      doc.fillColor('#4C1D95').font('Helvetica-Bold').text('Total Deductions', 315, dedY);
-      doc.text(fmt(totalDeductions), 445, dedY, { align: 'right', width: 90 });
+      /* sub-header */
+      cell('Description',  ML,           y, LL, RH, { bold: true, fsize: 8, bg: SUB_BG });
+      cell('Amount (₹)',   ML + LL,       y, LA, RH, { bold: true, fsize: 8, bg: SUB_BG, align: 'right' });
+      cell('Description',  ML + LB,       y, RL, RH, { bold: true, fsize: 8, bg: SUB_BG });
+      cell('Amount (₹)',   ML + LB + RL,  y, RA, RH, { bold: true, fsize: 8, bg: SUB_BG, align: 'right' });
+      y += RH;
 
-      // ── Summary bar ──
-      const summaryY = Math.max(earnY, dedY) + 24;
-      doc.rect(50, summaryY, 495, 30).fill('#FEF3C7');
-      doc.fillColor('#4C1D95').fontSize(10).font('Helvetica-Bold');
-      doc.text('Gross Salary', 60, summaryY + 9);
-      doc.text(`\u20B9 ${fmt(grossSalary)}`, 160, summaryY + 9, { width: 100 });
-      doc.text('Total Deductions', 315, summaryY + 9);
-      doc.text(`\u20B9 ${fmt(totalDeductions)}`, 445, summaryY + 9, { align: 'right', width: 90 });
+      /* data rows */
+      const earningRows = [
+        ['Basic Salary', Number(basicSalary || 0)],
+        ...(allowances || []).map(a => [a.name, Number(a.amount || 0)]),
+      ];
+      const deductionRows = (deductions || []).map(d => [d.name, Number(d.amount || 0)]);
 
-      // ── Net Pay bar ──
-      const netY = summaryY + 44;
-      doc.rect(50, netY, 495, 44).fill('#4C1D95');
-      doc.fillColor('#ffffff').fontSize(13).font('Helvetica-Bold').text('NET PAY', 60, netY + 14);
-      doc.fillColor('#F59E0B').fontSize(20).font('Helvetica-Bold').text(`\u20B9 ${fmt(netSalary)}`, 200, netY + 10, { align: 'right', width: 280 });
+      const maxRows = Math.max(earningRows.length, deductionRows.length);
+      for (let i = 0; i < maxRows; i++) {
+        const [elabel, eamt] = earningRows[i]    || ['', null];
+        const [dlabel, damt] = deductionRows[i]  || ['', null];
 
-      // ── Footer ──
-      const footerY = netY + 65;
-      doc.moveTo(50, footerY).lineTo(545, footerY).strokeColor('#DDD6FE').lineWidth(0.5).stroke();
-      doc.fillColor('#999999').fontSize(8).font('Helvetica')
-        .text('This is a computer-generated payslip by Zaltix Soft Solutions and does not require a signature.', 50, footerY + 8, { align: 'center', width: 495 });
+        cell(elabel,                       ML,          y, LL, RH, { fsize: 8.5 });
+        cell(elabel ? fmt2(eamt) : '',     ML + LL,     y, LA, RH, { fsize: 8.5, align: 'right' });
+        cell(dlabel,                       ML + LB,     y, RL, RH, { fsize: 8.5 });
+        cell(dlabel ? fmt2(damt) : '',     ML + LB + RL, y, RA, RH, { fsize: 8.5, align: 'right' });
+        y += RH;
+      }
+
+      /* totals row */
+      const totalDed = deductionRows.reduce((s, [, amt]) => s + amt, 0);
+
+      cell('Total Earnings',   ML,          y, LL, RH, { bold: true, bg: TOT_BG });
+      cell(fmt2(grossSalary),  ML + LL,     y, LA, RH, { bold: true, bg: TOT_BG, align: 'right' });
+      cell('Total Deductions', ML + LB,     y, RL, RH, { bold: true, bg: TOT_BG });
+      cell(fmt2(totalDed),     ML + LB + RL, y, RA, RH, { bold: true, bg: TOT_BG, align: 'right' });
+      y += RH + 10;
+
+      /* ════════════════════════════════════════
+         NET PAYABLE — right-aligned
+      ════════════════════════════════════════ */
+      const NW1 = 190, NW2 = 130;
+      const NX  = MR - NW1 - NW2;
+
+      cell('Net Payable :', NX,        y, NW1, RH + 2, { align: 'right', bold: true, fsize: 10, bg: '#e0daf5', color: '#2d1b69' });
+      cell(fmt2(netSalary), NX + NW1, y, NW2, RH + 2, { align: 'right', bold: true, fsize: 10, bg: '#e0daf5', color: '#2d1b69' });
+      y += RH + 16;
+
+      /* ════════════════════════════════════════
+         NET IN WORDS
+      ════════════════════════════════════════ */
+      doc.fillColor('#000000').fontSize(9).font('Helvetica-Bold')
+         .text(`Net Payable (In Words) : ${numberToWords(Math.round(netSalary))}`, ML, y, { width: CW });
+      y += 24;
+
+      /* ════════════════════════════════════════
+         NOTE
+      ════════════════════════════════════════ */
+      doc.moveTo(ML, y).lineTo(MR, y).strokeColor('#cccccc').lineWidth(0.5).stroke();
+      y += 8;
+      doc.fillColor('#666666').fontSize(7.5).font('Helvetica-Oblique')
+         .text(
+           'Note : Private and Confidential. This is a computer generated payslip by Zaltix Soft Solutions and does not require a signature.',
+           ML, y, { width: CW }
+         );
 
       doc.end();
       stream.on('finish', () => resolve(`/uploads/payslips/${filename}`));

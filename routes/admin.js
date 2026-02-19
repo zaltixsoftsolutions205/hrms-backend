@@ -17,10 +17,10 @@ router.post('/departments', roleCheck('admin'), createDepartment);
 router.put('/departments/:id', roleCheck('admin'), updateDepartment);
 router.delete('/departments/:id', roleCheck('admin'), deleteDepartment);
 
-// Leave Policies (admin only)
+// Leave Policies (admin + hr)
 router.get('/leave-policies', getLeavePolicies);
-router.post('/leave-policies', roleCheck('admin'), createLeavePolicy);
-router.put('/leave-policies/:id', roleCheck('admin'), updateLeavePolicy);
+router.post('/leave-policies', roleCheck('admin', 'hr'), createLeavePolicy);
+router.put('/leave-policies/:id', roleCheck('admin', 'hr'), updateLeavePolicy);
 
 // Reports
 router.get('/reports/attendance', getAttendanceReport);
