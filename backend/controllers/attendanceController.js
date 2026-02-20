@@ -82,17 +82,19 @@ exports.checkOut = async (req, res) => {
     const OFFICE_LNG    = parseFloat(process.env.OFFICE_LNG);
     const OFFICE_RADIUS = parseFloat(process.env.OFFICE_RADIUS_METERS) || 50;
 
-    let outsideRange = false;
-    let checkoutDistance = null;
-
     if (OFFICE_LAT && OFFICE_LNG) {
       const { lat, lng } = req.body;
       if (lat == null || lng == null) {
         return res.status(400).json({ message: 'Location is required to check out. Please allow location access.', code: 'LOCATION_REQUIRED' });
       }
-      checkoutDistance = Math.round(haversineDistance(parseFloat(lat), parseFloat(lng), OFFICE_LAT, OFFICE_LNG));
+      const checkoutDistance = Math.round(haversineDistance(parseFloat(lat), parseFloat(lng), OFFICE_LAT, OFFICE_LNG));
       if (checkoutDistance > OFFICE_RADIUS) {
-        outsideRange = true;
+        return res.status(403).json({
+          message: `You are ${checkoutDistance}m away from the office. Check-out is only allowed within ${OFFICE_RADIUS}m of the office.`,
+          code: 'OUT_OF_RANGE',
+          distance: checkoutDistance,
+          allowed: OFFICE_RADIUS,
+        });
       }
     }
 
@@ -105,14 +107,8 @@ exports.checkOut = async (req, res) => {
     record.isEarlyLeave = now < OFFICE_END;
     if (workHours < 4) record.status = 'half-day';
 
-    // Auto-regularize if checked out from outside office premises
-    if (outsideRange && !record.regularizationStatus) {
-      record.regularizationStatus = 'pending';
-      record.regularizationReason = `Auto: Checked out from outside office (${checkoutDistance}m away, allowed within ${OFFICE_RADIUS}m).`;
-    }
-
     await record.save();
-    res.json({ ...record.toObject(), autoRegularized: outsideRange, distance: checkoutDistance, allowed: OFFICE_RADIUS });
+    res.json(record);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

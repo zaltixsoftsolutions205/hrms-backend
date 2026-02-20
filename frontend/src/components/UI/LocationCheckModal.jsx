@@ -8,8 +8,8 @@ const LocationCheckModal = ({ modal, onConfirm, onCancel, loading }) => {
   const { type, userLat, userLng, office, distance } = modal;
   const withinRange = office?.enabled ? distance <= office.radius : true;
   const isCheckin = type === 'checkin';
-  // Check-in: block outside range. Check-out: allow outside range but warn (auto-regularized)
-  const confirmDisabled = loading || (!withinRange && office?.enabled && isCheckin);
+  // Block both check-in and check-out outside office radius
+  const confirmDisabled = loading || (!withinRange && office?.enabled);
 
   // Google Maps Static API image — office = red R, user = blue U
   const mapUrl = MAPS_KEY && office?.enabled
@@ -70,32 +70,28 @@ const LocationCheckModal = ({ modal, onConfirm, onCancel, loading }) => {
             <div className={`flex items-center gap-3 p-3 rounded-xl border ${
               withinRange
                 ? 'bg-green-50 border-green-100'
-                : isCheckin
-                  ? 'bg-red-50 border-red-100'
-                  : 'bg-amber-50 border-amber-100'
+                : 'bg-red-50 border-red-100'
             }`}>
               <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${
-                withinRange ? 'bg-green-100' : isCheckin ? 'bg-red-100' : 'bg-amber-100'
+                withinRange ? 'bg-green-100' : 'bg-red-100'
               }`}>
                 {withinRange ? (
                   <svg className="w-5 h-5 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
                     <path d="M5 13l4 4L19 7" />
                   </svg>
                 ) : (
-                  <svg className={`w-5 h-5 ${isCheckin ? 'text-red-600' : 'text-amber-600'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                  <svg className="w-5 h-5 text-red-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
                     <path d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
                   </svg>
                 )}
               </div>
               <div className="min-w-0">
-                <p className={`text-sm font-bold leading-tight ${withinRange ? 'text-green-700' : isCheckin ? 'text-red-700' : 'text-amber-700'}`}>
+                <p className={`text-sm font-bold leading-tight ${withinRange ? 'text-green-700' : 'text-red-700'}`}>
                   {withinRange
                     ? 'Within office range ✓'
-                    : isCheckin
-                      ? 'Outside office range — check-in blocked'
-                      : 'Outside office range — will be regularized'}
+                    : `Outside office range — ${isCheckin ? 'check-in' : 'check-out'} blocked`}
                 </p>
-                <p className={`text-xs mt-0.5 ${withinRange ? 'text-green-600' : isCheckin ? 'text-red-600' : 'text-amber-600'}`}>
+                <p className={`text-xs mt-0.5 ${withinRange ? 'text-green-600' : 'text-red-600'}`}>
                   {distance < 1000 ? `${distance} m` : `${(distance / 1000).toFixed(2)} km`} from office · allowed within {office.radius}m
                 </p>
               </div>
@@ -107,20 +103,8 @@ const LocationCheckModal = ({ modal, onConfirm, onCancel, loading }) => {
             </div>
           )}
 
-          {/* For check-out outside range: regularization notice */}
-          {!withinRange && office?.enabled && !isCheckin && (
-            <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl">
-              <svg className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <p className="text-xs text-amber-700 leading-relaxed">
-                Checkout will be recorded and <strong>automatically submitted to HR for regularization</strong>. HR will review your location and approve or reject it.
-              </p>
-            </div>
-          )}
-
-          {/* Directions link when check-in is blocked */}
-          {!withinRange && office?.enabled && isCheckin && (
+          {/* Directions link when blocked (both check-in and check-out) */}
+          {!withinRange && office?.enabled && (
             <a
               href={gmapsLink}
               target="_blank"
@@ -148,18 +132,14 @@ const LocationCheckModal = ({ modal, onConfirm, onCancel, loading }) => {
               className={`flex-1 px-4 py-2.5 rounded-xl text-sm font-bold text-white transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${
                 isCheckin
                   ? 'bg-green-600 hover:bg-green-700'
-                  : !withinRange && office?.enabled
-                    ? 'bg-amber-500 hover:bg-amber-600'
-                    : 'bg-red-600 hover:bg-red-700'
+                  : 'bg-red-600 hover:bg-red-700'
               }`}
             >
               {loading
                 ? 'Processing...'
                 : isCheckin
                   ? 'Check In'
-                  : !withinRange && office?.enabled
-                    ? 'Check Out & Regularize'
-                    : 'Check Out'}
+                  : 'Check Out'}
             </button>
           </div>
         </div>

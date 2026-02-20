@@ -81,12 +81,8 @@ export const useAttendance = (onRefresh) => {
         await api.post('/attendance/check-in', { lat: userLat, lng: userLng });
         toast.success('Checked in successfully!');
       } else {
-        const res = await api.post('/attendance/check-out', { lat: userLat, lng: userLng });
-        if (res.data?.autoRegularized) {
-          toast.success('Checked out — auto-submitted for HR regularization (outside office).', { duration: 5000 });
-        } else {
-          toast.success('Checked out successfully!');
-        }
+        await api.post('/attendance/check-out', { lat: userLat, lng: userLng });
+        toast.success('Checked out successfully!');
       }
       onRefresh?.();
     } catch (err) {

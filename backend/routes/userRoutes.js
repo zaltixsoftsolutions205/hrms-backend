@@ -23,7 +23,12 @@ router.put('/profile', updateOwnProfile);
 router.get('/profile-completion', getProfileCompletion);
 
 // Profile photo
-router.post('/profile-photo', uploadProfilePhoto_middleware.single('file'), uploadProfilePhoto);
+router.post('/profile-photo', (req, res, next) => {
+  uploadProfilePhoto_middleware.single('file')(req, res, (err) => {
+    if (err) return res.status(400).json({ message: err.message });
+    next();
+  });
+}, uploadProfilePhoto);
 router.delete('/profile-photo', deleteProfilePhoto);
 
 // Password
