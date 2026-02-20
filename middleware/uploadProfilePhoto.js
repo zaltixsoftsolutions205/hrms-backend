@@ -14,10 +14,11 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (_req, file, cb) => {
-  const allowed = ['.jpg', '.jpeg', '.png'];
+  const allowedExts = ['.jpg', '.jpeg', '.png', '.webp', '.jfif'];
+  const allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
   const ext = path.extname(file.originalname).toLowerCase();
-  if (allowed.includes(ext)) cb(null, true);
-  else cb(new Error('Only JPG and PNG files are allowed for profile photos'));
+  if (allowedExts.includes(ext) || allowedMimes.includes(file.mimetype)) cb(null, true);
+  else cb(new Error('Only JPG, JPEG, PNG and WEBP files are allowed for profile photos'));
 };
 
 module.exports = multer({ storage, fileFilter, limits: { fileSize: 2 * 1024 * 1024 } });
