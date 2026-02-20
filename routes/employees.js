@@ -1,6 +1,19 @@
 const express = require('express');
 const router = express.Router();
-const { createEmployee, sendOfferLetter, sendCredentials, getAllEmployees, getEmployee, updateEmployee, updateOwnProfile, deleteEmployee, getTeamMembers, getProfileCompletion, uploadProfilePhoto, deleteProfilePhoto, getMyProfile, attachEmployeeDocs } = require('../controllers/employeeController');
+const { createEmployee, 
+    sendOfferLetter, 
+    sendCredentials, 
+    getAllEmployees, 
+    getEmployee,
+     updateEmployee, 
+     updateOwnProfile,
+      deleteEmployee, 
+      getTeamMembers, 
+      getProfileCompletion,
+       uploadProfilePhoto, 
+       deleteProfilePhoto,
+        getMyProfile, 
+        attachEmployeeDocs } = require('../controllers/employeeController');
 const { protect } = require('../middleware/auth');
 const { roleCheck } = require('../middleware/roleCheck');
 const uploadProfilePhoto_middleware = require('../middleware/uploadProfilePhoto');
