@@ -15,7 +15,7 @@ const storage = multer.diskStorage({
 
 const fileFilter = (_req, file, cb) => {
   const allowedExts = ['.jpg', '.jpeg', '.png', '.webp', '.jfif'];
-  const allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
+  const allowedMimes = ['image/jpeg', 'image/jpg', 'image/pjpeg', 'image/png', 'image/webp', 'image/jfif'];
   const ext = path.extname(file.originalname).toLowerCase();
   if (allowedExts.includes(ext) || allowedMimes.includes(file.mimetype)) cb(null, true);
   else cb(new Error('Only JPG, JPEG, PNG and WEBP files are allowed for profile photos'));

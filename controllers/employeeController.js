@@ -243,10 +243,7 @@ exports.uploadProfilePhoto = async (req, res) => {
       } catch { /* ignore cleanup errors */ }
     }
 
-    // Build full URL — use BACKEND_URL env var in production (behind proxy req.protocol/host are wrong)
-    const baseUrl = process.env.BACKEND_URL
-      || `${req.protocol}://${req.get('host')}`;
-    employee.profilePicture = `${baseUrl}/uploads/profile-photos/${req.file.filename}`;
+    employee.profilePicture = `/uploads/profile-photos/${req.file.filename}`;
     await employee.save();
 
     const updated = await User.findById(employee._id).populate('department');
