@@ -50,6 +50,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // 🚀 ROUTES
 // =======================
 app.use('/api/auth', require('./routes/auth'));
+app.use('/api/user', require('./routes/userRoutes'));
 app.use('/api/employees', require('./routes/employees'));
 app.use('/api/attendance', require('./routes/attendance'));
 app.use('/api/leaves', require('./routes/leaves'));
@@ -59,7 +60,6 @@ app.use('/api/leads', require('./routes/leads'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/documents', require('./routes/documents'));
-app.use('/api/me/profile-completion', require('./routes/employees')); // if needed
 
 // =======================
 // ❤️ HEALTH CHECK

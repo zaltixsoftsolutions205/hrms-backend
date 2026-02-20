@@ -231,16 +231,22 @@ exports.uploadProfilePhoto = async (req, res) => {
     const employee = await User.findById(req.user._id);
     if (!employee) return res.status(404).json({ message: 'Employee not found' });
 
-    // Delete old profile photo if exists
+    // Delete old profile photo file from disk if exists
     if (employee.profilePicture) {
-      const path = require('path');
-      const fs = require('fs');
-      const oldPath = path.join(__dirname, '..', employee.profilePicture);
-      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      try {
+        // Handle both full URL and relative path formats
+        const relativePath = employee.profilePicture.includes('://')
+          ? new URL(employee.profilePicture).pathname
+          : employee.profilePicture;
+        const oldPath = path.join(__dirname, '..', relativePath);
+        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      } catch { /* ignore cleanup errors */ }
     }
 
-    // Save new profile photo path
-    employee.profilePicture = `/uploads/profile-photos/${req.file.filename}`;
+    // Build full URL — use BACKEND_URL env var in production (behind proxy req.protocol/host are wrong)
+    const baseUrl = process.env.BACKEND_URL
+      || `${req.protocol}://${req.get('host')}`;
+    employee.profilePicture = `${baseUrl}/uploads/profile-photos/${req.file.filename}`;
     await employee.save();
 
     const updated = await User.findById(employee._id).populate('department');
@@ -257,8 +263,14 @@ exports.deleteProfilePhoto = async (req, res) => {
     if (!employee) return res.status(404).json({ message: 'Employee not found' });
     if (!employee.profilePicture) return res.status(400).json({ message: 'No profile photo to delete' });
 
-    const filePath = path.join(__dirname, '..', employee.profilePicture);
-    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    try {
+      // Handle both full URL and relative path formats
+      const relativePath = employee.profilePicture.includes('://')
+        ? new URL(employee.profilePicture).pathname
+        : employee.profilePicture;
+      const filePath = path.join(__dirname, '..', relativePath);
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    } catch { /* ignore cleanup errors */ }
 
     employee.profilePicture = null;
     await employee.save();
