@@ -73,6 +73,20 @@ app.get('/api/health', (req, res) => {
 });
 
 // =======================
+// 🖥️ SERVE REACT FRONTEND (PRODUCTION)
+// =======================
+// Express serves the built frontend + handles /uploads static files.
+// Nginx should proxy ALL requests (not just /api) to this Express server.
+if (process.env.NODE_ENV === 'production') {
+  const frontendDist = path.join(__dirname, '../frontend/dist');
+  app.use(express.static(frontendDist));
+  // SPA fallback — serve index.html for any route not matched above
+  app.get('*', (_req, res) => {
+    res.sendFile(path.join(frontendDist, 'index.html'));
+  });
+}
+
+// =======================
 // ❌ GLOBAL ERROR HANDLER
 // =======================
 app.use((err, req, res, next) => {
