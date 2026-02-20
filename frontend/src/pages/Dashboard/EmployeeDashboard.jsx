@@ -79,7 +79,7 @@
 //       api.get('/leaves/my').then(r => setLeaves(r.data)).catch(() => {}),
 //       api.get('/payslips/my').then(r => setPayslip(r.data[0] || null)).catch(() => {}),
 //       api.get('/tasks/my').then(r => setTasks(r.data.kpi)).catch(() => {}),
-//       api.get('/employees/me/profile-completion').then(r => setProfileCompletion(r.data)).catch(() => {}),
+//       api.get('/user/profile-completion').then(r => setProfileCompletion(r.data)).catch(() => {}),
 //     ];
 //     if (user?.role === 'sales') reqs.push(api.get('/leads').then(r => setCrmStats(r.data.stats)).catch(() => {}));
 //     Promise.all(reqs).finally(() => setLoading(false));
@@ -526,7 +526,7 @@ export default function EmployeeDashboard() {
       api.get('/leaves/my').then(r => setLeaves(r.data)).catch(() => {}),
       api.get('/payslips/my').then(r => setPayslip(r.data[0] || null)).catch(() => {}),
       api.get('/tasks/my').then(r => setTasks(r.data.kpi)).catch(() => {}),
-      api.get('/employees/me/profile-completion').then(r => setProfileCompletion(r.data)).catch(() => {}),
+      api.get('/user/profile-completion').then(r => setProfileCompletion(r.data)).catch(() => {}),
     ];
     if (user?.role === 'sales') reqs.push(api.get('/leads').then(r => setCrmStats(r.data.stats)).catch(() => {}));
     Promise.all(reqs).finally(() => setLoading(false));

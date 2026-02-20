@@ -44,7 +44,7 @@ const EmployeeProfile = () => {
 
   const fetchMyProfile = async () => {
     try {
-      const res = await api.get('/employees/me');
+      const res = await api.get('/user/profile');
       setMyProfile(res.data);
     } catch { /* silent */ }
   };
@@ -58,7 +58,7 @@ const EmployeeProfile = () => {
 
   const fetchProfileCompletion = async () => {
     try {
-      const res = await api.get('/employees/me/profile-completion');
+      const res = await api.get('/user/profile-completion');
       setProfileCompletion(res.data);
     } catch (err) {
       console.error('Failed to fetch profile completion:', err);
@@ -76,7 +76,7 @@ const EmployeeProfile = () => {
   const handleSave = async () => {
     setLoading(true);
     try {
-      await api.put('/employees/me/profile', form);
+      await api.put('/user/profile', form);
       await refreshUser();
       await fetchProfileCompletion();
       toast.success('Profile updated successfully');
@@ -94,7 +94,7 @@ const EmployeeProfile = () => {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      await api.post('/employees/me/profile-photo', formData);
+      await api.post('/user/profile-photo', formData);
       await refreshUser();
       await fetchProfileCompletion();
       toast.success('Profile photo updated successfully!');
@@ -109,7 +109,7 @@ const EmployeeProfile = () => {
     if (!window.confirm('Remove your profile photo?')) return;
     setPhotoDeleting(true);
     try {
-      await api.delete('/employees/me/profile-photo');
+      await api.delete('/user/profile-photo');
       await refreshUser();
       await fetchProfileCompletion();
       toast.success('Profile photo removed');

@@ -20,7 +20,7 @@ const PayslipsPage = () => {
 
   useEffect(() => {
     api.get('/payslips/my').then(r => setPayslips(r.data)).catch(() => {}).finally(() => setLoading(false));
-    api.get('/employees/me/profile-completion').then(r => setProfileCompletion(r.data)).catch(() => {});
+    api.get('/user/profile-completion').then(r => setProfileCompletion(r.data)).catch(() => {});
   }, []);
 
   const handleDownload = async (id, month, year) => {
