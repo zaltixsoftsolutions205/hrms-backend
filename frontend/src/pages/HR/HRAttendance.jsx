@@ -1,15 +1,22 @@
 import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import api from '../../utils/api';
 import Card from '../../components/UI/Card';
 import Badge from '../../components/UI/Badge';
 import EmptyState from '../../components/UI/EmptyState';
+import { formatTime12 } from '../../utils/helpers';
+import { useAttendance } from '../../hooks/useAttendance';
+import LocationCheckModal from '../../components/UI/LocationCheckModal';
+import { useAuth } from '../../contexts/AuthContext';
 
 const SI = ({ d, d2, size = 16, color }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className={color || ''}>
     <path d={d} />{d2 && <path d={d2} />}
   </svg>
 );
+
+const getISTClock = () => new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
 
 const REG_BADGE = {
   pending:  'bg-amber-100 text-amber-700',
@@ -99,12 +106,12 @@ const RegularizationsPanel = () => {
                     <div className="flex flex-wrap gap-2 mb-2">
                       {r.isLate && (
                         <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-orange-100 text-orange-700">
-                          Late Arrival · {r.checkIn}
+                          Late Arrival · {formatTime12(r.checkIn)}
                         </span>
                       )}
                       {r.isEarlyLeave && (
                         <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-700">
-                          Early Leave · {r.checkOut}
+                          Early Leave · {formatTime12(r.checkOut)}
                         </span>
                       )}
                       <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${REG_BADGE[r.regularizationStatus]}`}>
@@ -172,6 +179,8 @@ const RegularizationsPanel = () => {
 
 // ── Main HR Attendance page ──────────────────────────────────────────────────
 const HRAttendance = () => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const [tab, setTab] = useState('records'); // 'records' | 'regularizations'
   const [records, setRecords] = useState([]);
   const [employees, setEmployees] = useState([]);
@@ -180,23 +189,46 @@ const HRAttendance = () => {
   const [pendingRegCount, setPendingRegCount] = useState(0);
   const now = new Date();
   const todayIST = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
-  const [filter, setFilter] = useState({ date: todayIST, month: now.getMonth() + 1, year: now.getFullYear(), employeeId: '', departmentId: '' });
+  const [filter, setFilter] = useState({ viewMode: 'range', fromDate: todayIST, toDate: todayIST, month: now.getMonth() + 1, year: now.getFullYear(), employeeId: '', departmentId: '' });
+
+  // Personal check-in/out state
+  const [todayRecord, setTodayRecord] = useState(null);
+  const [clock, setClock] = useState(getISTClock());
+
+  useEffect(() => {
+    const timer = setInterval(() => setClock(getISTClock()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const fetchTodayRecord = () => {
+    const m = now.getMonth() + 1, y = now.getFullYear();
+    api.get(`/attendance/my?month=${m}&year=${y}`)
+      .then(r => setTodayRecord(r.data.todayRecord))
+      .catch(() => {});
+  };
+
+  const {
+    loading: actionLoading,
+    locationModal, setLocationModal,
+    handleCheckIn, handleCheckOut, confirmAction,
+  } = useAttendance(fetchTodayRecord);
 
   useEffect(() => {
     api.get('/employees').then(r => setEmployees(r.data)).catch(() => {});
     api.get('/admin/departments').then(r => setDepartments(r.data)).catch(() => {});
-    // Badge count for pending regularizations
     api.get('/attendance/regularizations?status=pending')
       .then(r => setPendingRegCount(r.data.length))
       .catch(() => {});
+    fetchTodayRecord();
   }, []);
 
   const fetch = async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      if (filter.date) {
-        params.append('date', filter.date);
+      if (filter.viewMode === 'range' && filter.fromDate && filter.toDate) {
+        params.append('fromDate', filter.fromDate);
+        params.append('toDate', filter.toDate);
       } else {
         params.append('month', filter.month);
         params.append('year', filter.year);
@@ -209,7 +241,7 @@ const HRAttendance = () => {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { fetch(); }, [filter.date, filter.month, filter.year, filter.employeeId, filter.departmentId]);
+  useEffect(() => { fetch(); }, [filter.viewMode, filter.fromDate, filter.toDate, filter.month, filter.year, filter.employeeId, filter.departmentId]);
 
   const exportCSV = () => {
     const header = 'Employee,Employee ID,Date,Check In,Check Out,Work Hours,Status,Late,Early Leave\n';
@@ -239,6 +271,72 @@ const HRAttendance = () => {
         )}
       </div>
 
+      {/* Today's Attendance (personal) — hidden for admin */}
+      {!isAdmin && (
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+          className="glass-card p-4 sm:p-5">
+          <div className="flex items-start justify-between mb-3 gap-3">
+            <div>
+              <h3 className="font-bold text-violet-900 text-base">My Attendance Today</h3>
+              <p className="text-xs text-violet-500 mt-0.5">
+                {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+              </p>
+            </div>
+            <div className="text-right flex-shrink-0">
+              <p className="text-base sm:text-xl font-bold text-violet-800 tabular-nums leading-tight">{clock}</p>
+              <p className="text-[10px] text-violet-400">IST</p>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+            <div className="flex items-center gap-4 sm:gap-6 flex-wrap">
+              <div className="text-center">
+                <p className="text-xs text-violet-500 mb-1">Check In</p>
+                <p className="text-lg sm:text-xl font-bold text-violet-900">{formatTime12(todayRecord?.checkIn)}</p>
+              </div>
+              <div className="w-6 sm:w-8 h-px bg-violet-200" />
+              <div className="text-center">
+                <p className="text-xs text-violet-500 mb-1">Check Out</p>
+                <p className="text-lg sm:text-xl font-bold text-violet-900">{formatTime12(todayRecord?.checkOut)}</p>
+              </div>
+              {todayRecord?.workHours > 0 && (
+                <>
+                  <div className="w-6 sm:w-8 h-px bg-violet-200" />
+                  <div className="text-center">
+                    <p className="text-xs text-violet-500 mb-1">Hours</p>
+                    <p className="text-lg sm:text-xl font-bold text-golden-600">{todayRecord.workHours}h</p>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="flex gap-3 sm:ml-auto">
+              {!todayRecord?.checkIn && (
+                <button onClick={handleCheckIn} disabled={actionLoading} className="btn-primary btn-sm flex-1 sm:flex-none">
+                  {actionLoading ? '...' : (
+                    <span className="flex items-center justify-center gap-1.5">
+                      <SI d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" size={15} color="text-green-100" /> Check In
+                    </span>
+                  )}
+                </button>
+              )}
+              {todayRecord?.checkIn && !todayRecord?.checkOut && (
+                <button onClick={handleCheckOut} disabled={actionLoading} className="btn-danger btn-sm flex-1 sm:flex-none">
+                  <span className="flex items-center justify-center gap-1.5">
+                    <SI d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" size={15} color="text-red-100" /> Check Out
+                  </span>
+                </button>
+              )}
+              {todayRecord?.checkIn && todayRecord?.checkOut && (
+                <span className="badge-green px-4 py-2 text-sm font-semibold flex items-center gap-1.5">
+                  Day Complete <SI d="M5 13l4 4L19 7" size={14} color="text-green-600" />
+                </span>
+              )}
+            </div>
+          </div>
+        </motion.div>
+      )}
+
       {/* Tabs */}
       <div className="flex gap-1 bg-violet-50 p-1 rounded-xl w-fit">
         <button
@@ -267,16 +365,21 @@ const HRAttendance = () => {
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex rounded-lg overflow-hidden border border-violet-200 flex-shrink-0">
                 <button
-                  className={`px-4 py-2 text-sm font-medium transition-colors ${filter.date ? 'bg-violet-700 text-white' : 'bg-white text-violet-600 hover:bg-violet-50'}`}
-                  onClick={() => setFilter(f => ({ ...f, date: todayIST }))}>Daily</button>
+                  className={`px-4 py-2 text-sm font-medium transition-colors ${filter.viewMode === 'range' ? 'bg-violet-700 text-white' : 'bg-white text-violet-600 hover:bg-violet-50'}`}
+                  onClick={() => setFilter(f => ({ ...f, viewMode: 'range' }))}>Date Range</button>
                 <button
-                  className={`px-4 py-2 text-sm font-medium transition-colors ${!filter.date ? 'bg-violet-700 text-white' : 'bg-white text-violet-600 hover:bg-violet-50'}`}
-                  onClick={() => setFilter(f => ({ ...f, date: '' }))}>Monthly</button>
+                  className={`px-4 py-2 text-sm font-medium transition-colors ${filter.viewMode === 'monthly' ? 'bg-violet-700 text-white' : 'bg-white text-violet-600 hover:bg-violet-50'}`}
+                  onClick={() => setFilter(f => ({ ...f, viewMode: 'monthly' }))}>Monthly</button>
               </div>
 
-              {filter.date ? (
-                <input type="date" className="input-field flex-1 sm:flex-none sm:w-auto min-w-[140px]"
-                  value={filter.date} onChange={e => setFilter(f => ({ ...f, date: e.target.value }))} />
+              {filter.viewMode === 'range' ? (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <input type="date" className="input-field flex-1 sm:flex-none sm:w-auto min-w-[140px]"
+                    value={filter.fromDate} onChange={e => setFilter(f => ({ ...f, fromDate: e.target.value, toDate: e.target.value > f.toDate ? e.target.value : f.toDate }))} />
+                  <span className="text-xs text-violet-400 font-medium flex-shrink-0">to</span>
+                  <input type="date" className="input-field flex-1 sm:flex-none sm:w-auto min-w-[140px]"
+                    value={filter.toDate} min={filter.fromDate} onChange={e => setFilter(f => ({ ...f, toDate: e.target.value }))} />
+                </div>
               ) : (
                 <>
                   <select className="input-field flex-1 sm:flex-none sm:w-auto" value={filter.month}
@@ -338,11 +441,11 @@ const HRAttendance = () => {
                       </td>
                       <td className="whitespace-nowrap">{r.date}</td>
                       <td className="whitespace-nowrap">
-                        <span className={r.isLate ? 'text-orange-600 font-semibold' : ''}>{r.checkIn || '—'}</span>
+                        <span className={r.isLate ? 'text-orange-600 font-semibold' : ''}>{formatTime12(r.checkIn)}</span>
                         {r.isLate && <span className="ml-1 text-[10px] text-orange-500 font-bold">LATE</span>}
                       </td>
                       <td className="whitespace-nowrap">
-                        <span className={r.isEarlyLeave ? 'text-red-500 font-semibold' : ''}>{r.checkOut || '—'}</span>
+                        <span className={r.isEarlyLeave ? 'text-red-500 font-semibold' : ''}>{formatTime12(r.checkOut)}</span>
                         {r.isEarlyLeave && <span className="ml-1 text-[10px] text-red-400 font-bold">EARLY</span>}
                       </td>
                       <td>{r.workHours ? `${r.workHours}h` : '—'}</td>
@@ -365,6 +468,15 @@ const HRAttendance = () => {
             </div>
           )}
         </Card>
+      )}
+
+      {!isAdmin && (
+        <LocationCheckModal
+          modal={locationModal}
+          onConfirm={confirmAction}
+          onCancel={() => setLocationModal(null)}
+          loading={actionLoading}
+        />
       )}
     </div>
   );

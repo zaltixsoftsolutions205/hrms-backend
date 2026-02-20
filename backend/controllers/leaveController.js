@@ -20,19 +20,25 @@ const getWorkingDays = (fromDate, toDate) => {
 // Get leave balance for an employee
 const getLeaveBalance = async (userId, year) => {
   const policy = await LeavePolicy.findOne({ year, appliesTo: 'all' });
-  if (!policy) return { casual: { total: 0, used: 0, remaining: 0 }, sick: { total: 0, used: 0, remaining: 0 }, other: { total: 0, used: 0, remaining: 0 } };
+  if (!policy) return {
+    casual: { total: 0, used: 0, remaining: 0 },
+    sick: { total: 0, used: 0, remaining: 0 },
+    other: { total: 0, used: 0, remaining: 0 },
+    lop: { total: null, used: 0, remaining: null },
+  };
 
   const startOfYear = new Date(`${year}-01-01`);
   const endOfYear = new Date(`${year}-12-31`);
   const approvedLeaves = await Leave.find({ employee: userId, status: 'approved', fromDate: { $gte: startOfYear, $lte: endOfYear } });
 
-  const used = { casual: 0, sick: 0, other: 0 };
+  const used = { casual: 0, sick: 0, other: 0, lop: 0 };
   approvedLeaves.forEach(l => { used[l.type] = (used[l.type] || 0) + l.totalDays; });
 
   return {
     casual: { total: policy.casualLeaves, used: used.casual, remaining: policy.casualLeaves - used.casual },
     sick: { total: policy.sickLeaves, used: used.sick, remaining: policy.sickLeaves - used.sick },
     other: { total: policy.otherLeaves, used: used.other, remaining: policy.otherLeaves - used.other },
+    lop: { total: null, used: used.lop, remaining: null },
   };
 };
 
@@ -97,7 +103,6 @@ exports.updateLeaveStatus = async (req, res) => {
   try {
     const leave = await Leave.findById(req.params.id).populate('employee');
     if (!leave) return res.status(404).json({ message: 'Leave not found' });
-    if (leave.status !== 'pending') return res.status(400).json({ message: 'Leave already processed' });
 
     leave.status = status;
     leave.approvedBy = req.user._id;

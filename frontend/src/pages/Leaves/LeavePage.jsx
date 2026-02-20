@@ -21,6 +21,14 @@ const TYPE_STYLE = {
   casual: 'bg-violet-100 text-violet-700 font-semibold',
   sick:   'bg-red-100 text-red-600 font-semibold',
   other:  'bg-amber-100 text-amber-700 font-semibold',
+  lop:    'bg-gray-200 text-gray-700 font-semibold',
+};
+
+const TYPE_LABEL = {
+  casual: 'Casual',
+  sick:   'Sick',
+  other:  'Other',
+  lop:    'Loss of Pay',
 };
 
 const STATUS_OPACITY = {
@@ -70,9 +78,10 @@ const LeaveCalendar = ({ leaves, calMonth, calYear, onPrev, onNext }) => {
       {/* Legend */}
       <div className="flex flex-wrap gap-2 sm:gap-3 mb-4">
         {[
-          { label: 'Casual',   cls: 'bg-violet-100 text-violet-700' },
-          { label: 'Sick',     cls: 'bg-red-100 text-red-600' },
-          { label: 'Other',    cls: 'bg-amber-100 text-amber-700' },
+          { label: 'Casual',       cls: 'bg-violet-100 text-violet-700' },
+          { label: 'Sick',         cls: 'bg-red-100 text-red-600' },
+          { label: 'Other',        cls: 'bg-amber-100 text-amber-700' },
+          { label: 'Loss of Pay',  cls: 'bg-gray-200 text-gray-700' },
         ].map(l => (
           <span key={l.label} className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-0.5 rounded-full ${l.cls}`}>
             <span className="w-1.5 h-1.5 rounded-full bg-current" />{l.label}
@@ -157,79 +166,98 @@ const LeavePage = () => {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="max-w-6xl mx-auto px-3 sm:px-4 space-y-6 animate-fade-in">
       {/* Leave Balance */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {Object.entries(data.balance).map(([type, bal]) => (
-          <motion.div key={type} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-            className="glass-card p-5">
-            <p className="kpi-label capitalize">{type} Leave</p>
-            <div className="flex items-end justify-between mt-1">
-              <p className="text-xl sm:text-2xl font-bold text-violet-900">{bal.remaining}</p>
-              <p className="text-xs text-violet-500">{bal.used}/{bal.total} used</p>
-            </div>
-            <div className="h-1.5 bg-violet-200 rounded-full mt-3 overflow-hidden">
-              <motion.div initial={{ width: 0 }} animate={{ width: `${bal.total > 0 ? (bal.used / bal.total) * 100 : 0}%` }}
-                transition={{ delay: 0.3, duration: 0.6 }}
-                className="h-full bg-violet-600 rounded-full" />
-            </div>
-            <p className="text-xs text-green-600 font-medium mt-1">{bal.remaining} remaining</p>
-          </motion.div>
-        ))}
-      </div>
-
-      {/* Leave Calendar */}
-      <Card>
-        <LeaveCalendar
-          leaves={data.leaves}
-          calMonth={calMonth}
-          calYear={calYear}
-          onPrev={prevMonth}
-          onNext={nextMonth}
-        />
-      </Card>
-
-      {/* Header */}
-      <div className="page-header">
-        <div>
-          <h2 className="page-title">My Leave Requests</h2>
-          <p className="page-subtitle">Manage and track your leave applications</p>
-        </div>
-        <button onClick={() => setShowModal(true)} className="btn-primary">
-          + Apply Leave
-        </button>
-      </div>
-
-      {/* Leave List */}
-      <Card>
-        {data.leaves.length === 0 ? (
-          <EmptyState icon={<SI d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" size={40} color="text-violet-400" />} title="No leave requests" message="You haven't applied for any leaves yet."
-            action={{ label: 'Apply Leave', onClick: () => setShowModal(true) }} />
-        ) : (
-          <div className="space-y-3">
-            {data.leaves.map(leave => (
-              <motion.div key={leave._id} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                className="p-4 border border-violet-100 rounded-xl hover:bg-violet-50/40 transition-colors">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <span className="font-semibold text-violet-900 capitalize">{leave.type} Leave</span>
-                      <Badge status={leave.status} />
-                    </div>
-                    <p className="text-sm text-violet-600">{formatDate(leave.fromDate)} → {formatDate(leave.toDate)}
-                      <span className="ml-2 text-xs text-violet-400">({leave.totalDays} day{leave.totalDays !== 1 ? 's' : ''})</span>
-                    </p>
-                    <p className="text-sm text-gray-600 mt-1">{leave.reason}</p>
-                    {leave.approverComments && (
-                      <p className="text-xs text-violet-500 mt-1 italic">Note: {leave.approverComments}</p>
-                    )}
-                  </div>
-                  <p className="text-xs text-violet-400 whitespace-nowrap flex-shrink-0">{formatDate(leave.createdAt)}</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {Object.entries(data.balance).map(([type, bal]) => {
+          const isLOP = type === 'lop';
+          return (
+            <motion.div key={type} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+              className={`glass-card p-5 ${isLOP ? 'border-l-4 border-l-gray-400' : ''}`}>
+              <p className="kpi-label">{TYPE_LABEL[type] || type} Leave</p>
+              <div className="flex items-end justify-between mt-1">
+                <p className={`text-xl sm:text-2xl font-bold ${isLOP ? 'text-gray-700' : 'text-violet-900'}`}>
+                  {isLOP ? bal.used : bal.remaining}
+                </p>
+                <p className="text-xs text-violet-500">
+                  {isLOP ? `${bal.used} day(s) taken` : `${bal.used}/${bal.total} used`}
+                </p>
+              </div>
+              {!isLOP && (
+                <div className="h-1.5 bg-violet-200 rounded-full mt-3 overflow-hidden">
+                  <motion.div initial={{ width: 0 }} animate={{ width: `${bal.total > 0 ? (bal.used / bal.total) * 100 : 0}%` }}
+                    transition={{ delay: 0.3, duration: 0.6 }}
+                    className="h-full bg-violet-600 rounded-full" />
                 </div>
-              </motion.div>
-            ))}
+              )}
+              <p className={`text-xs font-medium mt-1 ${isLOP ? 'text-gray-500' : 'text-green-600'}`}>
+                {isLOP ? 'Salary deducted' : `${bal.remaining} remaining`}
+              </p>
+            </motion.div>
+          );
+        })}
+      </div>
+
+      {/* Calendar + Leave List */}
+      <Card>
+        <div className="lg:flex lg:gap-6">
+          {/* Calendar — compact on desktop */}
+          <div className="lg:w-64 lg:flex-shrink-0">
+            <LeaveCalendar
+              leaves={data.leaves}
+              calMonth={calMonth}
+              calYear={calYear}
+              onPrev={prevMonth}
+              onNext={nextMonth}
+            />
           </div>
-        )}
+
+          {/* Divider */}
+          <div className="border-t border-violet-100 my-5 lg:hidden" />
+          <div className="hidden lg:block w-px bg-violet-100 flex-shrink-0" />
+
+          {/* Leave List */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="font-bold text-violet-900 text-sm sm:text-base">My Leave Requests</h3>
+                <p className="text-xs text-violet-500 mt-0.5">{data.leaves.length} request{data.leaves.length !== 1 ? 's' : ''}</p>
+              </div>
+              <button onClick={() => setShowModal(true)} className="btn-primary btn-sm">
+                + Apply Leave
+              </button>
+            </div>
+
+            {data.leaves.length === 0 ? (
+              <EmptyState icon={<SI d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" size={40} color="text-violet-400" />} title="No leave requests" message="You haven't applied for any leaves yet."
+                action={{ label: 'Apply Leave', onClick: () => setShowModal(true) }} />
+            ) : (
+              <div className="space-y-3 max-h-[480px] overflow-y-auto pr-1">
+                {data.leaves.map(leave => (
+                  <motion.div key={leave._id} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                    className="p-3 sm:p-4 border border-violet-100 rounded-xl hover:bg-violet-50/40 transition-colors">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <span className="font-semibold text-violet-900 text-sm">{TYPE_LABEL[leave.type] || leave.type} Leave</span>
+                          <Badge status={leave.status} />
+                        </div>
+                        <p className="text-xs sm:text-sm text-violet-600">{formatDate(leave.fromDate)} → {formatDate(leave.toDate)}
+                          <span className="ml-2 text-xs text-violet-400">({leave.totalDays} day{leave.totalDays !== 1 ? 's' : ''})</span>
+                        </p>
+                        <p className="text-xs sm:text-sm text-gray-600 mt-1 line-clamp-2">{leave.reason}</p>
+                        {leave.approverComments && (
+                          <p className="text-xs text-violet-500 mt-1 italic">Note: {leave.approverComments}</p>
+                        )}
+                      </div>
+                      <p className="text-xs text-violet-400 whitespace-nowrap flex-shrink-0">{formatDate(leave.createdAt)}</p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </Card>
 
       {/* Apply Modal */}
@@ -241,7 +269,13 @@ const LeavePage = () => {
               <option value="casual">Casual Leave</option>
               <option value="sick">Sick Leave</option>
               <option value="other">Other Leave</option>
+              <option value="lop">Loss of Pay</option>
             </select>
+            {form.type === 'lop' && (
+              <p className="mt-1 text-xs text-gray-500 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
+                Loss of Pay leaves will result in salary deduction and are subject to HR approval.
+              </p>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>

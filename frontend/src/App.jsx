@@ -14,6 +14,7 @@ import LeavePage from './pages/Leaves/LeavePage';
 import PayslipsPage from './pages/Payslips/PayslipsPage';
 import TasksPage from './pages/Tasks/TasksPage';
 import CRMPage from './pages/CRM/CRMPage';
+import TeamPage from './pages/Team/TeamPage';
 
 // HR Pages
 import HREmployees from './pages/HR/HREmployees';
@@ -64,6 +65,7 @@ const AppRoutes = () => {
         <Route path="/leaves" element={<LeavePage />} />
         <Route path="/payslips" element={<PayslipsPage />} />
         <Route path="/tasks" element={<TasksPage />} />
+        <Route path="/team" element={<TeamPage />} />
         <Route path="/crm" element={<ProtectedRoute roles={['sales', 'hr', 'admin']}><CRMPage /></ProtectedRoute>} />
 
         {/* HR Routes */}

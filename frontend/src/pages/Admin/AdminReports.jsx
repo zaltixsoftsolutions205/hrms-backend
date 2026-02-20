@@ -5,7 +5,7 @@ import api from '../../utils/api';
 import Card from '../../components/UI/Card';
 import EmptyState from '../../components/UI/EmptyState';
 import Badge from '../../components/UI/Badge';
-import { formatCurrency, formatDate } from '../../utils/helpers';
+import { formatCurrency, formatDate, sumMoney } from '../../utils/helpers';
 
 const SI = ({ d, d2, size = 16, color }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className={color || ''}>
@@ -57,7 +57,7 @@ const AdminReports = () => {
   };
 
   return (
-    <div className="space-y-5 animate-fade-in">
+    <div className="max-w-7xl mx-auto space-y-5 animate-fade-in">
       <div className="page-header">
         <div><h2 className="page-title">Reports</h2><p className="page-subtitle">Generate dynamic reports from live data</p></div>
         {data && <button onClick={exportCSV} className="btn-secondary flex items-center gap-1.5"><SI d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" size={15} color="text-violet-600" /> Export CSV</button>}
@@ -177,7 +177,7 @@ const AdminReports = () => {
                       <td><p className="font-medium">{p.employee?.name}</p><p className="text-xs text-violet-400">{p.employee?.employeeId}</p></td>
                       <td>{formatCurrency(p.basicSalary)}</td>
                       <td>{formatCurrency(p.grossSalary)}</td>
-                      <td className="text-red-600">{formatCurrency(p.deductions?.reduce((s,d)=>s+d.amount,0))}</td>
+                      <td className="text-red-600">{formatCurrency(sumMoney(p.deductions))}</td>
                       <td className="font-bold text-golden-600">{formatCurrency(p.netSalary)}</td>
                     </tr>
                   ))}

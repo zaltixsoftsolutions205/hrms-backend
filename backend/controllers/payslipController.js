@@ -14,7 +14,7 @@ const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct',
 
 // HR / Admin: Generate payslip
 exports.generatePayslip = async (req, res) => {
-  const { employeeId, month, year, basicSalary, allowances, deductions, workingDays } = req.body;
+  const { employeeId, month, year, basicSalary, allowances, deductions, workingDays, presentDays } = req.body;
   try {
     const existing = await Payslip.findOne({ employee: employeeId, month, year });
     if (existing) return res.status(400).json({ message: `Payslip for ${monthNames[month - 1]} ${year} already generated` });
@@ -22,31 +22,30 @@ exports.generatePayslip = async (req, res) => {
     const employee = await User.findById(employeeId).populate('department');
     if (!employee) return res.status(404).json({ message: 'Employee not found' });
 
-    // Pay period: 25th of previous month → 24th of current month
+    // Pay period label for PDF (25th of previous month → 24th of current month)
     const periodStart = moment(`${year}-${String(month).padStart(2, '0')}-25`).subtract(1, 'month').format('YYYY-MM-DD');
     const periodEnd   = moment(`${year}-${String(month).padStart(2, '0')}-24`).format('YYYY-MM-DD');
-    const attendanceRecords = await Attendance.find({ employee: employeeId, date: { $gte: periodStart, $lte: periodEnd } });
-    const presentDays = attendanceRecords.filter(r => r.status === 'present').length + attendanceRecords.filter(r => r.status === 'half-day').length * 0.5;
 
-    // Pro-rate basic salary based on attendance: (presentDays / workingDays) * basicSalary
+    // Use entered values directly — no attendance pro-rating
+    const actualBasic       = basicSalary || 0;
     const actualWorkingDays = workingDays || 26;
-    const proratedBasic = actualWorkingDays > 0 ? Math.round((presentDays / actualWorkingDays) * (basicSalary || 0)) : (basicSalary || 0);
+    const actualPresentDays = presentDays != null ? presentDays : actualWorkingDays;
 
     const totalAllowances = (allowances || []).reduce((s, a) => s + (a.amount || 0), 0);
     const totalDeductions = (deductions || []).reduce((s, d) => s + (d.amount || 0), 0);
-    const grossSalary = proratedBasic + totalAllowances;
-    const netSalary = grossSalary - totalDeductions;
+    const grossSalary = actualBasic + totalAllowances;
+    const netSalary   = grossSalary - totalDeductions;
 
     const payslip = await Payslip.create({
       employee: employeeId,
       month, year,
-      basicSalary: proratedBasic,
+      basicSalary: actualBasic,
       allowances: allowances || employee.allowances,
       deductions: deductions || employee.deductions,
       grossSalary, netSalary,
       generatedBy: req.user._id,
       workingDays: actualWorkingDays,
-      presentDays,
+      presentDays: actualPresentDays,
       status: 'published',
     });
 
@@ -55,7 +54,7 @@ exports.generatePayslip = async (req, res) => {
       const pdfPath = await generatePayslipPDF({
         employee, month, year, basicSalary: payslip.basicSalary,
         allowances: payslip.allowances, deductions: payslip.deductions,
-        grossSalary, netSalary, workingDays: payslip.workingDays, presentDays,
+        grossSalary, netSalary, workingDays: payslip.workingDays, presentDays: actualPresentDays,
         periodStart, periodEnd,
       });
       payslip.pdfPath = pdfPath;
@@ -145,6 +144,16 @@ exports.downloadPayslip = async (req, res) => {
       if (payslip.employee._id.toString() !== req.user._id.toString()) {
         return res.status(403).json({ message: 'Access denied' });
       }
+      
+      // Profile completion check for employees
+      const employee = await User.findById(req.user._id).populate('department');
+      if (!employee.profilePicture) {
+        return res.status(403).json({ 
+          message: 'Please upload your profile photo before downloading payslips.', 
+          code: 'PHOTO_REQUIRED' 
+        });
+      }
+      
       // Document lock: employees must have all required docs approved to download payslips
       const docsApproved = await checkAllDocsApproved(req.user._id);
       if (!docsApproved) {
@@ -168,7 +177,7 @@ exports.downloadPayslip = async (req, res) => {
     if (!fs.existsSync(absolutePath)) {
       return res.status(500).json({ message: 'PDF generation failed' });
     }
-    const filename = path.basename(absolutePath);
+    const filename = `${payslip.employee.employeeId}_${String(payslip.year)}-${String(payslip.month).padStart(2, '0')}.pdf`;
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     fs.createReadStream(absolutePath).pipe(res);

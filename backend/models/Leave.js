@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const leaveSchema = new mongoose.Schema(
   {
     employee: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    type: { type: String, enum: ['casual', 'sick', 'other'], required: true },
+    type: { type: String, enum: ['casual', 'sick', 'other', 'lop'], required: true },
     fromDate: { type: Date, required: true },
     toDate: { type: Date, required: true },
     totalDays: { type: Number, required: true },

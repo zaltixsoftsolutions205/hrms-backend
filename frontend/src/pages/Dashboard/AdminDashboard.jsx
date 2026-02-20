@@ -63,7 +63,7 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="space-y-5 animate-fade-in">
+    <div className="max-w-7xl mx-auto px-3 sm:px-4 space-y-5 animate-fade-in">
       {/* Banner */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
         className="rounded-2xl bg-gradient-to-r from-violet-950 to-violet-800 p-5 sm:p-6 text-white shadow-xl">

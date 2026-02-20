@@ -17,7 +17,9 @@
       "Bash(convert:*)",
       "Bash(powershell.exe -Command:*)",
       "Bash(ls:*)",
-      "Read(//c/Users/anjali/OneDrive/Desktop/hrms-crm/**)"
+      "Read(//c/Users/anjali/OneDrive/Desktop/hrms-crm/**)",
+      "WebFetch(domain:nominatim.openstreetmap.org)",
+      "WebFetch(domain:www.zomato.com)"
     ]
   }
 }

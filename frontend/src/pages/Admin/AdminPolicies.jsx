@@ -46,7 +46,7 @@ const AdminPolicies = () => {
   };
 
   return (
-    <div className="space-y-5 animate-fade-in">
+    <div className="max-w-5xl mx-auto space-y-5 animate-fade-in">
       <div className="page-header">
         <div><h2 className="page-title">Leave Policies</h2><p className="page-subtitle">Configure annual leave allocations</p></div>
         <button onClick={() => { setEditMode(false); setForm({ name: 'Default Policy', year: new Date().getFullYear(), casualLeaves: 12, sickLeaves: 10, otherLeaves: 5 }); setShowModal(true); }} className="btn-primary">

@@ -61,7 +61,7 @@ const AdminDepartments = () => {
   };
 
   return (
-    <div className="space-y-5 animate-fade-in">
+    <div className="max-w-5xl mx-auto space-y-5 animate-fade-in">
       <div className="page-header">
         <div><h2 className="page-title">Departments</h2><p className="page-subtitle">{departments.length} departments</p></div>
         <button onClick={() => { setEditMode(false); setForm({ name: '', description: '', headOf: '' }); setShowModal(true); }} className="btn-primary">

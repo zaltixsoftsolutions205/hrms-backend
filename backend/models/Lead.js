@@ -18,6 +18,13 @@ const leadSchema = new mongoose.Schema(
     assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     activities: [activitySchema],
     convertedDate: { type: Date, default: null },
+    // Pipeline & Deal fields
+    pipelineStage: { type: String, enum: ['prospect', 'qualified', 'proposal', 'negotiation', 'closed-won', 'closed-lost'], default: 'prospect' },
+    followUpDate: { type: Date, default: null },
+    dealValue: { type: Number, default: 0 },
+    probability: { type: Number, default: 0 },
+    expectedCloseDate: { type: Date, default: null },
+    commission: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

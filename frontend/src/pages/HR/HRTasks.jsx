@@ -50,7 +50,7 @@ const HRTasks = () => {
   };
 
   return (
-    <div className="space-y-5 animate-fade-in">
+    <div className="max-w-7xl mx-auto px-3 sm:px-4 space-y-5 animate-fade-in">
       <div className="page-header">
         <div><h2 className="page-title">Work & KPI Management</h2></div>
         <button onClick={() => setShowModal(true)} className="btn-primary">+ Assign Task</button>

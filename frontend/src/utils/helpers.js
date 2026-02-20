@@ -42,6 +42,15 @@ export const getStatusBadge = (status) => {
   return map[status] || 'badge-gray';
 };
 
+// Converts "HH:mm" 24-hour string to "h:mm AM/PM"
+export const formatTime12 = (t) => {
+  if (!t) return '—';
+  const [h, m] = t.split(':').map(Number);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 || 12;
+  return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
+};
+
 export const capitalize = (str) => str ? str.charAt(0).toUpperCase() + str.slice(1).replace(/-/g, ' ') : '';
 
 export const getInitials = (name) => {
@@ -52,4 +61,11 @@ export const getInitials = (name) => {
 export const daysUntil = (date) => {
   const diff = new Date(date) - new Date();
   return Math.ceil(diff / (1000 * 60 * 60 * 24));
+};
+
+export const sumMoney = (item) => {
+  if (!item) return 0;
+  if (Array.isArray(item)) return item.reduce((s, it) => s + (it?.amount || 0), 0);
+  if (typeof item === 'object') return Object.values(item).reduce((s, v) => s + (parseFloat(v) || 0), 0);
+  return 0;
 };

@@ -94,6 +94,24 @@
   .page-subtitle {
     @apply text-sm text-violet-500 mt-1;
   }
+
+  /* PWA (standalone) tweaks: slightly smaller avatars and completion circles for tighter PWA UI */
+  :root.is-pwa .banner-avatar { width: 44px !important; height: 44px !important; font-size: 0.9rem !important; }
+  :root.is-pwa .profile-avatar .w-24 { width: 44px !important; height: 44px !important; }
+  /* Keep profile page circles mostly unchanged, but make the banner circle smaller only on small PWA screens */
+  :root.is-pwa .profile-circle-page { width: 96px !important; height: 96px !important; }
+  :root.is-pwa .profile-circle-banner { width: 72px !important; height: 72px !important; }
+  :root.is-pwa .profile-circle-banner svg, :root.is-pwa .profile-circle-page svg { width: 100% !important; height: 100% !important; }
+  :root.is-pwa .profile-circle-banner .text-sm, :root.is-pwa .profile-circle-page .text-lg { font-size: 0.85rem !important; }
+
+  /* Reduce only the banner's circular indicator on small PWA/mobile screens to avoid overlap */
+  @media (max-width: 720px) {
+    /* More aggressive reduction + nudge for the banner circular progress to avoid overlapping banner text */
+    :root.is-pwa .profile-circle-banner { width: 40px !important; height: 40px !important; margin-right: 8px !important; transform: translateX(-6px) !important; }
+    :root.is-pwa .profile-circle-banner svg { width: 100% !important; height: 100% !important; }
+    :root.is-pwa .profile-circle-banner .text-sm { font-size: 0.68rem !important; line-height: 1 !important; }
+    :root.is-pwa .profile-circle-banner .text-xs { font-size: 0.6rem !important; }
+  }
 }
 
 /* Animations */

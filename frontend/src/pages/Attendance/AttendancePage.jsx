@@ -5,6 +5,10 @@ import api from '../../utils/api';
 import Card, { KpiCard } from '../../components/UI/Card';
 import Badge from '../../components/UI/Badge';
 import EmptyState from '../../components/UI/EmptyState';
+import { formatTime12 } from '../../utils/helpers';
+import { useAttendance } from '../../hooks/useAttendance';
+import LocationCheckModal from '../../components/UI/LocationCheckModal';
+import { useAuth } from '../../contexts/AuthContext';
 
 const SI = ({ d, d2, size = 16, color }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className={color || ''}>
@@ -42,8 +46,8 @@ const MonthCalendar = ({ year, month, records }) => {
       {/* Legend */}
       <div className="flex flex-wrap gap-2 sm:gap-3 mb-4">
         {[
-          { label: 'Present', cls: 'bg-green-100 text-green-700' },
-          { label: 'Absent',  cls: 'bg-red-100 text-red-600' },
+          { label: 'Present',  cls: 'bg-green-100 text-green-700' },
+          { label: 'Absent',   cls: 'bg-red-100 text-red-600' },
           { label: 'Half Day', cls: 'bg-amber-100 text-amber-700' },
         ].map(l => (
           <span key={l.label} className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-0.5 rounded-full ${l.cls}`}>
@@ -55,6 +59,9 @@ const MonthCalendar = ({ year, month, records }) => {
         </span>
         <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-0.5 rounded-full bg-orange-100 text-orange-600">
           <span className="w-1.5 h-1.5 rounded-full bg-current" />Late / Early
+        </span>
+        <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-400">
+          <span className="w-1.5 h-1.5 rounded-full bg-current" />Sunday
         </span>
       </div>
 
@@ -75,11 +82,23 @@ const MonthCalendar = ({ year, month, records }) => {
           const status = info?.status;
           const hasIssue = info?.isLate || info?.isEarlyLeave;
           const isToday = dateStr === todayStr;
+          const isPast = dateStr < todayStr;
+          const dayOfWeek = new Date(year, month - 1, day).getDay();
+          const isWeekend = dayOfWeek === 0; // Only Sunday is off; Saturday is a working day
+
+          // Past weekday with no record → treat as absent
+          const effectiveStatus = status || (isPast && !isWeekend ? 'absent' : null);
+
           return (
-            <div key={day} title={status ? `${status.replace('-', ' ')}${hasIssue ? ' · Late/Early' : ''}` : dateStr}
+            <div key={day}
+              title={
+                isWeekend ? 'Weekend' :
+                effectiveStatus ? `${effectiveStatus.replace('-', ' ')}${hasIssue ? ' · Late/Early' : ''}` :
+                dateStr
+              }
               className="aspect-square flex items-center justify-center relative">
               <span className={`w-7 h-7 flex items-center justify-center rounded-full text-[11px] sm:text-xs transition-all
-                ${status ? STATUS_STYLE[status] : 'text-violet-300'}
+                ${isWeekend ? 'text-gray-300' : effectiveStatus ? STATUS_STYLE[effectiveStatus] : 'text-violet-300'}
                 ${isToday ? 'ring-2 ring-violet-500 ring-offset-1' : ''}
               `}>
                 {day}
@@ -163,14 +182,14 @@ const RegularizeInline = ({ record, onDone }) => {
 };
 
 const AttendancePage = () => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState(false);
   const [clock, setClock] = useState(getISTClock());
   const [regReason, setRegReason] = useState('');
   const [regLoading, setRegLoading] = useState(false);
   const [showRegForm, setShowRegForm] = useState(false);
-  const [confirmCheckout, setConfirmCheckout] = useState(false);
   const now = new Date();
   const [filter, setFilter] = useState({ month: now.getMonth() + 1, year: now.getFullYear() });
 
@@ -190,25 +209,11 @@ const AttendancePage = () => {
 
   useEffect(() => { fetchAttendance(); }, [filter.month, filter.year]);
 
-  const handleCheckIn = async () => {
-    setActionLoading(true);
-    try {
-      await api.post('/attendance/check-in');
-      toast.success('Checked in successfully!');
-      fetchAttendance();
-    } catch (err) { toast.error(err.response?.data?.message || 'Check-in failed'); }
-    finally { setActionLoading(false); }
-  };
-
-  const handleCheckOut = async () => {
-    setActionLoading(true);
-    try {
-      await api.post('/attendance/check-out');
-      toast.success('Checked out successfully!');
-      fetchAttendance();
-    } catch (err) { toast.error(err.response?.data?.message || 'Check-out failed'); }
-    finally { setActionLoading(false); }
-  };
+  const {
+    loading: actionLoading,
+    locationModal, setLocationModal,
+    handleCheckIn, handleCheckOut, confirmAction,
+  } = useAttendance(fetchAttendance);
 
   const handleRegularizeToday = async () => {
     if (!regReason.trim()) return toast.error('Please enter a reason');
@@ -230,7 +235,7 @@ const AttendancePage = () => {
   const todayHasIssue = today?.isLate || today?.isEarlyLeave;
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="max-w-6xl mx-auto px-3 sm:px-4 space-y-6 animate-fade-in">
 
       {/* Today's Attendance Card */}
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
@@ -254,13 +259,13 @@ const AttendancePage = () => {
             {today.isLate && (
               <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full bg-orange-100 text-orange-700">
                 <SI d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" size={13} color="text-orange-500" />
-                Late Arrival ({today.checkIn})
+                Late Arrival ({formatTime12(today.checkIn)})
               </span>
             )}
             {today.isEarlyLeave && (
               <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full bg-red-100 text-red-700">
                 <SI d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" size={13} color="text-red-500" />
-                Early Leave ({today.checkOut})
+                Early Leave ({formatTime12(today.checkOut)})
               </span>
             )}
             {/* Regularization status / action */}
@@ -306,12 +311,12 @@ const AttendancePage = () => {
           <div className="flex items-center gap-4 sm:gap-6 flex-wrap">
             <div className="text-center">
               <p className="text-xs text-violet-500 mb-1">Check In</p>
-              <p className="text-lg sm:text-xl font-bold text-violet-900">{today?.checkIn || '—'}</p>
+              <p className="text-lg sm:text-xl font-bold text-violet-900">{formatTime12(today?.checkIn)}</p>
             </div>
             <div className="w-6 sm:w-8 h-px bg-violet-200" />
             <div className="text-center">
               <p className="text-xs text-violet-500 mb-1">Check Out</p>
-              <p className="text-lg sm:text-xl font-bold text-violet-900">{today?.checkOut || '—'}</p>
+              <p className="text-lg sm:text-xl font-bold text-violet-900">{formatTime12(today?.checkOut)}</p>
             </div>
             {today?.workHours > 0 && (
               <>
@@ -324,43 +329,31 @@ const AttendancePage = () => {
             )}
           </div>
 
-          <div className="flex gap-3 sm:ml-auto">
-            {!today?.checkIn && (
-              <button onClick={handleCheckIn} disabled={actionLoading} className="btn-primary btn-sm flex-1 sm:flex-none">
-                {actionLoading ? '...' : (
-                  <span className="flex items-center justify-center gap-1.5">
-                    <SI d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" size={15} color="text-green-100" /> Check In
-                  </span>
-                )}
-              </button>
-            )}
-            {today?.checkIn && !today?.checkOut && (
-              !confirmCheckout ? (
-                <button onClick={() => setConfirmCheckout(true)} className="btn-danger btn-sm flex-1 sm:flex-none">
+          {!isAdmin && (
+            <div className="flex gap-3 sm:ml-auto">
+              {!today?.checkIn && (
+                <button onClick={handleCheckIn} disabled={actionLoading} className="btn-primary btn-sm flex-1 sm:flex-none">
+                  {actionLoading ? '...' : (
+                    <span className="flex items-center justify-center gap-1.5">
+                      <SI d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" size={15} color="text-green-100" /> Check In
+                    </span>
+                  )}
+                </button>
+              )}
+              {today?.checkIn && !today?.checkOut && (
+                <button onClick={handleCheckOut} disabled={actionLoading} className="btn-danger btn-sm flex-1 sm:flex-none">
                   <span className="flex items-center justify-center gap-1.5">
                     <SI d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" size={15} color="text-red-100" /> Check Out
                   </span>
                 </button>
-              ) : (
-                <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
-                  <span className="text-xs font-semibold text-red-700 whitespace-nowrap">Confirm check-out?</span>
-                  <button onClick={() => { setConfirmCheckout(false); handleCheckOut(); }} disabled={actionLoading}
-                    className="text-xs font-bold px-3 py-1 rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 transition-colors">
-                    {actionLoading ? '…' : 'Yes'}
-                  </button>
-                  <button onClick={() => setConfirmCheckout(false)}
-                    className="text-xs font-semibold px-3 py-1 rounded-lg bg-white border border-red-200 text-red-600 hover:bg-red-50 transition-colors">
-                    Cancel
-                  </button>
-                </div>
-              )
-            )}
-            {today?.checkIn && today?.checkOut && (
-              <span className="badge-green px-4 py-2 text-sm font-semibold flex items-center gap-1.5">
-                Day Complete <SI d="M5 13l4 4L19 7" size={14} color="text-green-600" />
-              </span>
-            )}
-          </div>
+              )}
+              {today?.checkIn && today?.checkOut && (
+                <span className="badge-green px-4 py-2 text-sm font-semibold flex items-center gap-1.5">
+                  Day Complete <SI d="M5 13l4 4L19 7" size={14} color="text-green-600" />
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </motion.div>
 
@@ -397,66 +390,80 @@ const AttendancePage = () => {
           <div className="py-10 text-center text-violet-400 text-sm">Loading...</div>
         ) : (
           <>
-            {/* ── Calendar ── */}
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-              <MonthCalendar year={filter.year} month={filter.month} records={data?.records} />
-            </motion.div>
+            <div className="lg:flex lg:gap-6">
+              {/* ── Calendar (compact on desktop) ── */}
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="lg:w-64 lg:flex-shrink-0">
+                <MonthCalendar year={filter.year} month={filter.month} records={data?.records} />
+              </motion.div>
 
-            <div className="border-t border-violet-100 my-5" />
+              {/* Divider */}
+              <div className="border-t border-violet-100 my-5 lg:hidden" />
+              <div className="hidden lg:block w-px bg-violet-100 flex-shrink-0" />
 
-            {/* ── History Table ── */}
-            <h4 className="font-semibold text-sm text-violet-800 mb-3">Detailed Records</h4>
-            {data?.records?.length === 0 ? (
-              <EmptyState
-                icon={<SI d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" size={40} color="text-violet-400" />}
-                title="No attendance records"
-                message="No records found for the selected period."
-              />
-            ) : (
-              <div className="overflow-x-auto -mx-5 px-5">
-                <table className="data-table min-w-[560px]">
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>Check In</th>
-                      <th>Check Out</th>
-                      <th>Work Hours</th>
-                      <th>Status</th>
-                      <th>Regularization</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data?.records?.map(record => (
-                      <tr key={record._id}>
-                        <td className="font-medium whitespace-nowrap">
-                          {new Date(record.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', weekday: 'short' })}
-                        </td>
-                        <td className="whitespace-nowrap">
-                          <span className={record.isLate ? 'text-orange-600 font-semibold' : ''}>{record.checkIn || '—'}</span>
-                          {record.isLate && <span className="ml-1 text-[10px] text-orange-500 font-bold">LATE</span>}
-                        </td>
-                        <td className="whitespace-nowrap">
-                          <span className={record.isEarlyLeave ? 'text-red-500 font-semibold' : ''}>{record.checkOut || '—'}</span>
-                          {record.isEarlyLeave && <span className="ml-1 text-[10px] text-red-400 font-bold">EARLY</span>}
-                        </td>
-                        <td>{record.workHours ? `${record.workHours}h` : '—'}</td>
-                        <td><Badge status={record.status} /></td>
-                        <td>
-                          {(record.isLate || record.isEarlyLeave) ? (
-                            <RegularizeInline record={record} onDone={fetchAttendance} />
-                          ) : (
-                            <span className="text-violet-300 text-xs">—</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              {/* ── History Table ── */}
+              <div className="flex-1 min-w-0">
+                <h4 className="font-semibold text-sm text-violet-800 mb-3">Detailed Records</h4>
+                {data?.records?.length === 0 ? (
+                  <EmptyState
+                    icon={<SI d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" size={40} color="text-violet-400" />}
+                    title="No attendance records"
+                    message="No records found for the selected period."
+                  />
+                ) : (
+                  <div className="overflow-x-auto -mx-5 px-5 lg:mx-0 lg:px-0">
+                    <table className="data-table min-w-[560px]">
+                      <thead>
+                        <tr>
+                          <th>Date</th>
+                          <th>Check In</th>
+                          <th>Check Out</th>
+                          <th>Work Hours</th>
+                          <th>Status</th>
+                          <th>Regularization</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {data?.records?.map(record => (
+                          <tr key={record._id}>
+                            <td className="font-medium whitespace-nowrap">
+                              {new Date(record.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', weekday: 'short' })}
+                            </td>
+                            <td className="whitespace-nowrap">
+                              <span className={record.isLate ? 'text-orange-600 font-semibold' : ''}>{formatTime12(record.checkIn)}</span>
+                              {record.isLate && <span className="ml-1 text-[10px] text-orange-500 font-bold">LATE</span>}
+                            </td>
+                            <td className="whitespace-nowrap">
+                              <span className={record.isEarlyLeave ? 'text-red-500 font-semibold' : ''}>{formatTime12(record.checkOut)}</span>
+                              {record.isEarlyLeave && <span className="ml-1 text-[10px] text-red-400 font-bold">EARLY</span>}
+                            </td>
+                            <td>{record.workHours ? `${record.workHours}h` : '—'}</td>
+                            <td><Badge status={record.status} /></td>
+                            <td>
+                              {(record.isLate || record.isEarlyLeave) ? (
+                                <RegularizeInline record={record} onDone={fetchAttendance} />
+                              ) : (
+                                <span className="text-violet-300 text-xs">—</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </>
         )}
       </Card>
+      {!isAdmin && (
+        <LocationCheckModal
+          modal={locationModal}
+          onConfirm={confirmAction}
+          onCancel={() => setLocationModal(null)}
+          loading={actionLoading}
+        />
+      )}
     </div>
   );
 };

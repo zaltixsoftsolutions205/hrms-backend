@@ -26,7 +26,7 @@ const AdminCRM = () => {
   })) || [];
 
   return (
-    <div className="space-y-5 animate-fade-in">
+    <div className="max-w-7xl mx-auto space-y-5 animate-fade-in">
       <div className="page-header">
         <div><h2 className="page-title">CRM Analytics</h2><p className="page-subtitle">Sales performance and lead conversion insights</p></div>
       </div>

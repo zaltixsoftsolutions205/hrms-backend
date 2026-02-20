@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -15,8 +15,16 @@ const SI = ({ d, d2, size = 16, color }) => (
 const ChangePassword = () => {
   const [form, setForm] = useState({ currentPassword: '', newPassword: '', confirm: '' });
   const [loading, setLoading] = useState(false);
+  const [passwordChanged, setPasswordChanged] = useState(false);
   const { user, refreshUser } = useAuth();
   const navigate = useNavigate();
+
+  // Navigate only after user state has been refreshed and isFirstLogin is false
+  useEffect(() => {
+    if (passwordChanged && user && !user.isFirstLogin) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [passwordChanged, user, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -27,7 +35,7 @@ const ChangePassword = () => {
       await api.put('/auth/change-password', { currentPassword: form.currentPassword, newPassword: form.newPassword });
       toast.success('Password changed successfully!');
       await refreshUser();
-      navigate('/dashboard');
+      setPasswordChanged(true);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to change password');
     } finally { setLoading(false); }
