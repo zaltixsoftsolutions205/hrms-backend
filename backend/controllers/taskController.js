@@ -103,6 +103,21 @@ exports.getKpiOverview = async (req, res) => {
   }
 };
 
+// Admin/HR or task owner: Delete a task
+exports.deleteTask = async (req, res) => {
+  try {
+    const task = await Task.findById(req.params.id);
+    if (!task) return res.status(404).json({ message: 'Task not found' });
+    const isOwner = task.assignedTo.toString() === req.user._id.toString();
+    const isManager = ['hr', 'admin'].includes(req.user.role);
+    if (!isOwner && !isManager) return res.status(403).json({ message: 'Access denied' });
+    await task.deleteOne();
+    res.json({ message: 'Task deleted' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 // HR: Update task (edit details)
 exports.updateTask = async (req, res) => {
   const { title, description, priority, deadline, status } = req.body;

@@ -60,6 +60,14 @@ app.use('/api/leads', require('./routes/leads'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/documents', require('./routes/documents'));
+app.use('/api/deals', require('./routes/deals'));
+app.use('/api/clients', require('./routes/clients'));
+app.use('/api/finance', require('./routes/finance'));
+app.use('/api/announcements', require('./routes/announcements'));
+app.use('/api/holidays', require('./routes/holidays'));
+app.use('/api/quotations', require('./routes/quotations'));
+app.use('/api/purchase-orders', require('./routes/purchaseOrders'));
+app.use('/api/recruitment', require('./routes/recruitment'));
 
 // =======================
 // ❤️ HEALTH CHECK
