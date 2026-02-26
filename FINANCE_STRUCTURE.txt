@@ -1,0 +1,248 @@
+================================================================================
+                         FINANCE MODULE STRUCTURE
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                            DATABASE MODELS                                  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  INCOME (backend/models/Income.js)                                          │
+│  ├── type: 'deal' | 'manual'                                               │
+│  ├── amount: Number                                                         │
+│  ├── date: Date                                                             │
+│  ├── description: String                                                    │
+│  ├── dealId: ObjectId (unique, required if type='deal')                    │
+│  ├── serviceType: String (from deal.serviceType)                            │
+│  ├── createdBy: User reference                                             │
+│  └── Unique Index on dealId (prevents duplicate syncs)                     │
+│                                                                              │
+│  EXPENSE (backend/models/Expense.js)                                        │
+│  ├── category: enum [salary, commission, rent, software, marketing,        │
+│  │             operational, custom]                                         │
+│  ├── amount: Number                                                         │
+│  ├── date: Date                                                             │
+│  ├── description: String                                                    │
+│  ├── customCategory: String (if category='custom')                         │
+│  ├── receiptPath: String (optional file path)                              │
+│  ├── status: 'pending' | 'approved' | 'rejected'                           │
+│  ├── approvedBy: User reference                                            │
+│  └── createdBy: User reference                                             │
+│                                                                              │
+│  EXPENSE_CATEGORY (backend/models/ExpenseCategory.js) - Pre-seeded         │
+│  ├── name: String (enum)                                                   │
+│  ├── label: String                                                         │
+│  ├── description: String                                                   │
+│  ├── color: String (for charts)                                            │
+│  └── isDefault: Boolean                                                    │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        BACKEND ROUTES & ENDPOINTS                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  INCOME ENDPOINTS (Admin Only)                                              │
+│  ├── GET    /api/finance/income                  → list income             │
+│  ├── GET    /api/finance/income/stats            → dashboard stats         │
+│  ├── GET    /api/finance/income/:id              → single record           │
+│  ├── POST   /api/finance/income                  → create manual entry     │
+│  ├── DELETE /api/finance/income/:id              → delete entry            │
+│  └── POST   /api/finance/income/sync-deals       → manual sync trigger     │
+│                                                                              │
+│  EXPENSE ENDPOINTS (Admin Only)                                             │
+│  ├── GET    /api/finance/expenses                → list expenses           │
+│  ├── GET    /api/finance/expenses/stats          → dashboard stats         │
+│  ├── GET    /api/finance/expenses/:id            → single record           │
+│  ├── POST   /api/finance/expenses                → create (multipart)      │
+│  ├── PUT    /api/finance/expenses/:id            → update                  │
+│  ├── PUT    /api/finance/expenses/:id/approve    → approve expense         │
+│  ├── PUT    /api/finance/expenses/:id/reject     → reject expense          │
+│  └── DELETE /api/finance/expenses/:id            → delete                  │
+│                                                                              │
+│  DASHBOARD ENDPOINTS                                                        │
+│  ├── GET    /api/finance/dashboard               → all KPI data            │
+│  ├── GET    /api/finance/reports/yearly          → yearly summary          │
+│  ├── GET    /api/finance/reports/by-category     → expense breakdown       │
+│  ├── GET    /api/finance/reports/by-service      → revenue by service      │
+│  └── GET    /api/finance/reports/profit-by-service → profit margin         │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      FRONTEND FILE STRUCTURE                                │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  frontend/src/pages/Admin/Finance/                                          │
+│  ├── FinancePage.jsx              [MAIN] Tabs container (Dashboard, Income, │
+│  │                                       Expenses, Reports)                │
+│  │                                                                          │
+│  ├── Dashboard.jsx                [KPI Cards + Charts]                      │
+│  │  ├── KPI 1: Monthly Income                                             │
+│  │  ├── KPI 2: Monthly Expenses                                           │
+│  │  ├── KPI 3: Net Profit/Loss                                            │
+│  │  ├── KPI 4: Avg Income per Deal                                        │
+│  │  ├── Chart 1: Income vs Expense (12-month trend)                       │
+│  │  ├── Chart 2: Expense Breakdown (pie)                                  │
+│  │  ├── Chart 3: Revenue by Service (bar)                                 │
+│  │  └── Chart 4: Profit by Service (grouped bar)                          │
+│  │                                                                          │
+│  ├── Income/                                                               │
+│  │  ├── IncomeList.jsx            [TABLE] Date, Desc, Amount, Type,       │
+│  │  │                                     Service, Actions                 │
+│  │  │                              Filters: Month, Year, Type              │
+│  │  │                              Button: Add Manual Income               │
+│  │  │                                                                      │
+│  │  └── IncomeForm.jsx            [MODAL] Create manual income entry       │
+│  │                                 Fields: Amount, Date, Description,      │
+│  │                                         Notes                           │
+│  │                                                                          │
+│  ├── Expenses/                                                             │
+│  │  ├── ExpenseList.jsx           [TABLE] Date, Category, Desc, Amount,    │
+│  │  │                                     Status, Receipt, Actions         │
+│  │  │                              Filters: Month, Year, Category,         │
+│  │  │                                      Status                          │
+│  │  │                              Buttons: Approve, Reject, Delete, Add   │
+│  │  │                                                                      │
+│  │  └── ExpenseForm.jsx           [MODAL] Create/Edit expense              │
+│  │                                 Fields: Category, Amount, Date, Desc,   │
+│  │                                         Receipt (file), Notes           │
+│  │                                                                          │
+│  └── Reports/                                                              │
+│     ├── YearlyReport.jsx          [TABLE] Month-wise income/expense/profit │
+│     │                             [BUTTON] Export to CSV                  │
+│     │                                                                      │
+│     ├── CategoryBreakdown.jsx      [TABLE] Category breakdown              │
+│     │                             [CHART] Pie chart by category            │
+│     │                                                                      │
+│     └── ServiceProfitAnalysis.jsx  [TABLE] Service type profitability      │
+│                                   [CHART] Revenue vs Expenses by service  │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                       AUTO-SYNC INTEGRATION LOGIC                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  TRIGGER: Deal Marked as Won (in dealController.closeDeal)                 │
+│                                                                              │
+│  FLOW:                                                                       │
+│     Deal Status: 'open' → 'won'                                            │
+│            ↓                                                                │
+│     (Existing logic: update lead, create client, notify sales)             │
+│            ↓                                                                │
+│     NEW: Create Income Record                                              │
+│            ↓                                                                │
+│     Income Document Created:                                               │
+│     {                                                                       │
+│       type: 'deal',                                                        │
+│       amount: deal.finalDealAmount,                                        │
+│       date: new Date(),                                                    │
+│       description: `Revenue from deal: ${deal.name}`,                      │
+│       dealId: deal._id,  ← (Unique index prevents duplicates)             │
+│       serviceType: deal.serviceType,                                       │
+│       createdBy: admin._id,                                                │
+│       syncedAt: now                                                        │
+│     }                                                                       │
+│            ↓                                                                │
+│     Finance Dashboard Auto-Updates:                                        │
+│     - Total Income increases                                               │
+│     - Service breakdown updates                                            │
+│     - Profit/loss recalculates                                             │
+│                                                                              │
+│  MANUAL SYNC OPTION:                                                        │
+│     Admin: POST /api/finance/income/sync-deals                             │
+│            ↓                                                                │
+│     System finds all Won deals without Income record                       │
+│            ↓                                                                │
+│     Creates Income for each missing deal                                   │
+│            ↓                                                                │
+│     Returns: { synced: 5, skipped: 0 }                                     │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         KEY DESIGN DECISIONS                                │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  1. INCOME SYNC APPROACH                                                    │
+│     └─ Automatic sync when deal.status = 'won'                             │
+│     └─ Unique index on dealId prevents duplicate entries                   │
+│     └─ Manual sync option for edge cases                                   │
+│                                                                              │
+│  2. EXPENSE APPROVAL WORKFLOW                                               │
+│     └─ Status field: pending → approved / rejected                         │
+│     └─ Admin approves before showing in financials (optional)              │
+│                                                                              │
+│  3. SEPARATE FROM PAYROLL                                                   │
+│     └─ Finance tracks revenue only                                         │
+│     └─ Salary/Commission stays in payslip module                           │
+│     └─ No double-counting                                                  │
+│                                                                              │
+│  4. FILE UPLOAD FOR RECEIPTS                                                │
+│     └─ Optional multipart form data                                        │
+│     └─ Stored in backend/uploads/expenses/                                 │
+│     └─ Max 5MB, jpg/png/pdf only                                           │
+│                                                                              │
+│  5. ROLE RESTRICTIONS                                                       │
+│     └─ Finance module: Admin-only access                                   │
+│     └─ No access for sales, hr, or employee roles                          │
+│                                                                              │
+│  6. SERVICE-BASED ANALYSIS                                                  │
+│     └─ Income.serviceType from deal.serviceType                            │
+│     └─ Enables profit margin analysis by service type                      │
+│     └─ Requires deal sync to work                                          │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         INTEGRATION CHECKLIST                               │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  BACKEND                                                                     │
+│  [ ] Create Income model                                                    │
+│  [ ] Create Expense model                                                   │
+│  [ ] Create ExpenseCategory model                                           │
+│  [ ] Create financeController.js with all CRUD logic                        │
+│  [ ] Create finance routes                                                  │
+│  [ ] Add routes to server.js                                                │
+│  [ ] Modify dealController.closeDeal() to sync income                       │
+│  [ ] Add multer middleware for file uploads                                 │
+│  [ ] Create seed script for expense categories                              │
+│  [ ] Add validation rules for income/expense                                │
+│                                                                              │
+│  FRONTEND                                                                    │
+│  [ ] Create FinancePage.jsx with tab navigation                             │
+│  [ ] Create Dashboard component with KPIs                                   │
+│  [ ] Add charts (income/expense trend, breakdown, service analysis)         │
+│  [ ] Create IncomeList + IncomeForm components                              │
+│  [ ] Create ExpenseList + ExpenseForm components                            │
+│  [ ] Add file upload handler for receipts                                   │
+│  [ ] Create Reports section (yearly, category, service)                     │
+│  [ ] Add Finance menu item to Admin page                                    │
+│  [ ] Connect all API endpoints via axios                                    │
+│  [ ] Add error handling and loading states                                  │
+│                                                                              │
+│  TESTING                                                                     │
+│  [ ] Test income CRUD operations                                            │
+│  [ ] Test expense CRUD with file upload                                     │
+│  [ ] Test deal → income sync                                                │
+│  [ ] Test dashboard calculations (profit = income - expenses)               │
+│  [ ] Test service-based profit analysis                                     │
+│  [ ] Test role-based access (admin only)                                    │
+│  [ ] Test data consistency (delete income, expect profit to change)         │
+│  [ ] Test filters and pagination                                            │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+ESTIMATED EFFORT: ~18-20 hours
+├─ Backend Implementation: ~6-7 hours
+├─ Frontend Implementation: ~9-10 hours
+└─ Testing & Integration: ~2-3 hours
+
+NEXT STEPS:
+1. Review plan for any changes or clarifications
+2. Begin backend implementation (models first)
+3. Add API endpoints and test with Postman
+4. Build frontend UI components
+5. Integrate deal sync logic
+6. End-to-end testing

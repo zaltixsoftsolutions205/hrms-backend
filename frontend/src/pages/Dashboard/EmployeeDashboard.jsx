@@ -9,6 +9,8 @@ import Spinner from '../../components/UI/Spinner';
 import { formatCurrency, getInitials, monthName, formatTime12 } from '../../utils/helpers';
 import { useAttendance } from '../../hooks/useAttendance';
 import LocationCheckModal from '../../components/UI/LocationCheckModal';
+import AnnouncementWidget from '../../components/UI/AnnouncementWidget';
+import HolidayWidget from '../../components/UI/HolidayWidget';
 
 /* ── tiny inline SVG helper ── */
 const Icon = ({ d, d2, circle, className = 'w-5 h-5' }) => (
@@ -473,6 +475,12 @@ export default function EmployeeDashboard() {
           </SectionCard>
         </motion.div>
       )}
+
+      {/* Announcements + Holidays */}
+      <div className="grid lg:grid-cols-2 gap-4 sm:gap-5">
+        <AnnouncementWidget />
+        <HolidayWidget />
+      </div>
 
       <LocationCheckModal
         modal={locationModal}

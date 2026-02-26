@@ -19,6 +19,7 @@ const HRTasks = () => {
   const [employees, setEmployees] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [reminding, setReminding] = useState(null);
   const [activeTab, setActiveTab] = useState('tasks');
   const [form, setForm] = useState({ title: '', description: '', assignedTo: '', priority: 'medium', deadline: '' });
   const [filterEmp, setFilterEmp] = useState('');
@@ -35,6 +36,15 @@ const HRTasks = () => {
   };
 
   useEffect(() => { fetch(); }, [filterEmp]);
+
+  const handleRemind = async (taskId) => {
+    setReminding(taskId);
+    try {
+      const res = await api.post(`/tasks/${taskId}/reminder`);
+      toast.success(res.data.message || 'Reminder sent!');
+    } catch (err) { toast.error(err.response?.data?.message || 'Failed to send reminder'); }
+    finally { setReminding(null); }
+  };
 
   const handleCreate = async (e) => {
     e.preventDefault();
@@ -80,7 +90,7 @@ const HRTasks = () => {
             <div className="overflow-x-auto">
               <table className="data-table">
                 <thead>
-                  <tr><th>Task</th><th>Assigned To</th><th>Priority</th><th>Deadline</th><th>Status</th></tr>
+                  <tr><th>Task</th><th>Assigned To</th><th>Priority</th><th>Deadline</th><th>Status</th><th>Action</th></tr>
                 </thead>
                 <tbody>
                   {tasks.map(t => (
@@ -96,6 +106,19 @@ const HRTasks = () => {
                       <td><Badge status={t.priority} /></td>
                       <td>{formatDate(t.deadline)}</td>
                       <td><Badge status={t.status} /></td>
+                      <td>
+                        {t.status !== 'completed' && (
+                          <button
+                            onClick={() => handleRemind(t._id)}
+                            disabled={reminding === t._id}
+                            title="Send reminder to employee"
+                            className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition-colors disabled:opacity-50"
+                          >
+                            <SI d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" size={13} />
+                            {reminding === t._id ? 'Sending...' : 'Remind'}
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

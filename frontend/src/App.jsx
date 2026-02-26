@@ -33,6 +33,11 @@ import AdminPayslips from './pages/Admin/AdminPayslips';
 import AdminPolicies from './pages/Admin/AdminPolicies';
 import AdminReports from './pages/Admin/AdminReports';
 import AdminCRM from './pages/Admin/AdminCRM';
+import FinancePage from './pages/Admin/Finance/FinancePage';
+import AnnouncementsPage from './pages/Admin/AnnouncementsPage';
+import HolidaysPage from './pages/Admin/HolidaysPage';
+import AdminMyTasks from './pages/Admin/AdminMyTasks';
+import RecruitmentPage from './pages/Admin/RecruitmentPage';
 
 const ProtectedRoute = ({ children, roles, allowFirstLogin = false }) => {
   const { user, loading } = useAuth();
@@ -85,6 +90,11 @@ const AppRoutes = () => {
         <Route path="/admin/policies" element={<ProtectedRoute roles={['admin']}><AdminPolicies /></ProtectedRoute>} />
         <Route path="/admin/reports" element={<ProtectedRoute roles={['admin']}><AdminReports /></ProtectedRoute>} />
         <Route path="/admin/crm" element={<ProtectedRoute roles={['admin']}><AdminCRM /></ProtectedRoute>} />
+        <Route path="/admin/finance" element={<ProtectedRoute roles={['admin', 'hr']}><FinancePage /></ProtectedRoute>} />
+        <Route path="/admin/announcements" element={<ProtectedRoute roles={['admin', 'hr']}><AnnouncementsPage /></ProtectedRoute>} />
+        <Route path="/admin/holidays" element={<ProtectedRoute roles={['admin', 'hr']}><HolidaysPage /></ProtectedRoute>} />
+        <Route path="/admin/my-tasks" element={<ProtectedRoute roles={['admin']}><AdminMyTasks /></ProtectedRoute>} />
+        <Route path="/admin/recruitment" element={<ProtectedRoute roles={['admin', 'hr']}><RecruitmentPage /></ProtectedRoute>} />
       </Route>
 
       <Route path="/" element={<Navigate to="/dashboard" replace />} />

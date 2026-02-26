@@ -5,10 +5,12 @@ import api from '../../utils/api';
 import { KpiCard } from '../../components/UI/Card';
 import Badge from '../../components/UI/Badge';
 import Spinner from '../../components/UI/Spinner';
-import { formatDate, formatTime12, getInitials } from '../../utils/helpers';
+import { formatDate, formatTime12, getInitials, formatCurrency } from '../../utils/helpers';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAttendance } from '../../hooks/useAttendance';
 import LocationCheckModal from '../../components/UI/LocationCheckModal';
+import AnnouncementWidget from '../../components/UI/AnnouncementWidget';
+import HolidayWidget from '../../components/UI/HolidayWidget';
 
 const DI = ({ d, size = 20, className = '' }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -26,6 +28,9 @@ const checkCircleD = "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z";
 const clipboardListD = "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h.01M12 12h.01M9 16h6";
 const logoutD = "M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1";
 const xCircleD = "M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z";
+const currencyD = "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z";
+const trendUpD = "M13 7h8m0 0v8m0-8l-8 8-4-4-6 6";
+const trendDownD = "M13 17h8m0 0V9m0 8l-8-8-4 4-6-6";
 
 const HRDashboard = () => {
   const { user } = useAuth();
@@ -33,6 +38,8 @@ const HRDashboard = () => {
   const [pendingLeaves, setPendingLeaves] = useState([]);
   const [recentTasks, setRecentTasks] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const [financeStats, setFinanceStats] = useState(null);
 
   // Personal attendance & leave state
   const [todayRecord, setTodayRecord] = useState(null);
@@ -49,10 +56,13 @@ const HRDashboard = () => {
   };
 
   useEffect(() => {
+    const now = new Date();
+    const m = now.getMonth() + 1, y = now.getFullYear();
     Promise.all([
       api.get('/admin/dashboard-stats').then(r => setStats(r.data)).catch(() => {}),
       api.get('/leaves?status=pending').then(r => setPendingLeaves(r.data.slice(0, 5))).catch(() => {}),
       api.get('/tasks').then(r => setRecentTasks(r.data.slice(0, 5))).catch(() => {}),
+      api.get(`/finance/dashboard?month=${m}&year=${y}`).then(r => setFinanceStats(r.data)).catch(() => {}),
     ]).finally(() => setLoading(false));
     fetchPersonal();
   }, []);
@@ -201,6 +211,61 @@ const HRDashboard = () => {
         <KpiCard label="Sick Leave Left" value={myLeaves?.balance?.sick?.remaining ?? '—'} icon={<DI d={clipboardListD} />} color="violet" to="/leaves" />
       </div>
 
+      {/* Finance Summary */}
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+        className="glass-card p-4 sm:p-5">
+        <div className="flex items-center justify-between mb-3 sm:mb-4">
+          <h3 className="font-bold text-violet-900">Finance — This Month</h3>
+          <Link to="/admin/finance" className="text-xs text-golden-600 font-semibold hover:text-golden-700">Manage Finance →</Link>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="bg-green-50 rounded-xl p-3 sm:p-4 flex flex-col gap-1">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="w-7 h-7 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0">
+                <DI d={currencyD} size={15} className="text-green-600" />
+              </span>
+              <span className="text-xs font-semibold text-green-700">Income</span>
+            </div>
+            <p className="text-lg sm:text-xl font-bold text-green-700 truncate">
+              {financeStats ? formatCurrency(financeStats.totalIncome) : '—'}
+            </p>
+          </div>
+          <div className="bg-red-50 rounded-xl p-3 sm:p-4 flex flex-col gap-1">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="w-7 h-7 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0">
+                <DI d={trendDownD} size={15} className="text-red-600" />
+              </span>
+              <span className="text-xs font-semibold text-red-700">Expenses</span>
+            </div>
+            <p className="text-lg sm:text-xl font-bold text-red-700 truncate">
+              {financeStats ? formatCurrency(financeStats.totalExpense) : '—'}
+            </p>
+          </div>
+          <div className={`rounded-xl p-3 sm:p-4 flex flex-col gap-1 ${financeStats?.profit >= 0 ? 'bg-blue-50' : 'bg-orange-50'}`}>
+            <div className="flex items-center gap-2 mb-1">
+              <span className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${financeStats?.profit >= 0 ? 'bg-blue-100' : 'bg-orange-100'}`}>
+                <DI d={trendUpD} size={15} className={financeStats?.profit >= 0 ? 'text-blue-600' : 'text-orange-600'} />
+              </span>
+              <span className={`text-xs font-semibold ${financeStats?.profit >= 0 ? 'text-blue-700' : 'text-orange-700'}`}>Net Profit</span>
+            </div>
+            <p className={`text-lg sm:text-xl font-bold truncate ${financeStats?.profit >= 0 ? 'text-blue-700' : 'text-orange-700'}`}>
+              {financeStats ? formatCurrency(financeStats.profit) : '—'}
+            </p>
+          </div>
+          <div className="bg-violet-50 rounded-xl p-3 sm:p-4 flex flex-col gap-1">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="w-7 h-7 rounded-lg bg-violet-100 flex items-center justify-center flex-shrink-0">
+                <DI d={trendUpD} size={15} className="text-violet-600" />
+              </span>
+              <span className="text-xs font-semibold text-violet-700">Margin</span>
+            </div>
+            <p className="text-lg sm:text-xl font-bold text-violet-700">
+              {financeStats ? `${financeStats.profitMargin}%` : '—'}
+            </p>
+          </div>
+        </div>
+      </motion.div>
+
       {/* My Leave Balance + Pending Leave Requests */}
       <div className="grid lg:grid-cols-2 gap-4 sm:gap-5 items-stretch">
 
@@ -303,6 +368,12 @@ const HRDashboard = () => {
           </div>
         )}
       </motion.div>
+
+      {/* Announcements + Holidays */}
+      <div className="grid lg:grid-cols-2 gap-4 sm:gap-5">
+        <AnnouncementWidget />
+        <HolidayWidget />
+      </div>
 
       <LocationCheckModal
         modal={locationModal}
