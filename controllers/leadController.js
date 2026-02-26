@@ -1,5 +1,6 @@
 const Lead = require('../models/Lead');
 const Client = require('../models/Client');
+const Deal = require('../models/Deal');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
 
@@ -7,7 +8,7 @@ const ownerFilter = (user) => user.role === 'admin' || user.role === 'hr' ? {} :
 
 // Sales: Create lead
 exports.createLead = async (req, res) => {
-  const { name, phone, email, source, notes, followUpDate, dealValue, probability, expectedCloseDate, pipelineStage } = req.body;
+  const { name, phone, email, source, notes, followUpDate, dealValue, probability, expectedCloseDate, pipelineStage, serviceType } = req.body;
   try {
     const lead = await Lead.create({
       name, phone, email, source, notes, assignedTo: req.user._id,
@@ -16,6 +17,7 @@ exports.createLead = async (req, res) => {
       probability: probability || 0,
       expectedCloseDate: expectedCloseDate || null,
       pipelineStage: pipelineStage || 'prospect',
+      serviceType: serviceType || '',
     });
     const populated = await Lead.findById(lead._id).populate('assignedTo', 'name').populate('activities.by', 'name');
     res.status(201).json(populated);
@@ -159,6 +161,16 @@ exports.updateLeadStatus = async (req, res) => {
         { upsert: true, new: true }
       );
 
+      // Also update linked Deal if one exists
+      const existingDeal = await Deal.findOne({ lead: lead._id });
+      if (existingDeal && existingDeal.status === 'open') {
+        existingDeal.status = 'won';
+        existingDeal.closedDate = new Date();
+        existingDeal.commission = lead.commission;
+        if (lead.dealValue) existingDeal.finalDealAmount = lead.dealValue;
+        await existingDeal.save();
+      }
+
       // Notify the sales person
       await Notification.create({
         recipient: lead.assignedTo,
@@ -203,7 +215,7 @@ exports.addActivity = async (req, res) => {
 
 // Sales: Update lead info (extended with deal fields)
 exports.updateLead = async (req, res) => {
-  const { name, phone, email, source, notes, followUpDate, dealValue, probability, expectedCloseDate, pipelineStage } = req.body;
+  const { name, phone, email, source, notes, followUpDate, dealValue, probability, expectedCloseDate, pipelineStage, serviceType } = req.body;
   try {
     const lead = await Lead.findById(req.params.id);
     if (!lead) return res.status(404).json({ message: 'Lead not found' });
@@ -220,6 +232,7 @@ exports.updateLead = async (req, res) => {
     if (probability !== undefined) lead.probability = probability;
     if (expectedCloseDate !== undefined) lead.expectedCloseDate = expectedCloseDate || null;
     if (pipelineStage) lead.pipelineStage = pipelineStage;
+    if (serviceType !== undefined) lead.serviceType = serviceType;
     await lead.save();
     const populated = await Lead.findById(lead._id).populate('assignedTo', 'name').populate('activities.by', 'name');
     res.json(populated);
@@ -265,6 +278,7 @@ exports.getPipeline = async (req, res) => {
           phone: l.phone,
           dealValue: l.dealValue,
           probability: l.probability,
+          serviceType: l.serviceType,
           ageDays: Math.floor((now - new Date(l.createdAt).getTime()) / 86400000),
           followUpDate: l.followUpDate,
           isOverdue: l.followUpDate && l.followUpDate < new Date(),

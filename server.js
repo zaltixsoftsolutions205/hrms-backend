@@ -60,6 +60,14 @@ app.use('/api/leads', require('./routes/leads'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/documents', require('./routes/documents'));
+app.use('/api/deals', require('./routes/deals'));
+app.use('/api/clients', require('./routes/clients'));
+app.use('/api/finance', require('./routes/finance'));
+app.use('/api/announcements', require('./routes/announcements'));
+app.use('/api/holidays', require('./routes/holidays'));
+app.use('/api/quotations', require('./routes/quotations'));
+app.use('/api/purchase-orders', require('./routes/purchaseOrders'));
+app.use('/api/recruitment', require('./routes/recruitment'));
 
 // =======================
 // ❤️ HEALTH CHECK
@@ -71,20 +79,6 @@ app.get('/api/health', (req, res) => {
     environment: process.env.NODE_ENV || 'development',
   });
 });
-
-// =======================
-// 🖥️ SERVE REACT FRONTEND (PRODUCTION)
-// =======================
-// Express serves the built frontend + handles /uploads static files.
-// Nginx should proxy ALL requests (not just /api) to this Express server.
-if (process.env.NODE_ENV === 'production') {
-  const frontendDist = path.join(__dirname, '../frontend/dist');
-  app.use(express.static(frontendDist));
-  // SPA fallback — serve index.html for any route not matched above
-  app.get('*', (_req, res) => {
-    res.sendFile(path.join(frontendDist, 'index.html'));
-  });
-}
 
 // =======================
 // ❌ GLOBAL ERROR HANDLER

@@ -15,6 +15,7 @@ const leadSchema = new mongoose.Schema(
     source: { type: String, enum: ['website', 'referral', 'social', 'cold-call', 'other'], default: 'other' },
     status: { type: String, enum: ['new', 'interested', 'not-interested', 'converted'], default: 'new' },
     notes: { type: String, default: '' },
+    serviceType: { type: String, enum: ['automated-systems', 'web-mobile-apps', 'digital-marketing', 'outsourcing', 'eshcul', ''], default: '' },
     assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     activities: [activitySchema],
     convertedDate: { type: Date, default: null },

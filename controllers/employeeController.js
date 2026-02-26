@@ -243,6 +243,7 @@ exports.uploadProfilePhoto = async (req, res) => {
       } catch { /* ignore cleanup errors */ }
     }
 
+    // Store as relative path — works with Vite proxy in dev and reverse proxy in production
     employee.profilePicture = `/uploads/profile-photos/${req.file.filename}`;
     await employee.save();
 
