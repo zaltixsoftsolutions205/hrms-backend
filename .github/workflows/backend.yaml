@@ -43,7 +43,7 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key:      ${{ secrets.EC2_SSH_KEY }}
           script: |
-            IMAGE_URI=public.ecr.aws/n2e2a2z5/hrms-backend:latest
+            IMAGE_URI=public.ecr.aws/g5p9n4i5/hrms-backend:latest
 
             echo "Pulling latest image..."
             docker pull $IMAGE_URI
