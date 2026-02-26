@@ -118,6 +118,27 @@ exports.deleteTask = async (req, res) => {
   }
 };
 
+// HR / Admin: Send reminder notification for a task
+exports.sendTaskReminder = async (req, res) => {
+  try {
+    const task = await Task.findById(req.params.id).populate('assignedTo', 'name');
+    if (!task) return res.status(404).json({ message: 'Task not found' });
+    if (task.status === 'completed') return res.status(400).json({ message: 'Task is already completed' });
+
+    await Notification.create({
+      recipient: task.assignedTo._id,
+      title: 'Task Reminder',
+      message: `Reminder: "${task.title}" is due on ${moment(task.deadline).format('DD MMM YYYY')}. Please update your progress.`,
+      type: 'task',
+      link: '/tasks',
+    });
+
+    res.json({ message: `Reminder sent to ${task.assignedTo.name}` });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 // HR: Update task (edit details)
 exports.updateTask = async (req, res) => {
   const { title, description, priority, deadline, status } = req.body;
