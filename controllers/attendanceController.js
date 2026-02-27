@@ -1,6 +1,7 @@
 const Attendance = require('../models/Attendance');
 const User = require('../models/User');
 const moment = require('moment');
+const https = require('https');
 
 // IST helpers — adds 5h30m to UTC, then reads as if UTC string = IST string
 // Works on any server timezone (UTC, IST, anything)
@@ -251,4 +252,30 @@ exports.reviewRegularization = async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
+};
+
+// Public: Proxy Google Maps static image through backend (avoids API key referrer restrictions)
+exports.getMapImage = (req, res) => {
+  const { userLat, userLng } = req.query;
+  const officeLat = parseFloat(process.env.OFFICE_LAT);
+  const officeLng = parseFloat(process.env.OFFICE_LNG);
+  const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+
+  if (!apiKey || !officeLat || !officeLng || !userLat || !userLng) {
+    return res.status(400).end();
+  }
+
+  const mapUrl =
+    `https://maps.googleapis.com/maps/api/staticmap` +
+    `?size=600x240&scale=2&zoom=17` +
+    `&markers=color:red%7Clabel:O%7C${officeLat},${officeLng}` +
+    `&markers=color:blue%7Clabel:U%7C${userLat},${userLng}` +
+    `&path=color:0x7C3AED80%7Cweight:2%7C${userLat},${userLng}%7C${officeLat},${officeLng}` +
+    `&key=${apiKey}`;
+
+  https.get(mapUrl, (googleRes) => {
+    res.setHeader('Content-Type', googleRes.headers['content-type'] || 'image/png');
+    res.setHeader('Cache-Control', 'public, max-age=60');
+    googleRes.pipe(res);
+  }).on('error', () => res.status(502).end());
 };
