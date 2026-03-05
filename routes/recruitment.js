@@ -1,25 +1,58 @@
 const express = require('express');
 const router = express.Router();
+const path = require('path');
+const fs = require('fs');
+const multer = require('multer');
 const { protect } = require('../middleware/auth');
 const { roleCheck } = require('../middleware/roleCheck');
 const ctrl = require('../controllers/recruitmentController');
 
 router.use(protect);
 
-// Stats - hr & admin
-router.get('/stats', roleCheck('hr', 'admin'), ctrl.getStats);
+// Allow hr, admin, OR employee ZSSE0023
+const recruitAccess = (req, res, next) => {
+  if (['hr', 'admin'].includes(req.user.role) || req.user.employeeId === 'ZSSE0023') {
+    return next();
+  }
+  return res.status(403).json({ message: 'Access denied' });
+};
 
-// Job Postings - hr & admin manage
-router.get('/jobs',          roleCheck('hr', 'admin'), ctrl.getJobPostings);
-router.post('/jobs',         roleCheck('hr', 'admin'), ctrl.createJobPosting);
-router.put('/jobs/:id',      roleCheck('hr', 'admin'), ctrl.updateJobPosting);
-router.delete('/jobs/:id',   roleCheck('hr', 'admin'), ctrl.deleteJobPosting);
+// Resume upload setup
+const uploadDir = path.join(__dirname, '../uploads/resumes');
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
-// Applicants
-router.get('/applicants',         roleCheck('hr', 'admin'), ctrl.getApplicants);
-router.post('/applicants',        roleCheck('hr', 'admin'), ctrl.createApplicant);
-router.put('/applicants/:id/stage', roleCheck('hr', 'admin'), ctrl.updateStage);
-router.put('/applicants/:id/notes', roleCheck('hr', 'admin'), ctrl.updateNotes);
-router.delete('/applicants/:id',  roleCheck('hr', 'admin'), ctrl.deleteApplicant);
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, uploadDir),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, `resume_${Date.now()}${ext}`);
+  },
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const allowed = ['.pdf', '.doc', '.docx', '.jpg', '.jpeg', '.png'];
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (allowed.includes(ext)) cb(null, true);
+    else cb(new Error('Only PDF, DOC, DOCX, JPG, PNG files are allowed'), false);
+  },
+});
+
+// Stats
+router.get('/stats', recruitAccess, ctrl.getStats);
+
+// Job Postings
+router.get('/jobs',          recruitAccess, ctrl.getJobPostings);
+router.post('/jobs',         recruitAccess, ctrl.createJobPosting);
+router.put('/jobs/:id',      recruitAccess, ctrl.updateJobPosting);
+router.delete('/jobs/:id',   recruitAccess, ctrl.deleteJobPosting);
+
+// Applicants (resumes)
+router.get('/applicants',              recruitAccess, ctrl.getApplicants);
+router.post('/applicants',             recruitAccess, upload.single('resume'), ctrl.createApplicant);
+router.put('/applicants/:id/status',   recruitAccess, ctrl.updateStatus);
+router.delete('/applicants/:id',       recruitAccess, ctrl.deleteApplicant);
 
 module.exports = router;

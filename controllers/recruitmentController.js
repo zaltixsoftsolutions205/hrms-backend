@@ -11,11 +11,13 @@ exports.getJobPostings = async (req, res) => {
       .populate('createdBy', 'name')
       .sort({ createdAt: -1 });
 
-    // attach applicant counts
+    // attach applicant counts per status
     const jobsWithCount = await Promise.all(jobs.map(async (j) => {
-      const count = await Applicant.countDocuments({ jobPosting: j._id });
-      const hired = await Applicant.countDocuments({ jobPosting: j._id, stage: 'hired' });
-      return { ...j.toObject(), applicantCount: count, hiredCount: hired };
+      const total = await Applicant.countDocuments({ jobPosting: j._id });
+      const interested = await Applicant.countDocuments({ jobPosting: j._id, status: 'interested' });
+      const shortlisted = await Applicant.countDocuments({ jobPosting: j._id, status: 'shortlisted' });
+      const joined = await Applicant.countDocuments({ jobPosting: j._id, status: 'joined' });
+      return { ...j.toObject(), applicantCount: total, interestedCount: interested, shortlistedCount: shortlisted, joinedCount: joined };
     }));
 
     res.json(jobsWithCount);
@@ -59,13 +61,13 @@ exports.deleteJobPosting = async (req, res) => {
   }
 };
 
-/* ── APPLICANTS ── */
+/* ── APPLICANTS (RESUMES) ── */
 
 exports.getApplicants = async (req, res) => {
   try {
     const filter = {};
-    if (req.query.jobId)  filter.jobPosting = req.query.jobId;
-    if (req.query.stage)  filter.stage = req.query.stage;
+    if (req.query.jobId)   filter.jobPosting = req.query.jobId;
+    if (req.query.status)  filter.status = req.query.status;
     const applicants = await Applicant.find(filter)
       .populate('jobPosting', 'title department')
       .populate('createdBy', 'name')
@@ -78,10 +80,16 @@ exports.getApplicants = async (req, res) => {
 
 exports.createApplicant = async (req, res) => {
   try {
-    const { jobPosting, name, email, phone, notes, resumeUrl } = req.body;
+    const { jobPosting, name, status } = req.body;
     if (!jobPosting || !name) return res.status(400).json({ message: 'Job posting and name required' });
+
+    const resumeUrl = req.file ? `uploads/resumes/${req.file.filename}` : '';
+
     const applicant = await Applicant.create({
-      jobPosting, name, email, phone, notes, resumeUrl,
+      jobPosting,
+      name,
+      resumeUrl,
+      status: status || 'interested',
       createdBy: req.user._id,
     });
     await applicant.populate('jobPosting', 'title department');
@@ -91,22 +99,11 @@ exports.createApplicant = async (req, res) => {
   }
 };
 
-exports.updateStage = async (req, res) => {
+exports.updateStatus = async (req, res) => {
   try {
-    const { stage } = req.body;
-    const applicant = await Applicant.findByIdAndUpdate(req.params.id, { stage }, { new: true })
+    const { status } = req.body;
+    const applicant = await Applicant.findByIdAndUpdate(req.params.id, { status }, { new: true })
       .populate('jobPosting', 'title department');
-    if (!applicant) return res.status(404).json({ message: 'Not found' });
-    res.json(applicant);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-exports.updateNotes = async (req, res) => {
-  try {
-    const { notes } = req.body;
-    const applicant = await Applicant.findByIdAndUpdate(req.params.id, { notes }, { new: true });
     if (!applicant) return res.status(404).json({ message: 'Not found' });
     res.json(applicant);
   } catch (err) {
@@ -129,9 +126,13 @@ exports.getStats = async (req, res) => {
   try {
     const totalJobs = await JobPosting.countDocuments({ status: 'open' });
     const totalApplicants = await Applicant.countDocuments();
-    const hired = await Applicant.countDocuments({ stage: 'hired' });
-    const inInterview = await Applicant.countDocuments({ stage: 'interview' });
-    res.json({ totalJobs, totalApplicants, hired, inInterview });
+    const interested = await Applicant.countDocuments({ status: 'interested' });
+    const notInterested = await Applicant.countDocuments({ status: 'not-interested' });
+    const shortlisted = await Applicant.countDocuments({ status: 'shortlisted' });
+    const rejected = await Applicant.countDocuments({ status: 'rejected' });
+    const onboarded = await Applicant.countDocuments({ status: 'onboarded' });
+    const joined = await Applicant.countDocuments({ status: 'joined' });
+    res.json({ totalJobs, totalApplicants, interested, notInterested, shortlisted, rejected, onboarded, joined });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
