@@ -31,6 +31,7 @@ const generatePayslipPDF = (payslipData) => {
         basicSalary, allowances, deductions,
         grossSalary, netSalary,
         workingDays, presentDays,
+        accountNumber, ifscCode, uanNumber,
       } = payslipData;
 
       const uploadsDir = path.join(__dirname, '../uploads/payslips');
@@ -126,7 +127,6 @@ const generatePayslipPDF = (payslipData) => {
       ════════════════════════════════════════ */
       const wdDays  = Number(workingDays || 26);
       const prsDays = Number(presentDays != null ? presentDays : wdDays);
-      const lwpDays = Math.max(0, wdDays - prsDays);
 
       // column widths: label=120, value=137, label=118, value=140 → 515
       const EC1 = 120, EC2 = 137, EC3 = 118, EC4 = CW - EC1 - EC2 - EC3;
@@ -135,7 +135,6 @@ const generatePayslipPDF = (payslipData) => {
         ['Employee Code', employee.employeeId,          'Employee Name', employee.name],
         ['Designation',   employee.designation || '—',  'Department',    employee.department?.name || '—'],
         ['Working Days',  String(wdDays),               'Present Days',  String(prsDays)],
-        ['LWP Days',      String(lwpDays),              'Paid Days',     String(prsDays)],
       ];
 
       empRows.forEach(([l1, v1, l2, v2]) => {
@@ -147,6 +146,22 @@ const generatePayslipPDF = (payslipData) => {
       });
 
       y += 12;
+
+      /* ════════════════════════════════════════
+         ACCOUNT DETAILS
+      ════════════════════════════════════════ */
+      const AD1 = 120, AD2 = 137, AD3 = 118, AD4 = CW - AD1 - AD2 - AD3;
+      cell('Account Details', ML, y, CW, RH, { bold: true, bg: HDR_BG, align: 'center' });
+      y += RH;
+      cell('Account Number', ML,             y, AD1, RH, { fsize: 8, color: '#555555', bg: SUB_BG });
+      cell(accountNumber || '—',             ML + AD1,             y, AD2, RH, { fsize: 8.5, bold: true });
+      cell('IFSC Code',      ML + AD1 + AD2, y, AD3, RH, { fsize: 8, color: '#555555', bg: SUB_BG });
+      cell(ifscCode || '—',                  ML + AD1 + AD2 + AD3, y, AD4, RH, { fsize: 8.5, bold: true });
+      y += RH;
+      cell('UAN Number',     ML,             y, AD1, RH, { fsize: 8, color: '#555555', bg: SUB_BG });
+      cell(uanNumber || '—',                 ML + AD1,             y, AD2, RH, { fsize: 8.5, bold: true });
+      cell('',               ML + AD1 + AD2, y, AD3 + AD4, RH, { bg: null });
+      y += RH + 12;
 
       /* ════════════════════════════════════════
          EARNINGS | DEDUCTIONS — side by side

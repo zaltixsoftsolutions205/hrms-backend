@@ -4,6 +4,7 @@ const {
   getDepartments, createDepartment, updateDepartment, deleteDepartment,
   getLeavePolicies, createLeavePolicy, updateLeavePolicy,
   getAttendanceReport, getLeaveReport, getPayrollReport, getCrmReport, getDashboardStats,
+  getProfitSummary,
 } = require('../controllers/adminController');
 const { protect } = require('../middleware/auth');
 const { roleCheck } = require('../middleware/roleCheck');
@@ -28,5 +29,6 @@ router.get('/reports/leave', getLeaveReport);
 router.get('/reports/payroll', getPayrollReport);
 router.get('/reports/crm', roleCheck('admin'), getCrmReport);
 router.get('/dashboard-stats', getDashboardStats);
+router.get('/profit-summary', getProfitSummary);
 
 module.exports = router;

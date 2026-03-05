@@ -129,23 +129,45 @@ exports.getMyAttendance = async (req, res) => {
   const { month, year } = req.query;
   try {
     let filter = { employee: req.user._id };
+    let start, end;
     if (month && year) {
-      const start = `${year}-${String(month).padStart(2, '0')}-01`;
-      const end = moment(start).endOf('month').format('YYYY-MM-DD');
+      start = `${year}-${String(month).padStart(2, '0')}-01`;
+      end = moment(start).endOf('month').format('YYYY-MM-DD');
       filter.date = { $gte: start, $lte: end };
+    } else {
+      const now = istDate();
+      start = now.slice(0, 7) + '-01';
+      end = moment(start).endOf('month').format('YYYY-MM-DD');
     }
     const records = await Attendance.find(filter).sort({ date: -1 });
 
+    const today = istDate();
+    // Count absent only up to yesterday — today is still in progress
+    const absentCalcEnd = today < end ? moment(today).subtract(1, 'day').format('YYYY-MM-DD') : end;
+
+    // Count Mon–Fri working days from start through absentCalcEnd
+    let workingDays = 0;
+    const cur = moment(start);
+    const endM = moment(absentCalcEnd);
+    while (cur.isSameOrBefore(endM)) {
+      if (cur.day() !== 0 && cur.day() !== 6) workingDays++;
+      cur.add(1, 'day');
+    }
+
+    // Days employee was actually present (present or half-day) up to absentCalcEnd
+    const attendedDays = records.filter(r =>
+      r.date <= absentCalcEnd && (r.status === 'present' || r.status === 'half-day')
+    ).length;
+
     const summary = {
       present: records.filter(r => r.status === 'present').length,
-      absent: records.filter(r => r.status === 'absent').length,
+      absent: Math.max(0, workingDays - attendedDays),
       halfDay: records.filter(r => r.status === 'half-day').length,
       totalWorkHours: records.reduce((sum, r) => sum + (r.workHours || 0), 0).toFixed(2),
       lateCount: records.filter(r => r.isLate).length,
       earlyLeaveCount: records.filter(r => r.isEarlyLeave).length,
     };
 
-    const today = istDate();
     const todayRecord = await Attendance.findOne({ employee: req.user._id, date: today });
 
     res.json({ records, summary, todayRecord: todayRecord || null });

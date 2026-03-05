@@ -3,6 +3,11 @@ const mongoose = require('mongoose');
 const incomeSchema = new mongoose.Schema(
   {
     type: { type: String, enum: ['deal', 'manual'], required: true },
+    category: {
+      type: String,
+      enum: ['investment', 'client_payment', 'talent_acquisition', 'product_sale', 'general'],
+      default: 'general',
+    },
     amount: { type: Number, required: true, min: 0 },
     date: { type: Date, required: true },
     description: { type: String },

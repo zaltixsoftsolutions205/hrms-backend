@@ -56,6 +56,9 @@ exports.generatePayslip = async (req, res) => {
         allowances: payslip.allowances, deductions: payslip.deductions,
         grossSalary, netSalary, workingDays: payslip.workingDays, presentDays: actualPresentDays,
         periodStart, periodEnd,
+        accountNumber: employee.accountNumber || '',
+        ifscCode: employee.ifscCode || '',
+        uanNumber: employee.uanNumber || '',
       });
       payslip.pdfPath = pdfPath;
       await payslip.save();
@@ -162,18 +165,20 @@ exports.downloadPayslip = async (req, res) => {
     }
 
     const toAbs = (p) => path.join(__dirname, '..', (p || '').replace(/^[/\\]/, ''));
-    let absolutePath = toAbs(payslip.pdfPath);
-    if (!payslip.pdfPath || !fs.existsSync(absolutePath)) {
-      // Re-generate PDF on the fly
-      const employee = await User.findById(payslip.employee._id).populate('department');
-      const ps = payslip.toObject();
-      const pStart = moment(`${ps.year}-${String(ps.month).padStart(2, '0')}-25`).subtract(1, 'month').format('YYYY-MM-DD');
-      const pEnd   = moment(`${ps.year}-${String(ps.month).padStart(2, '0')}-24`).format('YYYY-MM-DD');
-      const pdfPath = await generatePayslipPDF({ ...ps, employee, periodStart: pStart, periodEnd: pEnd });
-      payslip.pdfPath = pdfPath;
-      await payslip.save();
-      absolutePath = toAbs(payslip.pdfPath);
-    }
+    // Always regenerate to pick up latest template + account details
+    const employee = await User.findById(payslip.employee._id).populate('department');
+    const ps = payslip.toObject();
+    const pStart = moment(`${ps.year}-${String(ps.month).padStart(2, '0')}-25`).subtract(1, 'month').format('YYYY-MM-DD');
+    const pEnd   = moment(`${ps.year}-${String(ps.month).padStart(2, '0')}-24`).format('YYYY-MM-DD');
+    const pdfPath = await generatePayslipPDF({
+      ...ps, employee, periodStart: pStart, periodEnd: pEnd,
+      accountNumber: employee.accountNumber || '',
+      ifscCode: employee.ifscCode || '',
+      uanNumber: employee.uanNumber || '',
+    });
+    payslip.pdfPath = pdfPath;
+    await payslip.save();
+    const absolutePath = toAbs(payslip.pdfPath);
     if (!fs.existsSync(absolutePath)) {
       return res.status(500).json({ message: 'PDF generation failed' });
     }
