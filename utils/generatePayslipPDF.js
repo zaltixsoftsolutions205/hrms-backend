@@ -30,14 +30,14 @@ const generatePayslipPDF = (payslipData) => {
         employee, month, year,
         basicSalary, allowances, deductions,
         grossSalary, netSalary,
-        workingDays, presentDays,
+        workingDays, presentDays, lwpDays,
         accountNumber, ifscCode, uanNumber,
       } = payslipData;
 
       const uploadsDir = path.join(__dirname, '../uploads/payslips');
       if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
-      const filename = `${employee.employeeId}_${year}-${String(month).padStart(2, '0')}.pdf`;
+      const filename = `Payslip_${MONTH_NAMES[month - 1]}_${year}_${employee.employeeId}.pdf`;
       const filepath = path.join(uploadsDir, filename);
 
       const doc = new PDFDocument({ margin: 0, size: 'A4' });
@@ -127,6 +127,7 @@ const generatePayslipPDF = (payslipData) => {
       ════════════════════════════════════════ */
       const wdDays  = Number(workingDays || 26);
       const prsDays = Number(presentDays != null ? presentDays : wdDays);
+      const lopDays = Number(lwpDays || 0);
 
       // column widths: label=120, value=137, label=118, value=140 → 515
       const EC1 = 120, EC2 = 137, EC3 = 118, EC4 = CW - EC1 - EC2 - EC3;
@@ -135,13 +136,18 @@ const generatePayslipPDF = (payslipData) => {
         ['Employee Code', employee.employeeId,          'Employee Name', employee.name],
         ['Designation',   employee.designation || '—',  'Department',    employee.department?.name || '—'],
         ['Working Days',  String(wdDays),               'Present Days',  String(prsDays)],
+        ['Loss of Pay',   String(lopDays),              '',              ''],
       ];
 
       empRows.forEach(([l1, v1, l2, v2]) => {
         cell(l1,  ML,               y, EC1, RH, { fsize: 8, color: '#555555', bg: SUB_BG });
         cell(v1,  ML + EC1,         y, EC2, RH, { fsize: 8.5, bold: true });
-        cell(l2,  ML + EC1 + EC2,   y, EC3, RH, { fsize: 8, color: '#555555', bg: SUB_BG });
-        cell(v2,  ML + EC1 + EC2 + EC3, y, EC4, RH, { fsize: 8.5, bold: true });
+        if (l2) {
+          cell(l2,  ML + EC1 + EC2,   y, EC3, RH, { fsize: 8, color: '#555555', bg: SUB_BG });
+          cell(v2,  ML + EC1 + EC2 + EC3, y, EC4, RH, { fsize: 8.5, bold: true });
+        } else {
+          cell('',  ML + EC1 + EC2,   y, EC3 + EC4, RH, { bg: null });
+        }
         y += RH;
       });
 
@@ -182,9 +188,9 @@ const generatePayslipPDF = (payslipData) => {
 
       /* sub-header */
       cell('Description',  ML,           y, LL, RH, { bold: true, fsize: 8, bg: SUB_BG });
-      cell('Amount (₹)',   ML + LL,       y, LA, RH, { bold: true, fsize: 8, bg: SUB_BG, align: 'right' });
+      cell('Amount (Rs.)', ML + LL,       y, LA, RH, { bold: true, fsize: 8, bg: SUB_BG, align: 'right' });
       cell('Description',  ML + LB,       y, RL, RH, { bold: true, fsize: 8, bg: SUB_BG });
-      cell('Amount (₹)',   ML + LB + RL,  y, RA, RH, { bold: true, fsize: 8, bg: SUB_BG, align: 'right' });
+      cell('Amount (Rs.)', ML + LB + RL,  y, RA, RH, { bold: true, fsize: 8, bg: SUB_BG, align: 'right' });
       y += RH;
 
       /* data rows */

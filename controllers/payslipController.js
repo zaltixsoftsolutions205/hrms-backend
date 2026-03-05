@@ -14,7 +14,7 @@ const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct',
 
 // HR / Admin: Generate payslip
 exports.generatePayslip = async (req, res) => {
-  const { employeeId, month, year, basicSalary, allowances, deductions, workingDays, presentDays } = req.body;
+  const { employeeId, month, year, basicSalary, allowances, deductions, workingDays, presentDays, lwpDays } = req.body;
   try {
     const existing = await Payslip.findOne({ employee: employeeId, month, year });
     if (existing) return res.status(400).json({ message: `Payslip for ${monthNames[month - 1]} ${year} already generated` });
@@ -30,6 +30,7 @@ exports.generatePayslip = async (req, res) => {
     const actualBasic       = basicSalary || 0;
     const actualWorkingDays = workingDays || 26;
     const actualPresentDays = presentDays != null ? presentDays : actualWorkingDays;
+    const actualLwpDays     = lwpDays || 0;
 
     const totalAllowances = (allowances || []).reduce((s, a) => s + (a.amount || 0), 0);
     const totalDeductions = (deductions || []).reduce((s, d) => s + (d.amount || 0), 0);
@@ -46,6 +47,7 @@ exports.generatePayslip = async (req, res) => {
       generatedBy: req.user._id,
       workingDays: actualWorkingDays,
       presentDays: actualPresentDays,
+      lwpDays: actualLwpDays,
       status: 'published',
     });
 
@@ -55,6 +57,7 @@ exports.generatePayslip = async (req, res) => {
         employee, month, year, basicSalary: payslip.basicSalary,
         allowances: payslip.allowances, deductions: payslip.deductions,
         grossSalary, netSalary, workingDays: payslip.workingDays, presentDays: actualPresentDays,
+        lwpDays: actualLwpDays,
         periodStart, periodEnd,
         accountNumber: employee.accountNumber || '',
         ifscCode: employee.ifscCode || '',
@@ -182,7 +185,8 @@ exports.downloadPayslip = async (req, res) => {
     if (!fs.existsSync(absolutePath)) {
       return res.status(500).json({ message: 'PDF generation failed' });
     }
-    const filename = `${payslip.employee.employeeId}_${String(payslip.year)}-${String(payslip.month).padStart(2, '0')}.pdf`;
+    const fullMonthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const filename = `Payslip_${fullMonthNames[payslip.month - 1]}_${payslip.year}_${payslip.employee.employeeId}.pdf`;
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     fs.createReadStream(absolutePath).pipe(res);
