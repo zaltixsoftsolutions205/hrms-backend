@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getNotifications, markAsRead, markAllAsRead, savePushToken, removePushToken } = require('../controllers/notificationController');
+const { getNotifications, markAsRead, markAllAsRead, savePushToken, removePushToken, testPush } = require('../controllers/notificationController');
 const { protect } = require('../middleware/auth');
 
 router.use(protect);
@@ -9,5 +9,7 @@ router.put('/:id/read', markAsRead);
 router.put('/read-all', markAllAsRead);
 router.post('/push-token', savePushToken);
 router.delete('/push-token', removePushToken);
+
+router.post('/test-push', testPush);
 
 module.exports = router;

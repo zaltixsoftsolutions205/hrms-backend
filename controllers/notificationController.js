@@ -53,3 +53,25 @@ exports.removePushToken = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+// Send a test push notification to the current user (for debugging)
+exports.testPush = async (req, res) => {
+  try {
+    const { notify } = require('../services/notificationService');
+    const note = await notify(req.user._id, {
+      title: 'Test Notification 🔔',
+      message: 'Push notifications are working correctly!',
+      type: 'general',
+      link: '',
+    });
+    const user = await User.findById(req.user._id).select('pushTokens').lean();
+    res.json({
+      message: 'Test sent',
+      pushTokensOnFile: user?.pushTokens?.length || 0,
+      notificationId: note?._id,
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
