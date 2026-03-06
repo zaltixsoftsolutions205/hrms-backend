@@ -9,9 +9,9 @@ const ctrl = require('../controllers/recruitmentController');
 
 router.use(protect);
 
-// Allow hr, admin, OR employee ZSSE0023
+// Allow admin only, OR employee ZSSE0023
 const recruitAccess = (req, res, next) => {
-  if (['hr', 'admin'].includes(req.user.role) || req.user.employeeId === 'ZSSE0023') {
+  if (req.user.role === 'admin' || req.user.employeeId === 'ZSSE0023') {
     return next();
   }
   return res.status(403).json({ message: 'Access denied' });
