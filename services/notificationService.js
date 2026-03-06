@@ -37,6 +37,7 @@ const notify = async (recipientId, { title, message, type = 'general', link = ''
   if (!user) return notification;
 
   const hasPushTokens = user.pushTokens && user.pushTokens.length > 0;
+  console.log('[FCM] notify type:', type, '| hasPushTokens:', hasPushTokens, '| recipient:', recipientId);
 
   if (hasPushTokens) {
     const firebaseAdmin = getFirebaseAdmin();
@@ -45,6 +46,7 @@ const notify = async (recipientId, { title, message, type = 'general', link = ''
       const invalidTokens = [];
       const fullLink = link ? `${FRONTEND_URL}${link}` : FRONTEND_URL;
 
+      console.log('[FCM] Sending to', user.pushTokens.length, 'token(s) for user', recipientId);
       await Promise.allSettled(
         user.pushTokens.map(async (token) => {
           try {
@@ -62,7 +64,9 @@ const notify = async (recipientId, { title, message, type = 'general', link = ''
                 fcmOptions: { link: fullLink },
               },
             });
+            console.log('[FCM] Sent successfully to token:', token.substring(0, 20) + '...');
           } catch (err) {
+            console.error('[FCM] Send failed:', err.code, err.message);
             const invalid = [
               'messaging/invalid-registration-token',
               'messaging/registration-token-not-registered',
