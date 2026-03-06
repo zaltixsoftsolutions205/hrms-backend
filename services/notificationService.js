@@ -51,14 +51,13 @@ const notify = async (recipientId, { title, message, type = 'general', link = ''
             await messaging.send({
               token,
               notification: { title, body: message },
+              data: { link: link || '' },
               webpush: {
                 notification: {
-                  title,
-                  body: message,
                   icon: `${FRONTEND_URL}/pwa-192x192.png`,
                   badge: `${FRONTEND_URL}/pwa-192x192.png`,
                   requireInteraction: false,
-                  data: { link },
+                  data: { link: link || '' },
                 },
                 fcmOptions: { link: fullLink },
               },
