@@ -2,7 +2,7 @@ const Deal = require('../models/Deal');
 const Lead = require('../models/Lead');
 const Client = require('../models/Client');
 const User = require('../models/User');
-const Notification = require('../models/Notification');
+const notificationService = require('../services/notificationService');
 
 const ownerFilter = (user) => user.role === 'admin' || user.role === 'hr' ? {} : { assignedTo: user._id };
 
@@ -187,8 +187,7 @@ exports.closeDeal = async (req, res) => {
       );
 
       // Notify sales person
-      await Notification.create({
-        recipient: deal.assignedTo,
+      await notificationService.notify(deal.assignedTo, {
         title: 'Deal Won!',
         message: `${deal.name} closed for ₹${(deal.finalDealAmount || 0).toLocaleString('en-IN')}. Commission: ₹${deal.commission.toLocaleString('en-IN')}.`,
         type: 'crm',

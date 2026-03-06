@@ -2,7 +2,7 @@ const Lead = require('../models/Lead');
 const Client = require('../models/Client');
 const Deal = require('../models/Deal');
 const User = require('../models/User');
-const Notification = require('../models/Notification');
+const notificationService = require('../services/notificationService');
 
 const ownerFilter = (user) => user.role === 'admin' || user.role === 'hr' ? {} : { assignedTo: user._id };
 
@@ -172,12 +172,11 @@ exports.updateLeadStatus = async (req, res) => {
       }
 
       // Notify the sales person
-      await Notification.create({
-        recipient: lead.assignedTo,
+      await notificationService.notify(lead.assignedTo, {
         title: 'Lead Converted!',
         message: `${lead.name} has been converted. Commission earned: ₹${lead.commission.toLocaleString('en-IN')}.`,
         type: 'crm',
-        link: '/crm/clients',
+        link: '/crm',
       });
     }
 

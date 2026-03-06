@@ -87,9 +87,16 @@ const generatePayslipPDF = (payslipData) => {
       /* ════════════════════════════════════════
          HEADER — logo + company info
       ════════════════════════════════════════ */
-      const logoPath = path.join(__dirname, '../../frontend/public/logo.png');
+      // Try multiple locations so logo works in both local dev and production
+      const logoCandidates = [
+        process.env.LOGO_PATH,
+        path.join(__dirname, '../public/logo.png'),             // backend/public/ — production-safe
+        path.join(__dirname, '../../frontend/dist/logo.png'),   // built frontend
+        path.join(__dirname, '../../frontend/public/logo.png'), // local dev
+      ].filter(Boolean);
+      const logoPath = logoCandidates.find(p => fs.existsSync(p)) || null;
       let logoW = 0;
-      if (fs.existsSync(logoPath)) {
+      if (logoPath) {
         try {
           doc.image(logoPath, ML, y + 2, { width: 110, height: 46 });
           logoW = 118;

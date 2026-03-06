@@ -1,7 +1,7 @@
 const Payslip = require('../models/Payslip');
 const User = require('../models/User');
 const Attendance = require('../models/Attendance');
-const Notification = require('../models/Notification');
+const notificationService = require('../services/notificationService');
 const { sendMail } = require('../config/mail');
 const { payslipNotificationTemplate } = require('../utils/emailTemplates');
 const generatePayslipPDF = require('../utils/generatePayslipPDF');
@@ -70,8 +70,7 @@ exports.generatePayslip = async (req, res) => {
     }
 
     // Notification
-    await Notification.create({
-      recipient: employeeId,
+    await notificationService.notify(employeeId, {
       title: 'Payslip Published',
       message: `Your payslip for ${monthNames[month - 1]} ${year} is now available.`,
       type: 'payslip',
@@ -189,6 +188,8 @@ exports.downloadPayslip = async (req, res) => {
     const filename = `Payslip_${fullMonthNames[payslip.month - 1]}_${payslip.year}_${payslip.employee.employeeId}.pdf`;
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    // Expose Content-Disposition so the browser JS can read the filename (required for cross-origin in production)
+    res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
     fs.createReadStream(absolutePath).pipe(res);
   } catch (err) {
     res.status(500).json({ message: err.message });

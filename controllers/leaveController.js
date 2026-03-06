@@ -1,10 +1,10 @@
 const Leave = require('../models/Leave');
 const LeavePolicy = require('../models/LeavePolicy');
-const Notification = require('../models/Notification');
 const { sendMail } = require('../config/mail');
 const { leaveStatusTemplate } = require('../utils/emailTemplates');
 const moment = require('moment');
 const User = require('../models/User');
+const notificationService = require('../services/notificationService');
 
 const getWorkingDays = (fromDate, toDate) => {
   let count = 0;
@@ -44,25 +44,36 @@ const getLeaveBalance = async (userId, year) => {
 
 // Employee: Apply leave
 exports.applyLeave = async (req, res) => {
-  const { type, fromDate, toDate, reason } = req.body;
+  const { type, fromDate, toDate, reason, halfDay, session } = req.body;
   try {
-    const totalDays = getWorkingDays(fromDate, toDate);
-    if (totalDays <= 0) return res.status(400).json({ message: 'Invalid date range' });
+    let totalDays;
+    let actualToDate = toDate;
+    if (halfDay) {
+      totalDays = 0.5;
+      actualToDate = fromDate; // half day is always a single day
+    } else {
+      totalDays = getWorkingDays(fromDate, toDate);
+      if (totalDays <= 0) return res.status(400).json({ message: 'Invalid date range' });
+    }
 
     const leave = await Leave.create({
       employee: req.user._id,
-      type, fromDate: new Date(fromDate), toDate: new Date(toDate), totalDays, reason,
+      type, fromDate: new Date(fromDate), toDate: new Date(actualToDate), totalDays, reason,
+      halfDay: !!halfDay, session: halfDay ? (session || 'morning') : null,
     });
 
     // Notify HR
     const hrUsers = await User.find({ role: { $in: ['hr', 'admin'] } });
-    await Notification.insertMany(hrUsers.map(hr => ({
-      recipient: hr._id,
+    const halfDayLabel = halfDay ? `half-day (${session || 'morning'}) ` : '';
+    const dateLabel = halfDay
+      ? `on ${moment(fromDate).format('DD MMM')}`
+      : `from ${moment(fromDate).format('DD MMM')} to ${moment(toDate).format('DD MMM')}`;
+    await notificationService.notifyMany(hrUsers.map(hr => hr._id), {
       title: 'New Leave Request',
-      message: `${req.user.name} applied for ${type} leave from ${moment(fromDate).format('DD MMM')} to ${moment(toDate).format('DD MMM')}.`,
+      message: `${req.user.name} applied for ${halfDayLabel}${type} leave ${dateLabel}.`,
       type: 'leave',
       link: '/hr/leaves',
-    })));
+    });
 
     const populated = await Leave.findById(leave._id).populate('employee', 'name employeeId');
     res.status(201).json(populated);
@@ -111,8 +122,7 @@ exports.updateLeaveStatus = async (req, res) => {
     await leave.save();
 
     // Notify employee
-    await Notification.create({
-      recipient: leave.employee._id,
+    await notificationService.notify(leave.employee._id, {
       title: `Leave ${status.charAt(0).toUpperCase() + status.slice(1)}`,
       message: `Your ${leave.type} leave request has been ${status}.`,
       type: 'leave',

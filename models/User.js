@@ -30,6 +30,7 @@ const userSchema = new mongoose.Schema(
     uanNumber: { type: String, default: '' },
     resetPasswordToken: { type: String, default: null },
     resetPasswordExpires: { type: Date, default: null },
+    pushTokens: [{ type: String }],
   },
   { timestamps: true }
 );

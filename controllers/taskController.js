@@ -1,5 +1,5 @@
 const Task = require('../models/Task');
-const Notification = require('../models/Notification');
+const notificationService = require('../services/notificationService');
 const User = require('../models/User');
 const moment = require('moment');
 
@@ -11,8 +11,7 @@ exports.createTask = async (req, res) => {
       title, description, assignedTo, assignedBy: req.user._id, priority, deadline: new Date(deadline),
     });
 
-    await Notification.create({
-      recipient: assignedTo,
+    await notificationService.notify(assignedTo, {
       title: 'New Task Assigned',
       message: `You have been assigned: "${title}" (Due: ${moment(deadline).format('DD MMM YYYY')})`,
       type: 'task',
@@ -52,19 +51,32 @@ exports.getMyTasks = async (req, res) => {
 exports.updateTaskStatus = async (req, res) => {
   const { status, remarks } = req.body;
   try {
-    const task = await Task.findById(req.params.id);
+    const task = await Task.findById(req.params.id).populate('assignedTo', 'name').populate('assignedBy', 'name _id role');
     if (!task) return res.status(404).json({ message: 'Task not found' });
-    if (task.assignedTo.toString() !== req.user._id.toString() && !['hr', 'admin'].includes(req.user.role)) {
+    if (task.assignedTo._id.toString() !== req.user._id.toString() && !['hr', 'admin'].includes(req.user.role)) {
       return res.status(403).json({ message: 'Access denied' });
     }
 
+    const prevStatus = task.status;
     task.status = status;
     if (remarks) task.remarks = remarks;
     if (status === 'completed') task.completedDate = new Date();
     await task.save();
 
-    const populated = await Task.findById(task._id).populate('assignedTo', 'name').populate('assignedBy', 'name');
-    res.json(populated);
+    // Notify the assigner (admin/HR) when an employee updates the task status
+    const isEmployeeUpdate = !['hr', 'admin'].includes(req.user.role);
+    if (isEmployeeUpdate && task.assignedBy && prevStatus !== status) {
+      const statusLabel = { 'not-started': 'Not Started', 'in-progress': 'In Progress', 'completed': 'Completed' }[status] || status;
+      const assignerRole = task.assignedBy.role;
+      await notificationService.notify(task.assignedBy._id, {
+        title: 'Task Status Updated',
+        message: `${task.assignedTo.name} updated "${task.title}" → ${statusLabel}${remarks ? `: "${remarks}"` : ''}`,
+        type: 'task',
+        link: assignerRole === 'admin' ? '/admin/tasks' : '/hr/tasks',
+      });
+    }
+
+    res.json(task);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -125,8 +137,7 @@ exports.sendTaskReminder = async (req, res) => {
     if (!task) return res.status(404).json({ message: 'Task not found' });
     if (task.status === 'completed') return res.status(400).json({ message: 'Task is already completed' });
 
-    await Notification.create({
-      recipient: task.assignedTo._id,
+    await notificationService.notify(task.assignedTo._id, {
       title: 'Task Reminder',
       message: `Reminder: "${task.title}" is due on ${moment(task.deadline).format('DD MMM YYYY')}. Please update your progress.`,
       type: 'task',

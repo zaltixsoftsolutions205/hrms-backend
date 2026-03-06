@@ -8,6 +8,8 @@ const leaveSchema = new mongoose.Schema(
     toDate: { type: Date, required: true },
     totalDays: { type: Number, required: true },
     reason: { type: String, required: true },
+    halfDay: { type: Boolean, default: false },
+    session: { type: String, enum: ['morning', 'afternoon'], default: null },
     status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
     approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     approvalDate: { type: Date, default: null },

@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const applicantSchema = new mongoose.Schema({
   jobPosting:  { type: mongoose.Schema.Types.ObjectId, ref: 'JobPosting', required: true },
   name:        { type: String, required: true, trim: true },
+  yearsOfExperience: { type: Number, default: null },
   resumeUrl:   { type: String, default: '' },
   status:      {
     type: String,

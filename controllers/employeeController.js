@@ -1,6 +1,6 @@
 const User = require('../models/User');
 const Department = require('../models/Department');
-const Notification = require('../models/Notification');
+const notificationService = require('../services/notificationService');
 const Document = require('../models/Document');
 const { sendMail } = require('../config/mail');
 const { offerLetterTemplate, credentialsTemplate } = require('../utils/emailTemplates');
@@ -110,11 +110,11 @@ exports.sendCredentials = async (req, res) => {
     employee.isFirstLogin = true;
     await employee.save();
 
-    await Notification.create({
-      recipient: employee._id,
+    await notificationService.notify(employee._id, {
       title: 'Welcome to Zaltix Soft Solutions!',
       message: 'Your login credentials have been sent to your email.',
       type: 'credential',
+      link: '/dashboard',
     });
 
     res.json({ message: 'Credentials sent successfully' });

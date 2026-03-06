@@ -80,7 +80,7 @@ exports.getApplicants = async (req, res) => {
 
 exports.createApplicant = async (req, res) => {
   try {
-    const { jobPosting, name, status } = req.body;
+    const { jobPosting, name, status, yearsOfExperience } = req.body;
     if (!jobPosting || !name) return res.status(400).json({ message: 'Job posting and name required' });
 
     const resumeUrl = req.file ? `uploads/resumes/${req.file.filename}` : '';
@@ -88,6 +88,7 @@ exports.createApplicant = async (req, res) => {
     const applicant = await Applicant.create({
       jobPosting,
       name,
+      yearsOfExperience: yearsOfExperience != null && yearsOfExperience !== '' ? Number(yearsOfExperience) : null,
       resumeUrl,
       status: status || 'interested',
       createdBy: req.user._id,
