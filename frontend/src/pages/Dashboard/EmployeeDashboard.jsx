@@ -6,11 +6,13 @@ import api from '../../utils/api';
 import { KpiCard } from '../../components/UI/Card';
 import Badge from '../../components/UI/Badge';
 import Spinner from '../../components/UI/Spinner';
-import { formatCurrency, getInitials, monthName, formatTime12 } from '../../utils/helpers';
+import { formatCurrency, getInitials, monthName, formatTime12, getUploadUrl } from '../../utils/helpers';
 import { useAttendance } from '../../hooks/useAttendance';
+import { requestPushToken } from '../../utils/firebase';
 import LocationCheckModal from '../../components/UI/LocationCheckModal';
 import AnnouncementWidget from '../../components/UI/AnnouncementWidget';
 import HolidayWidget from '../../components/UI/HolidayWidget';
+import IntelligenceAlerts from '../../components/UI/IntelligenceAlerts';
 
 /* ── tiny inline SVG helper ── */
 const Icon = ({ d, d2, circle, className = 'w-5 h-5' }) => (
@@ -82,6 +84,29 @@ export default function EmployeeDashboard() {
   const [teamDept, setTeamDept]     = useState(null);
   const [showTeam, setShowTeam]     = useState(false);
   const [profileCompletion, setProfileCompletion] = useState(null);
+  const [myScore, setMyScore]       = useState(null);
+
+  const [notifPermission, setNotifPermission] = useState(() =>
+    ('Notification' in window) ? Notification.permission : 'denied'
+  );
+
+  const enableNotifications = async () => {
+    try {
+      const token = await requestPushToken();
+      if (token) {
+        await api.post('/notifications/push-token', { token });
+        localStorage.setItem('fcmToken', token);
+        setNotifPermission('granted');
+        toast.success('Notifications enabled!');
+      } else {
+        setNotifPermission(Notification.permission);
+        toast.error('Could not get push token. Check browser settings.');
+      }
+    } catch (err) {
+      toast.error('Notification setup failed: ' + (err?.message || 'Unknown error'));
+    }
+  };
+
 
   const fetchDashboard = () => {
     const now = new Date();
@@ -98,6 +123,7 @@ export default function EmployeeDashboard() {
     ];
     if (user?.role === 'sales') reqs.push(api.get('/leads').then(r => setCrmStats(r.data.stats)).catch(() => {}));
     Promise.all(reqs).finally(() => setLoading(false));
+    api.get('/automation/my-score').then(r => setMyScore(r.data)).catch(() => {});
     api.get('/employees/team').then(r => {
       setTeam(r.data.team || []);
       setTeamDept(r.data.deptName || null);
@@ -129,6 +155,30 @@ export default function EmployeeDashboard() {
   return (
     <div className="space-y-5 pb-8 px-3 sm:px-4 max-w-7xl mx-auto w-full">
 
+
+      {/* ── Notification Enable Banner ── */}
+      {notifPermission !== 'granted' && 'Notification' in window && (
+        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3">
+          <div className="flex-shrink-0 w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="w-4 h-4 text-amber-700">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-amber-900">Enable Push Notifications</p>
+            <p className="text-xs text-amber-700 mt-0.5">Get notified about payslips, tasks & leaves even when the app is closed.</p>
+          </div>
+          {notifPermission === 'denied' ? (
+            <p className="text-xs text-gray-900 font-medium whitespace-nowrap">Blocked in browser settings</p>
+          ) : (
+            <button onClick={enableNotifications}
+              className="flex-shrink-0 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors">
+              Enable
+            </button>
+          )}
+        </motion.div>
+      )}
       {/* ── Welcome Banner ── */}
       <motion.div 
         initial={{ opacity: 0, y: -8 }} 
@@ -143,7 +193,7 @@ export default function EmployeeDashboard() {
         <div className="relative px-4 pt-4 pb-3 flex items-center gap-3 sm:gap-4">
           <div className="w-12 h-12 sm:w-14 sm:h-14 lg:w-16 lg:h-16 rounded-2xl flex-shrink-0 ring-2 ring-white/20 shadow-inner overflow-hidden">
             {user?.profilePicture ? (
-              <img src={user.profilePicture} alt={user.name} className="w-full h-full object-cover" />
+              <img src={getUploadUrl(user.profilePicture)} alt={user.name} className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full bg-white/20 flex items-center justify-center text-lg sm:text-xl font-bold">
                 {getInitials(user?.name)}
@@ -169,10 +219,10 @@ export default function EmployeeDashboard() {
           {/* status pill */}
           <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold flex-shrink-0 ${
             todayRecord?.checkIn 
-              ? 'bg-green-400/20 text-green-200' 
+              ? 'bg-violet-400/20 text-violet-200' 
               : 'bg-white/10 text-violet-200'
           }`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${todayRecord?.checkIn ? 'bg-green-300 animate-pulse' : 'bg-violet-400'}`} />
+            <span className={`w-1.5 h-1.5 rounded-full ${todayRecord?.checkIn ? 'bg-violet-300 animate-pulse' : 'bg-violet-400'}`} />
             {todayRecord?.checkIn
               ? `Checked in at ${formatTime12(todayRecord.checkIn)}${todayRecord.checkOut ? ` · Out at ${formatTime12(todayRecord.checkOut)}` : ''}`
               : 'Not checked in today'}
@@ -181,10 +231,10 @@ export default function EmployeeDashboard() {
           {/* action buttons - right aligned */}
           <div className="flex items-center gap-2 ml-auto flex-shrink-0">
             {!todayRecord?.checkIn && (
-              <button 
-                onClick={handleCheckIn} 
+              <button
+                onClick={handleCheckIn}
                 disabled={checkLoading}
-                className="px-4 py-1.5 bg-green-500 hover:bg-green-400 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-xs font-bold text-white transition-colors shadow-sm min-w-[70px]"
+                className="px-4 py-1.5 bg-green-500 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-xs font-bold text-white transition-colors shadow-sm min-w-[70px]"
               >
                 {checkLoading ? '...' : 'Check In'}
               </button>
@@ -193,13 +243,13 @@ export default function EmployeeDashboard() {
               <button
                 onClick={handleCheckOut}
                 disabled={checkLoading}
-                className="px-4 py-1.5 bg-red-500 hover:bg-red-400 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-xs font-bold text-white transition-colors shadow-sm min-w-[70px]"
+                className="px-4 py-1.5 bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-xs font-bold text-white transition-colors shadow-sm min-w-[70px]"
               >
                 Check Out
               </button>
             )}
             {todayRecord?.checkIn && todayRecord?.checkOut && (
-              <span className="px-3 py-1.5 bg-green-400/20 text-green-200 rounded-lg text-xs font-semibold flex items-center gap-1">
+              <span className="px-3 py-1.5 bg-violet-400/20 text-violet-200 rounded-lg text-xs font-semibold flex items-center gap-1">
                 <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
                   <path d="M5 13l4 4L19 7" />
                 </svg>
@@ -262,6 +312,67 @@ export default function EmployeeDashboard() {
         ))}
       </div>
 
+      {/* ── My Intelligence Alerts ── */}
+      {(() => {
+        const alerts = [];
+        const now = new Date();
+        if (tasks?.overdue > 0)
+          alerts.push({ level: 'error', message: `You have ${tasks.overdue} overdue task${tasks.overdue > 1 ? 's' : ''}. Update status to protect your performance score.`, link: '/tasks' });
+        if (attendance?.late >= 5)
+          alerts.push({ level: 'error', message: `${attendance.late} late check-ins this month. This is impacting your attendance score.`, link: '/attendance' });
+        else if (attendance?.late >= 3)
+          alerts.push({ level: 'warning', message: `${attendance.late} late check-ins this month. 5 or more will reduce your score.`, link: '/attendance' });
+        const casualLeft = leaves?.balance?.casual?.remaining ?? null;
+        if (casualLeft !== null && casualLeft <= 1)
+          alerts.push({ level: 'warning', message: `Only ${casualLeft} casual leave${casualLeft === 1 ? '' : 's'} remaining this year. Plan accordingly.`, link: '/leaves' });
+        if (profileCompletion && profileCompletion.percentage < 80)
+          alerts.push({ level: 'info', message: `Profile is ${profileCompletion.percentage}% complete. Finish it to unlock payslip downloads.`, link: '/profile' });
+        if (alerts.length === 0) return null;
+        return <IntelligenceAlerts alerts={alerts} />;
+      })()}
+
+      {/* ── Productivity Score Card ── */}
+      {myScore?.scores?.length > 0 && (() => {
+        const latest = myScore.scores[0];
+        const grade = latest.totalScore >= 90 ? { label: 'Excellent', cls: 'text-green-600', bg: 'bg-green-50', bar: 'bg-green-500' }
+          : latest.totalScore >= 75 ? { label: 'Good', cls: 'text-violet-600', bg: 'bg-violet-50', bar: 'bg-violet-600' }
+          : latest.totalScore >= 60 ? { label: 'Average', cls: 'text-amber-600', bg: 'bg-amber-50', bar: 'bg-amber-500' }
+          : { label: 'Needs Improvement', cls: 'text-red-600', bg: 'bg-red-50', bar: 'bg-red-500' };
+        return (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
+            <SectionCard>
+              <SectionHeader title={`📊 Performance Score — ${latest.week}`} />
+              <div className="px-4 py-3 flex flex-wrap items-center gap-4">
+                <div className={`flex-shrink-0 w-16 h-16 rounded-2xl ${grade.bg} flex flex-col items-center justify-center`}>
+                  <span className={`text-2xl font-extrabold leading-none ${grade.cls}`}>{latest.totalScore}</span>
+                  <span className={`text-[10px] font-semibold ${grade.cls}`}>/ 100</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className={`text-sm font-bold ${grade.cls}`}>{grade.label}</span>
+                  </div>
+                  <div className="space-y-1.5">
+                    {[
+                      { label: 'Tasks', val: latest.taskScore, details: `${latest.tasksCompleted}/${latest.tasksTotal} completed` },
+                      { label: 'Attendance', val: latest.attendanceScore, details: `${latest.attendanceDays}/${latest.workingDays} days · ${latest.lateDays} late` },
+                      ...(latest.crmScore != null ? [{ label: 'CRM', val: latest.crmScore, details: `${latest.leadsConverted} converted` }] : []),
+                    ].map(({ label, val, details }) => (
+                      <div key={label} className="flex items-center gap-2">
+                        <span className="text-xs text-gray-500 w-20 flex-shrink-0">{label}: {val}%</span>
+                        <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                          <div className={`h-full rounded-full ${grade.bar}`} style={{ width: `${val}%`, transition: 'width 0.6s ease' }} />
+                        </div>
+                        <span className="text-xs text-gray-400 flex-shrink-0">{details}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </SectionCard>
+          </motion.div>
+        );
+      })()}
+
       {/* ── Quick Actions ── */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}>
         <SectionCard>
@@ -271,9 +382,9 @@ export default function EmployeeDashboard() {
               ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-5' 
               : 'grid-cols-2 sm:grid-cols-4'
           }`}>
-            <QuickLink to="/leaves"     bg="bg-green-50"  text="text-green-700"  icon={IC.clock}    label="Apply Leave" />
+            <QuickLink to="/leaves"     bg="bg-violet-50"  text="text-violet-700"  icon={IC.clock}    label="Apply Leave" />
             <QuickLink to="/attendance" bg="bg-violet-50" text="text-violet-700" icon={IC.calendar} label="Attendance" />
-            <QuickLink to="/tasks"      bg="bg-blue-50"   text="text-blue-700"   icon={IC.task}     label="My Tasks" />
+            <QuickLink to="/tasks"      bg="bg-violet-50"   text="text-violet-700"   icon={IC.task}     label="My Tasks" />
             <QuickLink to="/payslips"   bg="bg-amber-50"  text="text-amber-700"  icon={IC.card}     label="Payslips" />
             {isSales && <QuickLink to="/crm" bg="bg-violet-50" text="text-violet-700" icon={IC.crm} label="CRM" />}
           </div>
@@ -311,7 +422,7 @@ export default function EmployeeDashboard() {
                               />
                             </div>
                             <div className="flex justify-end mt-1">
-                              <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
+                              <span className="text-xs font-bold text-violet-600 bg-violet-50 px-2 py-0.5 rounded-full">
                                 {bal.remaining} remaining
                               </span>
                             </div>
@@ -363,13 +474,13 @@ export default function EmployeeDashboard() {
                   </div>
                   {/* Gross / Deductions */}
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-green-50 rounded-xl p-3">
+                    <div className="bg-violet-50 rounded-xl p-3">
                       <p className="text-xs text-gray-500 mb-1">Gross Salary</p>
-                      <p className="text-sm font-bold text-green-700">{formatCurrency(payslip.grossSalary)}</p>
+                      <p className="text-sm font-bold text-violet-700">{formatCurrency(payslip.grossSalary)}</p>
                     </div>
-                    <div className="bg-red-50 rounded-xl p-3">
+                    <div className="bg-gray-100 rounded-xl p-3">
                       <p className="text-xs text-gray-500 mb-1">Deductions</p>
-                      <p className="text-sm font-bold text-red-600">
+                      <p className="text-sm font-bold text-gray-900">
                         {formatCurrency(payslip.deductions?.reduce((sum, d) => sum + (d.amount || 0), 0) || 0)}
                       </p>
                     </div>

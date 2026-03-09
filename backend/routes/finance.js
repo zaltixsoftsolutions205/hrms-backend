@@ -54,8 +54,9 @@ router.get('/expenses/stats', roleCheck('admin', 'hr'), financeController.getExp
 router.get('/expenses/:id', roleCheck('admin', 'hr'), financeController.getExpenseById);
 router.post('/expenses', roleCheck('hr'), upload.single('receipt'), financeController.createExpense);
 router.put('/expenses/:id', roleCheck('hr'), financeController.updateExpense);
-router.put('/expenses/:id/approve', roleCheck('hr'), financeController.approveExpense);
-router.put('/expenses/:id/reject', roleCheck('hr'), financeController.rejectExpense);
+router.put('/expenses/:id/approve', roleCheck('admin'), financeController.approveExpense);
+router.put('/expenses/:id/reject', roleCheck('admin'), financeController.rejectExpense);
+router.put('/expenses/:id/set-status', roleCheck('admin'), financeController.setExpenseStatus);
 router.delete('/expenses/:id', roleCheck('hr'), financeController.deleteExpense);
 
 // ============ DASHBOARD ROUTES ============

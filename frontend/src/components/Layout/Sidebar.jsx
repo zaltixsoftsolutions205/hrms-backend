@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
@@ -6,10 +7,10 @@ import { getInitials } from '../../utils/helpers';
 const Ic = ({ d, d2, circle, color = 'violet' }) => {
   const colors = {
     violet: 'bg-violet-100 text-violet-600',
-    golden: 'bg-amber-100 text-amber-600',
-    blue:   'bg-blue-100 text-blue-600',
-    green:  'bg-green-100 text-green-600',
-    red:    'bg-red-100 text-red-600',
+    golden: 'bg-golden-100 text-golden-600',
+    blue:   'bg-violet-100 text-violet-600',
+    green:  'bg-golden-100 text-golden-600',
+    red:    'bg-gray-100 text-gray-600',
   };
   return (
     <span className={`inline-flex items-center justify-center w-7 h-7 rounded-lg flex-shrink-0 ${colors[color]}`}>
@@ -49,6 +50,7 @@ const NAV_ICONS = {
   '/admin/my-tasks':        <Ic color="violet"  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />,
   '/admin/recruitment':     <Ic color="blue"    d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />,
   '/admin/holidays':        <Ic color="blue"    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />,
+  '/admin/automation':      <Ic color="violet"  d="M13 10V3L4 14h7v7l9-11h-7z" />,
   '/team':              <Ic color="blue"    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />,
   '/change-password':   <Ic color="red"     d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />,
 };
@@ -83,7 +85,6 @@ const navConfig = {
     { path: '/admin/finance', label: 'Finance' },
     { path: '/admin/announcements', label: 'Announcements' },
     { path: '/admin/holidays', label: 'Holidays' },
-    { path: '/admin/recruitment', label: 'Recruitment' },
     { path: '/profile', label: 'My Profile' },
     { path: '/leaves', label: 'My Leave' },
     { path: '/attendance', label: 'My Attendance' },
@@ -111,7 +112,13 @@ const navConfig = {
 const Sidebar = ({ isOpen, onClose }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const items = navConfig[user?.role] || [];
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  let items = navConfig[user?.role] || [];
+
+  // Grant recruitment access to specific employees
+  if (user?.employeeId === 'ZSSE0023' && !items.some(i => i.path === '/admin/recruitment')) {
+    items = [...items, { path: '/admin/recruitment', label: 'Recruitment' }];
+  }
 
   const handleLogout = () => {
     logout();
@@ -130,14 +137,14 @@ const Sidebar = ({ isOpen, onClose }) => {
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 h-full w-64 bg-violet-50/90 backdrop-blur-xl border-r border-violet-200 z-40 flex flex-col shadow-lg transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:z-auto ${
+        className={`fixed top-0 left-0 h-full w-56 bg-violet-50/90 backdrop-blur-xl border-r border-violet-200 z-40 flex flex-col shadow-lg transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:z-auto ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         {/* Logo */}
-        <div className="px-5 h-16 flex items-center border-b border-violet-200">
+        <div className="px-4 h-14 flex items-center border-b border-violet-200">
           <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="Zaltix Soft Solutions" className="h-10 object-contain" style={{ filter: 'none' }} />
+            <img src="/logo.png" alt="Zaltix Soft Solutions" className="h-8 object-contain" style={{ filter: 'none' }} />
             <p className="text-violet-600 text-xs leading-snug">
               {user?.role === 'admin' ? 'Administrator' : user?.role === 'hr' ? 'HR Manager' : user?.role === 'sales' ? 'Sales CRM' : 'Employee Portal'}
             </p>
@@ -145,7 +152,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         </div>
 
         {/* Nav Items */}
-        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
+        <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
           {items.map((item) => (
             <NavLink key={item.path} to={item.path} onClick={onClose}
               className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
@@ -156,24 +163,50 @@ const Sidebar = ({ isOpen, onClose }) => {
           ))}
         </nav>
 
-        {/* User Info + Logout */}
-        <div className="px-4 py-4 border-t border-violet-200">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-9 h-9 rounded-xl bg-violet-600 ring-2 ring-golden-400/60 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+        {/* User Info + Collapsible Menu */}
+        <div className="border-t border-violet-200">
+          {/* Collapsed actions */}
+          <AnimatePresence>
+            {userMenuOpen && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.18 }}
+                className="overflow-hidden px-4 pt-3 space-y-0.5"
+              >
+                <NavLink to="/change-password" onClick={() => setUserMenuOpen(false)} className="nav-item text-xs">
+                  {NAV_ICONS['/change-password']}
+                  <span>Change Password</span>
+                </NavLink>
+                <button onClick={handleLogout} className="w-full nav-item text-gray-700 hover:text-gray-900 hover:bg-gray-100">
+                  <Ic color="red" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  <span>Logout</span>
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* User row — always visible, arrow toggles menu */}
+          <button
+            onClick={() => setUserMenuOpen(v => !v)}
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 hover:bg-violet-100/60 transition-colors"
+          >
+            <div className="w-8 h-8 rounded-lg bg-violet-600 ring-2 ring-violet-300/50 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
               {getInitials(user?.name)}
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1 text-left">
               <p className="text-violet-900 text-sm font-semibold truncate">{user?.name}</p>
-              <p className="text-violet-500 text-xs truncate">{user?.employeeId}</p>
+              <p className="text-violet-400 text-xs truncate">{user?.employeeId}</p>
             </div>
-          </div>
-          <NavLink to="/change-password" className="nav-item text-xs mb-1">
-            {NAV_ICONS['/change-password']}
-            <span>Change Password</span>
-          </NavLink>
-          <button onClick={handleLogout} className="w-full nav-item text-red-600 hover:text-red-700 hover:bg-red-50">
-            <Ic color="red" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            <span>Logout</span>
+            <motion.svg
+              animate={{ rotate: userMenuOpen ? 180 : 0 }}
+              transition={{ duration: 0.2 }}
+              className="w-4 h-4 text-violet-400 flex-shrink-0"
+              fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+            </motion.svg>
           </button>
         </div>
       </aside>

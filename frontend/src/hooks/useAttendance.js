@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
 
@@ -41,22 +41,20 @@ const GPS_ERRORS = {
 export const useAttendance = (onRefresh) => {
   const [loading, setLoading]           = useState(false);
   const [locationModal, setLocationModal] = useState(null);
-  const officeRef = useRef(null);
 
-  // Fetch office coordinates once
-  useEffect(() => {
-    api.get('/attendance/office-info')
-      .then(r => { officeRef.current = r.data; })
-      .catch(() => {});
-  }, []);
-
+  // Fetch GPS + office-info in parallel every time the modal opens.
+  // This avoids a race condition in production where the cached office-info ref
+  // may not yet be populated by the time the user clicks Check In.
   const _openModal = useCallback(async (type) => {
     setLoading(true);
     try {
-      const pos = await getGPS();
+      const [pos, officeRes] = await Promise.all([
+        getGPS(),
+        api.get('/attendance/office-info').catch(() => ({ data: null })),
+      ]);
       const userLat = pos.coords.latitude;
       const userLng = pos.coords.longitude;
-      const office  = officeRef.current;
+      const office  = officeRes.data;
       const distance = office?.enabled
         ? haversine(userLat, userLng, office.lat, office.lng)
         : null;

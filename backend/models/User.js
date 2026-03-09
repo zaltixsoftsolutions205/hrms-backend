@@ -25,8 +25,12 @@ const userSchema = new mongoose.Schema(
     emergencyContact: { name: String, phone: String, relation: String },
     joiningLetter: { type: String, default: '' },
     idCard: { type: String, default: '' },
+    accountNumber: { type: String, default: '' },
+    ifscCode: { type: String, default: '' },
+    uanNumber: { type: String, default: '' },
     resetPasswordToken: { type: String, default: null },
     resetPasswordExpires: { type: Date, default: null },
+    pushTokens: [{ type: String }],
   },
   { timestamps: true }
 );

@@ -21,9 +21,9 @@ import Modal from '../../components/UI/Modal';
 
 const STATUS_CONFIG = {
   draft:    { label: 'Draft',    bg: 'bg-gray-100',   text: 'text-gray-600' },
-  sent:     { label: 'Sent',     bg: 'bg-blue-100',   text: 'text-blue-700' },
-  accepted: { label: 'Accepted', bg: 'bg-green-100',  text: 'text-green-700' },
-  rejected: { label: 'Rejected', bg: 'bg-red-100',    text: 'text-red-700' },
+  sent:     { label: 'Sent',     bg: 'bg-violet-100',   text: 'text-violet-700' },
+  accepted: { label: 'Accepted', bg: 'bg-violet-100',  text: 'text-violet-700' },
+  rejected: { label: 'Rejected', bg: 'bg-gray-100',    text: 'text-gray-900' },
   expired:  { label: 'Expired',  bg: 'bg-amber-100',  text: 'text-amber-700' },
 };
 
@@ -148,7 +148,7 @@ const QuotationsTab = ({ leads = [] }) => {
       <AnimatePresence>
         {showForm && (
           <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-            className="glass-card p-5">
+            className="glass-card p-4">
             <h3 className="font-bold text-violet-900 mb-4">New Quotation</h3>
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Client Info */}
@@ -217,7 +217,7 @@ const QuotationsTab = ({ leads = [] }) => {
                       </span>
                       {form.items.length > 1 && (
                         <button type="button" onClick={() => removeItem(idx)}
-                          className="col-span-1 text-red-400 hover:text-red-600 text-xs font-bold text-center">✕</button>
+                          className="col-span-1 text-gray-900 hover:text-gray-900 text-xs font-bold text-center">✕</button>
                       )}
                     </div>
                   ))}
@@ -239,7 +239,7 @@ const QuotationsTab = ({ leads = [] }) => {
                 <div className="bg-violet-50 rounded-xl p-3 border border-violet-100">
                   <div className="text-xs text-gray-500 space-y-0.5">
                     <div className="flex justify-between"><span>Subtotal</span><span>{formatCurrency(subtotal)}</span></div>
-                    {discAmt > 0 && <div className="flex justify-between text-green-600"><span>Discount</span><span>-{formatCurrency(discAmt)}</span></div>}
+                    {discAmt > 0 && <div className="flex justify-between text-violet-600"><span>Discount</span><span>-{formatCurrency(discAmt)}</span></div>}
                     <div className="flex justify-between"><span>Tax ({form.taxPercent}%)</span><span>{formatCurrency(taxAmt)}</span></div>
                   </div>
                   <div className="flex justify-between font-bold text-violet-900 mt-1 pt-1 border-t border-violet-200">
@@ -294,7 +294,7 @@ const QuotationsTab = ({ leads = [] }) => {
                     <p className="font-bold text-violet-900">{formatCurrency(q.total)}</p>
                     <p className="text-xs text-gray-400">{formatDate(q.createdAt)}</p>
                     {q.validUntil && (
-                      <p className={`text-[10px] ${new Date(q.validUntil) < new Date() ? 'text-red-400' : 'text-gray-400'}`}>
+                      <p className={`text-[10px] ${new Date(q.validUntil) < new Date() ? 'text-gray-900' : 'text-gray-400'}`}>
                         Valid till {formatDate(q.validUntil)}
                       </p>
                     )}
@@ -345,7 +345,7 @@ const QuotationsTab = ({ leads = [] }) => {
               </div>
               <div className="mt-2 text-sm space-y-1 text-right pr-1">
                 <div className="flex justify-end gap-8 text-gray-500"><span>Subtotal</span><span>{formatCurrency(selected.subtotal)}</span></div>
-                {selected.discountAmount > 0 && <div className="flex justify-end gap-8 text-green-600"><span>Discount ({selected.discountPercent}%)</span><span>-{formatCurrency(selected.discountAmount)}</span></div>}
+                {selected.discountAmount > 0 && <div className="flex justify-end gap-8 text-violet-600"><span>Discount ({selected.discountPercent}%)</span><span>-{formatCurrency(selected.discountAmount)}</span></div>}
                 <div className="flex justify-end gap-8 text-gray-500"><span>Tax ({selected.taxPercent}%)</span><span>{formatCurrency(selected.taxAmount)}</span></div>
                 <div className="flex justify-end gap-8 font-bold text-violet-900 text-base"><span>Total</span><span>{formatCurrency(selected.total)}</span></div>
               </div>
@@ -382,7 +382,7 @@ const QuotationsTab = ({ leads = [] }) => {
                 ↓ Download PDF
               </button>
               <button onClick={() => handleDelete(selected._id)}
-                className="btn-sm border border-red-200 text-red-500 hover:bg-red-50 rounded-lg px-3 py-1 text-xs font-semibold">
+                className="btn-sm border border-gray-200 text-gray-900 hover:bg-gray-100 rounded-lg px-3 py-1 text-xs font-semibold">
                 Delete
               </button>
             </div>

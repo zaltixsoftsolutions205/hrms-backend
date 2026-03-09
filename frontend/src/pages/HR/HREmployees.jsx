@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import api from '../../utils/api';
 import Modal from '../../components/UI/Modal';
 import { formatDate, getInitials, formatCurrency } from '../../utils/helpers';
+import IntelligenceAlerts from '../../components/UI/IntelligenceAlerts';
 
 /* ── small inline svg ── */
 const Ico = ({ d, d2, className = 'w-4 h-4' }) => (
@@ -12,9 +13,9 @@ const Ico = ({ d, d2, className = 'w-4 h-4' }) => (
   </svg>
 );
 
-const ROLE_COLORS = { employee: 'bg-blue-100 text-blue-700', sales: 'bg-amber-100 text-amber-700', hr: 'bg-violet-100 text-violet-700', admin: 'bg-red-100 text-red-700' };
-const TYPE_COLORS = { fresher: 'bg-sky-100 text-sky-700', experienced: 'bg-purple-100 text-purple-700' };
-const DOC_STATUS  = { pending_upload: 'bg-gray-100 text-gray-600', uploaded: 'bg-blue-100 text-blue-700', approved: 'bg-green-100 text-green-700', rejected: 'bg-red-100 text-red-700' };
+const ROLE_COLORS = { employee: 'bg-violet-100 text-violet-700', sales: 'bg-amber-100 text-amber-700', hr: 'bg-violet-100 text-violet-700', admin: 'bg-gray-100 text-gray-900' };
+const TYPE_COLORS = { fresher: 'bg-violet-100 text-violet-700', experienced: 'bg-violet-100 text-violet-700' };
+const DOC_STATUS  = { pending_upload: 'bg-gray-100 text-gray-600', uploaded: 'bg-violet-100 text-violet-700', approved: 'bg-violet-100 text-violet-700', rejected: 'bg-gray-100 text-gray-900' };
 const DOC_LABEL   = { pending_upload: 'Pending Upload', uploaded: 'Uploaded', approved: 'Approved', rejected: 'Rejected' };
 
 const Chip = ({ label, colorCls }) => (
@@ -84,8 +85,30 @@ export default function HREmployees() {
     e.email.toLowerCase().includes(search.toLowerCase())
   );
 
+  // Derive alerts from already-fetched employee list
+  const employeeAlerts = (() => {
+    if (!employees.length) return [];
+    const alerts = [];
+    const docsAwaitingReview = employees.filter(e => e.employeeType && e.documentCompletion?.pending > 0);
+    const noSalary = employees.filter(e => !e.basicSalary || e.basicSalary === 0);
+    const noDept = employees.filter(e => !e.department);
+    const noDesignation = employees.filter(e => !e.designation);
+    if (docsAwaitingReview.length > 0)
+      alerts.push({ level: 'warning', message: `${docsAwaitingReview.length} employee${docsAwaitingReview.length > 1 ? 's have' : ' has'} documents uploaded and awaiting your review. Click "Review Docs" to approve.` });
+    if (noSalary.length > 0)
+      alerts.push({ level: 'warning', message: `${noSalary.length} employee${noSalary.length > 1 ? 's have' : ' has'} no salary set — payslip generation will be incomplete.` });
+    if (noDept.length > 0)
+      alerts.push({ level: 'info', message: `${noDept.length} employee${noDept.length > 1 ? 's are' : ' is'} not assigned to any department.` });
+    if (noDesignation.length > 0)
+      alerts.push({ level: 'info', message: `${noDesignation.length} employee${noDesignation.length > 1 ? 's have' : ' has'} no designation set. Update their profile for accurate records.` });
+    return alerts;
+  })();
+
   return (
     <div className="max-w-7xl mx-auto px-3 sm:px-4 space-y-4 animate-fade-in">
+      {/* ── Intelligence Alerts ── */}
+      <IntelligenceAlerts alerts={employeeAlerts} />
+
       {/* ── Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
@@ -164,13 +187,13 @@ export default function HREmployees() {
                   <button onClick={() => openEdit(emp)}
                     className="col-span-1 text-xs py-2 rounded-xl bg-amber-50 text-amber-700 hover:bg-amber-100 font-semibold transition-colors">Edit</button>
                   <button onClick={() => openAttach(emp)}
-                    className="col-span-1 text-xs py-2 rounded-xl bg-green-50 text-green-700 hover:bg-green-100 font-semibold transition-colors">Attach</button>
+                    className="col-span-1 text-xs py-2 rounded-xl bg-violet-50 text-violet-700 hover:bg-violet-100 font-semibold transition-colors">Attach</button>
                   {emp.employeeType && (
                     <button onClick={() => openDocs(emp)}
-                      className="col-span-1 text-xs py-2 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 font-semibold transition-colors">Review Docs</button>
+                      className="col-span-1 text-xs py-2 rounded-xl bg-violet-50 text-violet-700 hover:bg-violet-100 font-semibold transition-colors">Review Docs</button>
                   )}
                   <button onClick={() => handleDelete(emp)}
-                    className={`${emp.employeeType ? 'col-span-1' : 'col-span-2'} text-xs py-2 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 font-semibold transition-colors`}>Delete</button>
+                    className={`${emp.employeeType ? 'col-span-1' : 'col-span-2'} text-xs py-2 rounded-xl bg-gray-100 text-gray-900 hover:bg-gray-100 font-semibold transition-colors`}>Delete</button>
                 </div>
               </div>
             ))}
@@ -238,12 +261,12 @@ export default function HREmployees() {
                           </button>
                           {emp.employeeType && (
                             <button onClick={() => openDocs(emp)} title="Review documents"
-                              className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors">
+                              className="p-1.5 rounded-lg text-violet-600 hover:bg-violet-50 transition-colors">
                               <Ico d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </button>
                           )}
                           <button onClick={() => openAttach(emp)} title="Attach joining letter / ID card"
-                            className="p-1.5 rounded-lg text-green-600 hover:bg-green-50 transition-colors">
+                            className="p-1.5 rounded-lg text-violet-600 hover:bg-violet-50 transition-colors">
                             <Ico d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                           </button>
                           <button onClick={() => openEdit(emp)} title="Edit employee"
@@ -251,7 +274,7 @@ export default function HREmployees() {
                             <Ico d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                           </button>
                           <button onClick={() => handleDelete(emp)} title="Delete employee"
-                            className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 transition-colors">
+                            className="p-1.5 rounded-lg text-gray-900 hover:bg-gray-100 transition-colors">
                             <Ico d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                           </button>
                         </div>
@@ -300,7 +323,7 @@ export default function HREmployees() {
             </SelectField>
             {form.employeeType && (
               <p className="mt-1.5 text-xs text-violet-500 flex items-start gap-1">
-                <span className="text-blue-400">ℹ</span>
+                <span className="text-violet-400">ℹ</span>
                 Required documents auto-created. Employee must upload &amp; get approved before downloading payslips.
               </p>
             )}
@@ -453,7 +476,7 @@ function AttachDocsPanel({ emp, onDone }) {
         <div key={key} className="border border-violet-100 rounded-xl p-3 bg-violet-50/40">
           <p className="text-sm font-semibold text-violet-900 mb-1">{label}</p>
           {existing && (
-            <p className="text-[11px] text-green-600 font-medium mb-2 flex items-center gap-1">
+            <p className="text-[11px] text-violet-600 font-medium mb-2 flex items-center gap-1">
               <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M9 12l2 2 4-4" /><circle cx={12} cy={12} r={10} /></svg>
               Already attached — uploading will replace it
             </p>
@@ -545,9 +568,9 @@ function DocumentReviewPanel({ emp }) {
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           <div className="w-24 bg-violet-200 rounded-full h-2">
-            <div className="bg-green-500 h-2 rounded-full transition-all" style={{ width: `${pct}%` }} />
+            <div className="bg-violet-500 h-2 rounded-full transition-all" style={{ width: `${pct}%` }} />
           </div>
-          <span className="text-xs font-bold text-green-600">{pct}%</span>
+          <span className="text-xs font-bold text-violet-600">{pct}%</span>
         </div>
       </div>
 
@@ -567,7 +590,7 @@ function DocumentReviewPanel({ emp }) {
                   )}
                 </div>
                 {doc.status === 'rejected' && doc.rejectionReason && (
-                  <p className="text-xs text-red-500 mt-1">Reason: {doc.rejectionReason}</p>
+                  <p className="text-xs text-gray-900 mt-1">Reason: {doc.rejectionReason}</p>
                 )}
               </div>
               <div className="flex flex-wrap items-center gap-1.5 flex-shrink-0">
@@ -584,25 +607,25 @@ function DocumentReviewPanel({ emp }) {
                 {doc._id && doc.status === 'uploaded' && (
                   <>
                     <button onClick={() => handleReview(doc._id, 'approved')} disabled={reviewing === doc._id}
-                      className="px-2.5 py-1 text-xs rounded-lg bg-green-100 text-green-700 hover:bg-green-200 font-semibold disabled:opacity-50">
+                      className="px-2.5 py-1 text-xs rounded-lg bg-violet-100 text-violet-700 hover:bg-violet-200 font-semibold disabled:opacity-50">
                       {reviewing === doc._id ? '…' : 'Approve'}
                     </button>
                     {showReject === doc._id ? (
                       <div className="flex items-center gap-1">
                         <input className="border border-violet-200 rounded-lg px-2 py-1 text-xs w-28 focus:outline-none focus:ring-1 focus:ring-violet-300"
                           placeholder="Reason…" value={rejectReason} onChange={e => setRejectReason(e.target.value)} />
-                        <button onClick={() => handleReview(doc._id, 'rejected')} className="px-2 py-1 text-xs rounded-lg bg-red-100 text-red-700 hover:bg-red-200 font-semibold">OK</button>
+                        <button onClick={() => handleReview(doc._id, 'rejected')} className="px-2 py-1 text-xs rounded-lg bg-gray-100 text-gray-900 hover:bg-gray-200 font-semibold">OK</button>
                         <button onClick={() => setShowReject(null)} className="text-violet-400 hover:text-violet-600 text-xs px-1">✕</button>
                       </div>
                     ) : (
                       <button onClick={() => { setShowReject(doc._id); setRejectReason(''); }}
-                        className="px-2.5 py-1 text-xs rounded-lg bg-red-50 text-red-600 hover:bg-red-100 font-semibold">Reject</button>
+                        className="px-2.5 py-1 text-xs rounded-lg bg-gray-100 text-gray-900 hover:bg-gray-100 font-semibold">Reject</button>
                     )}
                   </>
                 )}
                 {doc._id && doc.status === 'approved' && (
                   <button onClick={() => handleReview(doc._id, 'rejected')} disabled={reviewing === doc._id}
-                    className="px-2.5 py-1 text-xs rounded-lg bg-red-50 text-red-400 hover:bg-red-100 font-semibold disabled:opacity-50">Revoke</button>
+                    className="px-2.5 py-1 text-xs rounded-lg bg-gray-100 text-gray-900 hover:bg-gray-100 font-semibold disabled:opacity-50">Revoke</button>
                 )}
               </div>
             </div>

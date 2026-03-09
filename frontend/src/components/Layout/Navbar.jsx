@@ -15,11 +15,18 @@ const Navbar = ({ onMenuToggle, pageTitle }) => {
   const location = useLocation();
   const showBack = !DASHBOARD_PATHS.includes(location.pathname);
 
+  const setBadge = (count) => {
+    if ('setAppBadge' in navigator) {
+      count > 0 ? navigator.setAppBadge(count) : navigator.clearAppBadge();
+    }
+  };
+
   const fetchNotifications = async () => {
     try {
       const { data } = await api.get('/notifications');
       setNotifications(data.notifications);
       setUnreadCount(data.unreadCount);
+      setBadge(data.unreadCount);
     } catch {}
   };
 
@@ -40,6 +47,7 @@ const Navbar = ({ onMenuToggle, pageTitle }) => {
       await api.put('/notifications/read-all');
       setUnreadCount(0);
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+      setBadge(0);
     } catch {}
   };
 
@@ -47,12 +55,16 @@ const Navbar = ({ onMenuToggle, pageTitle }) => {
     try {
       await api.put(`/notifications/${id}/read`);
       setNotifications(prev => prev.map(n => n._id === id ? { ...n, isRead: true } : n));
-      setUnreadCount(prev => Math.max(0, prev - 1));
+      setUnreadCount(prev => {
+        const next = Math.max(0, prev - 1);
+        setBadge(next);
+        return next;
+      });
     } catch {}
   };
 
   return (
-    <header className="sticky top-0 z-20 bg-white/90 backdrop-blur-md border-b border-violet-200 px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3">
+    <header className="sticky top-0 z-20 bg-white/90 backdrop-blur-md border-b border-violet-200 px-3 sm:px-4 lg:px-6 h-14 flex items-center justify-between gap-3">
       {/* Left */}
       <div className="flex items-center gap-2 sm:gap-3 min-w-0">
         <button onClick={onMenuToggle} className="lg:hidden w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-lg hover:bg-violet-100 text-violet-600 transition-colors">
@@ -97,7 +109,7 @@ const Navbar = ({ onMenuToggle, pageTitle }) => {
             {showNotif && (
               <motion.div initial={{ opacity: 0, y: 8, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8, scale: 0.95 }}
                 transition={{ duration: 0.15 }}
-                className="absolute right-0 top-11 w-80 bg-white rounded-2xl shadow-xl border border-violet-100 overflow-hidden z-50">
+                className="absolute right-0 top-10 w-72 sm:w-80 bg-white rounded-xl shadow-xl border border-violet-100 overflow-hidden z-50">
                 <div className="flex items-center justify-between px-4 py-3 border-b border-violet-100">
                   <h3 className="font-semibold text-violet-900 text-sm">Notifications</h3>
                   {unreadCount > 0 && (

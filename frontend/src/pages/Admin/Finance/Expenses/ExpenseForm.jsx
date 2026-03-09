@@ -5,8 +5,7 @@ import api from '../../../../utils/api';
 const ExpenseForm = ({ onSuccess, onClose }) => {
   const [form, setForm] = useState({
     category: 'operational',
-    customCategory: '',
-    amount: 0,
+    amount: '',
     date: new Date().toISOString().split('T')[0],
     description: '',
     notes: '',
@@ -14,24 +13,19 @@ const ExpenseForm = ({ onSuccess, onClose }) => {
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const categories = ['salary', 'commission', 'rent', 'software', 'marketing', 'operational', 'custom'];
+  const categories = ['salary', 'commission', 'rent', 'software', 'marketing', 'operational', 'miscellaneous'];
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.category || !form.amount || !form.date || !form.description) {
+    if (!form.category || !form.amount || parseFloat(form.amount) <= 0 || !form.date || !form.description) {
       return toast.error('Category, amount, date, and description are required');
-    }
-
-    if (form.category === 'custom' && !form.customCategory) {
-      return toast.error('Custom category name is required');
     }
 
     setLoading(true);
     try {
       const formData = new FormData();
       formData.append('category', form.category);
-      formData.append('customCategory', form.customCategory);
-      formData.append('amount', form.amount);
+      formData.append('amount', parseFloat(form.amount));
       formData.append('date', form.date);
       formData.append('description', form.description);
       formData.append('notes', form.notes);
@@ -70,28 +64,18 @@ const ExpenseForm = ({ onSuccess, onClose }) => {
         </select>
       </div>
 
-      {form.category === 'custom' && (
-        <div>
-          <label className="input-label">Custom Category Name *</label>
-          <input
-            type="text"
-            className="input-field"
-            value={form.customCategory}
-            onChange={(e) => setForm((f) => ({ ...f, customCategory: e.target.value }))}
-            placeholder="e.g., Office Supplies"
-            required
-          />
-        </div>
-      )}
-
       <div>
         <label className="input-label">Amount (₹) *</label>
         <input
-          type="number"
+          type="text"
+          inputMode="decimal"
           className="input-field"
           value={form.amount}
-          onChange={(e) => setForm((f) => ({ ...f, amount: parseFloat(e.target.value) || 0 }))}
-          placeholder="0"
+          onChange={(e) => {
+            const v = e.target.value;
+            if (v === '' || /^\d*\.?\d*$/.test(v)) setForm((f) => ({ ...f, amount: v }));
+          }}
+          placeholder="Enter amount"
           required
         />
       </div>
@@ -128,7 +112,7 @@ const ExpenseForm = ({ onSuccess, onClose }) => {
           accept=".jpg,.jpeg,.png,.pdf"
         />
         <p className="text-xs text-gray-500 mt-1">Allowed: JPG, PNG, PDF (Max 5MB)</p>
-        {file && <p className="text-xs text-green-600 mt-1">✓ {file.name}</p>}
+        {file && <p className="text-xs text-violet-600 mt-1">✓ {file.name}</p>}
       </div>
 
       <div>

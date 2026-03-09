@@ -60,7 +60,7 @@ const AdminPolicies = () => {
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {policies.map(p => (
-            <motion.div key={p._id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-5">
+            <motion.div key={p._id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-4">
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <h3 className="font-bold text-violet-900">{p.name}</h3>
@@ -71,7 +71,7 @@ const AdminPolicies = () => {
               <div className="space-y-2 mt-3">
                 {[
                   { label: 'Casual Leave', value: p.casualLeaves, color: 'bg-violet-100 text-violet-700' },
-                  { label: 'Sick Leave', value: p.sickLeaves, color: 'bg-blue-100 text-blue-700' },
+                  { label: 'Sick Leave', value: p.sickLeaves, color: 'bg-violet-100 text-violet-700' },
                   { label: 'Other Leave', value: p.otherLeaves, color: 'bg-golden-100 text-golden-700' },
                 ].map(item => (
                   <div key={item.label} className="flex justify-between items-center">

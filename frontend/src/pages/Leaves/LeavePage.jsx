@@ -7,6 +7,7 @@ import Modal from '../../components/UI/Modal';
 import Badge from '../../components/UI/Badge';
 import EmptyState from '../../components/UI/EmptyState';
 import { formatDate, capitalize } from '../../utils/helpers';
+import IntelligenceAlerts from '../../components/UI/IntelligenceAlerts';
 
 const SI = ({ d, d2, size = 16, color }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className={color || ''}>
@@ -19,7 +20,7 @@ const MONTH_NAMES = ['January','February','March','April','May','June','July','A
 
 const TYPE_STYLE = {
   casual: 'bg-violet-100 text-violet-700 font-semibold',
-  sick:   'bg-red-100 text-red-600 font-semibold',
+  sick:   'bg-gray-100 text-gray-900 font-semibold',
   other:  'bg-amber-100 text-amber-700 font-semibold',
   lop:    'bg-gray-200 text-gray-700 font-semibold',
 };
@@ -30,6 +31,8 @@ const TYPE_LABEL = {
   other:  'Other',
   lop:    'Loss of Pay',
 };
+
+const SESSION_LABEL = { morning: 'Morning', afternoon: 'Afternoon' };
 
 const STATUS_OPACITY = {
   approved: '',
@@ -79,7 +82,7 @@ const LeaveCalendar = ({ leaves, calMonth, calYear, onPrev, onNext }) => {
       <div className="flex flex-wrap gap-2 sm:gap-3 mb-4">
         {[
           { label: 'Casual',       cls: 'bg-violet-100 text-violet-700' },
-          { label: 'Sick',         cls: 'bg-red-100 text-red-600' },
+          { label: 'Sick',         cls: 'bg-gray-100 text-gray-900' },
           { label: 'Other',        cls: 'bg-amber-100 text-amber-700' },
           { label: 'Loss of Pay',  cls: 'bg-gray-200 text-gray-700' },
         ].map(l => (
@@ -128,7 +131,7 @@ const LeaveCalendar = ({ leaves, calMonth, calYear, onPrev, onNext }) => {
 const LeavePage = () => {
   const [data, setData] = useState({ leaves: [], balance: {} });
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({ type: 'casual', fromDate: '', toDate: '', reason: '' });
+  const [form, setForm] = useState({ type: 'casual', fromDate: '', toDate: '', reason: '', halfDay: false, session: 'morning' });
   const [loading, setLoading] = useState(false);
 
   const now = new Date();
@@ -159,21 +162,40 @@ const LeavePage = () => {
       await api.post('/leaves', form);
       toast.success('Leave request submitted!');
       setShowModal(false);
-      setForm({ type: 'casual', fromDate: '', toDate: '', reason: '' });
+      setForm({ type: 'casual', fromDate: '', toDate: '', reason: '', halfDay: false, session: 'morning' });
       fetch();
     } catch (err) { toast.error(err.response?.data?.message || 'Failed to submit'); }
     finally { setLoading(false); }
   };
 
+  // Derive leave intelligence from existing balance data
+  const leaveAlerts = (() => {
+    if (!data.balance || !Object.keys(data.balance).length) return [];
+    const alerts = [];
+    const casual = data.balance.casual;
+    const sick   = data.balance.sick;
+    if (casual && casual.remaining === 0)
+      alerts.push({ level: 'error', message: `You have no casual leaves remaining. Any further absence will be Loss of Pay (LOP).` });
+    else if (casual && casual.remaining <= 1)
+      alerts.push({ level: 'warning', message: `Only ${casual.remaining} casual leave remaining for this year. Use it wisely.` });
+    if (sick && sick.remaining === 0)
+      alerts.push({ level: 'warning', message: `No sick leaves remaining. Future sick leave will be deducted from casual balance.` });
+    const pending = data.leaves?.filter(l => l.status === 'pending').length ?? 0;
+    if (pending > 0)
+      alerts.push({ level: 'info', message: `${pending} leave request${pending > 1 ? 's are' : ' is'} pending approval.` });
+    return alerts;
+  })();
+
   return (
-    <div className="max-w-6xl mx-auto px-3 sm:px-4 space-y-6 animate-fade-in">
+    <div className="max-w-6xl mx-auto px-3 sm:px-4 space-y-4 animate-fade-in">
+      <IntelligenceAlerts alerts={leaveAlerts} />
       {/* Leave Balance */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {Object.entries(data.balance).map(([type, bal]) => {
           const isLOP = type === 'lop';
           return (
             <motion.div key={type} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-              className={`glass-card p-5 ${isLOP ? 'border-l-4 border-l-gray-400' : ''}`}>
+              className={`glass-card p-4 ${isLOP ? 'border-l-4 border-l-gray-400' : ''}`}>
               <p className="kpi-label">{TYPE_LABEL[type] || type} Leave</p>
               <div className="flex items-end justify-between mt-1">
                 <p className={`text-xl sm:text-2xl font-bold ${isLOP ? 'text-gray-700' : 'text-violet-900'}`}>
@@ -190,7 +212,7 @@ const LeavePage = () => {
                     className="h-full bg-violet-600 rounded-full" />
                 </div>
               )}
-              <p className={`text-xs font-medium mt-1 ${isLOP ? 'text-gray-500' : 'text-green-600'}`}>
+              <p className={`text-xs font-medium mt-1 ${isLOP ? 'text-gray-500' : 'text-violet-600'}`}>
                 {isLOP ? 'Salary deducted' : `${bal.remaining} remaining`}
               </p>
             </motion.div>
@@ -240,6 +262,7 @@ const LeavePage = () => {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <span className="font-semibold text-violet-900 text-sm">{TYPE_LABEL[leave.type] || leave.type} Leave</span>
+                          {leave.halfDay && <span className="badge badge-yellow">½ Day · {SESSION_LABEL[leave.session] || leave.session}</span>}
                           <Badge status={leave.status} />
                         </div>
                         <p className="text-xs sm:text-sm text-violet-600">{formatDate(leave.fromDate)} → {formatDate(leave.toDate)}
@@ -277,17 +300,34 @@ const LeavePage = () => {
               </p>
             )}
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          {/* Half Day toggle */}
+          <div className="flex items-center gap-3 p-3 bg-violet-50 rounded-lg border border-violet-100">
+            <label className="flex items-center gap-2 cursor-pointer select-none flex-1">
+              <input type="checkbox" className="w-4 h-4 rounded accent-violet-600" checked={form.halfDay}
+                onChange={e => setForm(f => ({ ...f, halfDay: e.target.checked, toDate: e.target.checked ? f.fromDate : f.toDate }))} />
+              <span className="text-sm font-semibold text-violet-800">Half Day</span>
+            </label>
+            {form.halfDay && (
+              <select className="input-field w-auto text-xs py-1" value={form.session}
+                onChange={e => setForm(f => ({ ...f, session: e.target.value }))}>
+                <option value="morning">Morning</option>
+                <option value="afternoon">Afternoon</option>
+              </select>
+            )}
+          </div>
+          <div className={form.halfDay ? '' : 'grid grid-cols-2 gap-3'}>
             <div>
-              <label className="input-label">From Date</label>
+              <label className="input-label">{form.halfDay ? 'Date' : 'From Date'}</label>
               <input type="date" className="input-field" required value={form.fromDate}
-                onChange={e => setForm(f => ({ ...f, fromDate: e.target.value }))} min={new Date().toISOString().split('T')[0]} />
+                onChange={e => setForm(f => ({ ...f, fromDate: e.target.value, toDate: f.halfDay ? e.target.value : f.toDate }))} min={new Date().toISOString().split('T')[0]} />
             </div>
-            <div>
-              <label className="input-label">To Date</label>
-              <input type="date" className="input-field" required value={form.toDate}
-                onChange={e => setForm(f => ({ ...f, toDate: e.target.value }))} min={form.fromDate || new Date().toISOString().split('T')[0]} />
-            </div>
+            {!form.halfDay && (
+              <div>
+                <label className="input-label">To Date</label>
+                <input type="date" className="input-field" required value={form.toDate}
+                  onChange={e => setForm(f => ({ ...f, toDate: e.target.value }))} min={form.fromDate || new Date().toISOString().split('T')[0]} />
+              </div>
+            )}
           </div>
           <div>
             <label className="input-label">Reason</label>

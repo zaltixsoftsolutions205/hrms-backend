@@ -57,18 +57,18 @@ const AdminReports = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-5 animate-fade-in">
+    <div className="max-w-7xl mx-auto px-3 sm:px-4 space-y-5 animate-fade-in">
       <div className="page-header">
         <div><h2 className="page-title">Reports</h2><p className="page-subtitle">Generate dynamic reports from live data</p></div>
         {data && <button onClick={exportCSV} className="btn-secondary flex items-center gap-1.5"><SI d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" size={15} color="text-violet-600" /> Export CSV</button>}
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 flex-wrap">
+      <div className="filter-bar">
         {['attendance', 'leave', 'payroll'].map(t => (
           <button key={t} onClick={() => { setActiveTab(t); setData(null); }}
-            className={`px-4 py-2 rounded-xl text-sm font-semibold capitalize transition-colors ${activeTab === t ? 'bg-violet-700 text-white' : 'bg-violet-100 text-violet-600 hover:bg-violet-200'}`}>
-            {t}
+            className={activeTab === t ? 'filter-pill-active' : 'filter-pill-inactive'}>
+            {t.charAt(0).toUpperCase() + t.slice(1)}
           </button>
         ))}
       </div>
@@ -105,8 +105,8 @@ const AdminReports = () => {
                   {data.map((r, i) => (
                     <tr key={i}>
                       <td><p className="font-medium">{r.employee?.name}</p><p className="text-xs text-violet-400">{r.employee?.employeeId}</p></td>
-                      <td className="text-green-600 font-semibold">{r.present}</td>
-                      <td className="text-red-600 font-semibold">{r.absent}</td>
+                      <td className="text-violet-600 font-semibold">{r.present}</td>
+                      <td className="text-gray-900 font-semibold">{r.absent}</td>
                       <td className="text-golden-600 font-semibold">{r.halfDay}</td>
                       <td>{r.totalHours}h</td>
                     </tr>
@@ -177,7 +177,7 @@ const AdminReports = () => {
                       <td><p className="font-medium">{p.employee?.name}</p><p className="text-xs text-violet-400">{p.employee?.employeeId}</p></td>
                       <td>{formatCurrency(p.basicSalary)}</td>
                       <td>{formatCurrency(p.grossSalary)}</td>
-                      <td className="text-red-600">{formatCurrency(sumMoney(p.deductions))}</td>
+                      <td className="text-gray-900">{formatCurrency(sumMoney(p.deductions))}</td>
                       <td className="font-bold text-golden-600">{formatCurrency(p.netSalary)}</td>
                     </tr>
                   ))}

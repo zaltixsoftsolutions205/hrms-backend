@@ -10,9 +10,13 @@ const {
   getRegularizations,
   reviewRegularization,
   getOfficeInfo,
+  getMapImage,
 } = require('../controllers/attendanceController');
 const { protect } = require('../middleware/auth');
 const { roleCheck } = require('../middleware/roleCheck');
+
+// Public route — proxies Google Maps image server-side (no API key referrer restriction)
+router.get('/map-image', getMapImage);
 
 router.use(protect);
 

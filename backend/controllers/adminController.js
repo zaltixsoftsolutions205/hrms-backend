@@ -6,6 +6,8 @@ const Leave = require('../models/Leave');
 const Payslip = require('../models/Payslip');
 const Task = require('../models/Task');
 const Lead = require('../models/Lead');
+const PurchaseOrder = require('../models/PurchaseOrder');
+const Expense = require('../models/Expense');
 const moment = require('moment');
 
 // Department CRUD
@@ -177,6 +179,38 @@ exports.getDashboardStats = async (req, res) => {
     const convertedLeads = await Lead.countDocuments({ status: 'converted' });
 
     res.json({ totalEmployees, presentToday, pendingLeaves, openTasks, totalLeads, convertedLeads });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Profit summary: revenue from POs, expenses from approved Expenses
+exports.getProfitSummary = async (req, res) => {
+  const { month, year } = req.query;
+  try {
+    const m = parseInt(month) || new Date().getMonth() + 1;
+    const y = parseInt(year)  || new Date().getFullYear();
+
+    const monthStart = new Date(`${y}-${String(m).padStart(2, '0')}-01`);
+    const monthEnd   = new Date(monthStart);
+    monthEnd.setMonth(monthEnd.getMonth() + 1);
+
+    const [poResult, expenseResult] = await Promise.all([
+      PurchaseOrder.aggregate([
+        { $match: { createdAt: { $gte: monthStart, $lt: monthEnd }, status: { $nin: ['cancelled'] } } },
+        { $group: { _id: null, total: { $sum: '$total' } } },
+      ]),
+      Expense.aggregate([
+        { $match: { date: { $gte: monthStart, $lt: monthEnd }, status: 'approved' } },
+        { $group: { _id: null, total: { $sum: '$amount' } } },
+      ]),
+    ]);
+
+    const revenue  = poResult[0]?.total || 0;
+    const expenses = expenseResult[0]?.total || 0;
+    const profit   = revenue - expenses;
+
+    res.json({ revenue, expenses, profit, month: m, year: y });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

@@ -5,7 +5,7 @@ const Deal = require('../models/Deal');
 // ============ INCOME HANDLERS ============
 
 exports.getIncome = async (req, res) => {
-  const { month, year, type, serviceType, limit = 50, skip = 0 } = req.query;
+  const { month, year, type, category, serviceType, limit = 50, skip = 0 } = req.query;
   try {
     let filter = {};
 
@@ -17,6 +17,7 @@ exports.getIncome = async (req, res) => {
     }
 
     if (type) filter.type = type;
+    if (category) filter.category = category;
     if (serviceType) filter.serviceType = serviceType;
 
     const income = await Income.find(filter)
@@ -77,12 +78,13 @@ exports.getIncomeById = async (req, res) => {
 };
 
 exports.createIncome = async (req, res) => {
-  const { amount, date, description, notes } = req.body;
+  const { amount, date, description, notes, category } = req.body;
   try {
     if (!amount || !date) return res.status(400).json({ message: 'Amount and date are required' });
 
     const income = await Income.create({
       type: 'manual',
+      category: category || 'general',
       amount,
       date: new Date(date),
       description,
@@ -216,7 +218,7 @@ exports.getExpenseById = async (req, res) => {
 };
 
 exports.createExpense = async (req, res) => {
-  const { category, amount, date, description, customCategory, notes } = req.body;
+  const { category, amount, date, description, notes } = req.body;
   try {
     if (!category || !amount || !date || !description) {
       return res.status(400).json({ message: 'Category, amount, date, and description are required' });
@@ -230,11 +232,6 @@ exports.createExpense = async (req, res) => {
       notes,
       createdBy: req.user._id,
     };
-
-    if (category === 'custom') {
-      if (!customCategory) return res.status(400).json({ message: 'Custom category name required' });
-      expenseData.customCategory = customCategory;
-    }
 
     if (req.file) {
       expenseData.receiptPath = req.file.path;
@@ -286,10 +283,6 @@ exports.approveExpense = async (req, res) => {
     const expense = await Expense.findById(req.params.id);
     if (!expense) return res.status(404).json({ message: 'Expense not found' });
 
-    if (expense.status !== 'pending') {
-      return res.status(400).json({ message: 'Only pending expenses can be approved' });
-    }
-
     expense.status = 'approved';
     expense.approvedBy = req.user._id;
     await expense.save();
@@ -309,10 +302,6 @@ exports.rejectExpense = async (req, res) => {
     const expense = await Expense.findById(req.params.id);
     if (!expense) return res.status(404).json({ message: 'Expense not found' });
 
-    if (expense.status !== 'pending') {
-      return res.status(400).json({ message: 'Only pending expenses can be rejected' });
-    }
-
     expense.status = 'rejected';
     expense.approvedBy = req.user._id;
     await expense.save();
@@ -322,6 +311,27 @@ exports.rejectExpense = async (req, res) => {
       .populate('approvedBy', 'name employeeId');
 
     res.json(populated);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.setExpenseStatus = async (req, res) => {
+  const { status } = req.body;
+  if (!['pending', 'approved', 'rejected'].includes(status)) {
+    return res.status(400).json({ message: 'Invalid status' });
+  }
+  try {
+    const expense = await Expense.findById(req.params.id);
+    if (!expense) return res.status(404).json({ message: 'Expense not found' });
+    expense.status = status;
+    if (status === 'pending') {
+      expense.approvedBy = undefined;
+    } else {
+      expense.approvedBy = req.user._id;
+    }
+    await expense.save();
+    res.json({ _id: expense._id, status: expense.status });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -461,13 +471,20 @@ exports.getByCategory = async (req, res) => {
 };
 
 exports.getByService = async (req, res) => {
-  const { year = new Date().getFullYear() } = req.query;
+  const { year = new Date().getFullYear(), month } = req.query;
   try {
-    const yearStart = new Date(`${year}-01-01`);
-    const yearEnd = new Date(`${year}-12-31`);
+    let dateFilter;
+    if (month) {
+      const monthStart = new Date(`${year}-${String(month).padStart(2, '0')}-01`);
+      const monthEnd = new Date(monthStart);
+      monthEnd.setMonth(monthEnd.getMonth() + 1);
+      dateFilter = { $gte: monthStart, $lt: monthEnd };
+    } else {
+      dateFilter = { $gte: new Date(`${year}-01-01`), $lt: new Date(`${parseInt(year) + 1}-01-01`) };
+    }
 
     const byService = await Income.aggregate([
-      { $match: { date: { $gte: yearStart, $lt: yearEnd } } },
+      { $match: { date: dateFilter } },
       { $group: { _id: '$serviceType', revenue: { $sum: '$amount' }, count: { $sum: 1 } } },
       { $sort: { revenue: -1 } },
     ]);

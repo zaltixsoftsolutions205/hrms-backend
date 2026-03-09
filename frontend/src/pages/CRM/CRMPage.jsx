@@ -8,8 +8,10 @@ import Badge from '../../components/UI/Badge';
 import EmptyState from '../../components/UI/EmptyState';
 import { formatDate, formatDateTime, formatCurrency } from '../../utils/helpers';
 import { SERVICE_TYPE_MAP } from '../../constants/serviceTypes';
+import IntelligenceAlerts from '../../components/UI/IntelligenceAlerts';
 import QuotationsTab from './QuotationsTab';
 import PurchaseOrdersTab from './PurchaseOrdersTab';
+import ProductsTab from './ProductsTab';
 
 const SI = ({ d, d2, size = 16, color }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className={color || ''}>
@@ -20,7 +22,7 @@ const SI = ({ d, d2, size = 16, color }) => (
 const statusColors = { new: '+', interested: '*', 'not-interested': 'x', converted: 'v' };
 
 const CRMPage = () => {
-  const [activeTab, setActiveTab] = useState('leads');
+  const [activeTab, setActiveTab] = useState('products');
   const [leadsData, setLeadsData] = useState({ leads: [], stats: {} });
   const [dealsData, setDealsData] = useState({ deals: [], stats: {} });
   const [clientsData, setClientsData] = useState({ clients: [], stats: {} });
@@ -178,11 +180,32 @@ const CRMPage = () => {
     } catch { toast.error('Failed to load client details'); }
   };
 
+  // Derive CRM intelligence from existing leadsData — no extra API call
+  const crmAlerts = (() => {
+    if (!leadsData.leads?.length) return [];
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 86400000);
+    const activeLeads = leadsData.leads.filter(l => !['converted', 'not-interested'].includes(l.status));
+    const stale = activeLeads.filter(l => new Date(l.updatedAt) < sevenDaysAgo);
+    const overdueFollowUp = activeLeads.filter(l => l.followUpDate && new Date(l.followUpDate) < now);
+    const agingNew = activeLeads.filter(l => l.status === 'new' && new Date(l.createdAt) < new Date(now.getTime() - 14 * 86400000));
+    const alerts = [];
+    if (stale.length > 0)
+      alerts.push({ level: 'warning', message: `${stale.length} lead${stale.length > 1 ? 's have' : ' has'} had no activity for 7+ days. Follow up to keep your CRM score up.`, link: '/crm' });
+    if (overdueFollowUp.length > 0)
+      alerts.push({ level: 'error', message: `${overdueFollowUp.length} overdue follow-up${overdueFollowUp.length > 1 ? 's' : ''}. Schedule a call or update the follow-up date.`, link: '/crm' });
+    if (agingNew.length > 0)
+      alerts.push({ level: 'info', message: `${agingNew.length} lead${agingNew.length > 1 ? 's' : ''} still in "New" status for 14+ days. Qualify or mark as not interested.` });
+    return alerts;
+  })();
+
   return (
-    <div className="max-w-7xl mx-auto px-3 sm:px-4 space-y-6 animate-fade-in">
+    <div className="max-w-7xl mx-auto px-3 sm:px-4 space-y-4 animate-fade-in">
+      <IntelligenceAlerts alerts={crmAlerts} />
       {/* Tabs */}
-      <div className="flex gap-2 border-b border-violet-200">
+      <div className="flex gap-2 border-b border-violet-200 overflow-x-auto">
         {[
+          { key: 'products',        label: 'Products' },
           { key: 'leads',          label: 'Leads' },
           { key: 'deals',          label: 'Deals' },
           { key: 'clients',        label: 'Clients' },
@@ -207,18 +230,18 @@ const CRMPage = () => {
             <KpiCard label="Total" value={leadsData.stats?.total ?? '—'} icon={<SI d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" size={14} color="text-violet-600" />} color="violet" />
             <KpiCard label="New" value={leadsData.stats?.new ?? '—'} icon={<SI d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" size={14} color="text-violet-600" />} color="violet" />
             <KpiCard label="Interested" value={leadsData.stats?.interested ?? '—'} icon={<SI d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" size={14} color="text-amber-500" />} color="golden" />
-            <KpiCard label="Converted" value={leadsData.stats?.converted ?? '—'} icon={<SI d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" size={14} color="text-green-600" />} color="green" />
-            <KpiCard label="Not Interested" value={leadsData.stats?.notInterested ?? '—'} icon={<SI d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" size={14} color="text-red-500" />} color="red" />
+            <KpiCard label="Converted" value={leadsData.stats?.converted ?? '—'} icon={<SI d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" size={14} color="text-violet-600" />} color="green" />
+            <KpiCard label="Not Interested" value={leadsData.stats?.notInterested ?? '—'} icon={<SI d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" size={14} color="text-gray-900" />} color="red" />
             <KpiCard label="Conversion %" value={leadsData.stats?.conversionRate !== undefined ? `${leadsData.stats.conversionRate}%` : '—'} icon={<SI d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" size={14} color="text-amber-500" />} color="golden" />
           </div>
 
           <Card>
             <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
               <h3 className="font-bold text-violet-900">Lead Pipeline</h3>
-              <div className="flex flex-wrap gap-2">
+              <div className="filter-bar">
                 {['', 'new', 'interested', 'not-interested', 'converted'].map(s => (
                   <button key={s} onClick={() => setLeadStatusFilter(s)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${leadStatusFilter === s ? 'bg-violet-700 text-white' : 'bg-violet-100 text-violet-600 hover:bg-violet-200'}`}>
+                    className={leadStatusFilter === s ? 'filter-pill-active' : 'filter-pill-inactive'}>
                     {s === '' ? 'All' : s.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
                   </button>
                 ))}
@@ -333,10 +356,10 @@ const CRMPage = () => {
 
                 <div>
                   <label className="input-label">Update Status</label>
-                  <div className="flex gap-2 flex-wrap">
+                  <div className="filter-bar">
                     {['new', 'interested', 'not-interested', 'converted'].map(s => (
                       <button key={s} onClick={() => handleLeadStatusChange(selectedLead._id, s)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors capitalize ${selectedLead.status === s ? 'bg-violet-700 text-white' : 'bg-violet-100 text-violet-700 hover:bg-violet-200'}`}>
+                        className={`${selectedLead.status === s ? 'filter-pill-active' : 'filter-pill-inactive'} capitalize`}>
                         {statusColors[s]} {s.replace(/-/g, ' ')}
                       </button>
                     ))}
@@ -386,18 +409,18 @@ const CRMPage = () => {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
             <KpiCard label="Total" value={dealsData.stats?.total ?? '—'} icon={<SI d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" size={14} color="text-violet-600" />} color="violet" />
             <KpiCard label="Open" value={dealsData.stats?.open ?? '—'} icon={<SI d="M13 10V3L4 14h7v7l9-11h-7z" size={14} color="text-amber-500" />} color="golden" />
-            <KpiCard label="Won" value={dealsData.stats?.won ?? '—'} icon={<SI d="M5 13l4 4L19 7" size={14} color="text-green-600" />} color="green" />
-            <KpiCard label="Lost" value={dealsData.stats?.lost ?? '—'} icon={<SI d="M6 18L18 6M6 6l12 12" size={14} color="text-red-500" />} color="red" />
-            <KpiCard label="Revenue" value={dealsData.stats?.totalRevenue ? formatCurrency(dealsData.stats.totalRevenue) : '—'} icon={<SI d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" size={14} color="text-blue-600" />} color="blue" />
+            <KpiCard label="Won" value={dealsData.stats?.won ?? '—'} icon={<SI d="M5 13l4 4L19 7" size={14} color="text-violet-600" />} color="green" />
+            <KpiCard label="Lost" value={dealsData.stats?.lost ?? '—'} icon={<SI d="M6 18L18 6M6 6l12 12" size={14} color="text-gray-900" />} color="red" />
+            <KpiCard label="Revenue" value={dealsData.stats?.totalRevenue ? formatCurrency(dealsData.stats.totalRevenue) : '—'} icon={<SI d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" size={14} color="text-violet-600" />} color="blue" />
           </div>
 
           <Card>
             <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
               <h3 className="font-bold text-violet-900">Deals Pipeline</h3>
-              <div className="flex flex-wrap gap-2">
+              <div className="filter-bar">
                 {['', 'open', 'won', 'lost'].map(s => (
                   <button key={s} onClick={() => setDealStatusFilter(s)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${dealStatusFilter === s ? 'bg-violet-700 text-white' : 'bg-violet-100 text-violet-600 hover:bg-violet-200'}`}>
+                    className={dealStatusFilter === s ? 'filter-pill-active' : 'filter-pill-inactive'}>
                     {s === '' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
                   </button>
                 ))}
@@ -424,12 +447,12 @@ const CRMPage = () => {
                         <td className="text-xs">{SERVICE_TYPE_MAP[deal.serviceType] || deal.serviceType}</td>
                         <td className="font-semibold">{formatCurrency(deal.finalDealAmount)}</td>
                         <td>
-                          <span className={`px-2 py-1 rounded-lg text-xs font-semibold ${deal.probability >= 75 ? 'bg-green-100 text-green-700' : deal.probability >= 50 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>
+                          <span className={`px-2 py-1 rounded-lg text-xs font-semibold ${deal.probability >= 75 ? 'bg-violet-100 text-violet-700' : deal.probability >= 50 ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-900'}`}>
                             {deal.probability}%
                           </span>
                         </td>
                         <td>
-                          <span className={`px-2 py-1 rounded-lg text-xs font-semibold ${deal.status === 'open' ? 'bg-blue-100 text-blue-700' : deal.status === 'won' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                          <span className={`px-2 py-1 rounded-lg text-xs font-semibold ${deal.status === 'open' ? 'bg-violet-100 text-violet-700' : deal.status === 'won' ? 'bg-violet-100 text-violet-700' : 'bg-gray-100 text-gray-900'}`}>
                             {deal.status.charAt(0).toUpperCase() + deal.status.slice(1)}
                           </span>
                         </td>
@@ -523,10 +546,10 @@ const CRMPage = () => {
                   <div>
                     <label className="input-label">Close Deal</label>
                     <div className="flex gap-2">
-                      <button onClick={() => handleDealStatusChange(selectedDeal._id, 'won')} className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors">
+                      <button onClick={() => handleDealStatusChange(selectedDeal._id, 'won')} className="flex-1 px-4 py-2 bg-violet-600 text-white rounded-lg font-semibold hover:bg-violet-700 transition-colors">
                         ✓ Mark as Won
                       </button>
-                      <button onClick={() => handleDealStatusChange(selectedDeal._id, 'lost')} className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors">
+                      <button onClick={() => handleDealStatusChange(selectedDeal._id, 'lost')} className="flex-1 px-4 py-2 bg-gray-200 text-white rounded-lg font-semibold hover:bg-gray-200 transition-colors">
                         ✗ Mark as Lost
                       </button>
                     </div>
@@ -534,9 +557,9 @@ const CRMPage = () => {
                 )}
 
                 {selectedDeal.status === 'won' && (
-                  <div className="p-3 bg-green-50 rounded-xl">
-                    <p className="text-xs text-green-600 font-medium">Commission</p>
-                    <p className="text-lg font-bold text-green-700">{formatCurrency(selectedDeal.commission)}</p>
+                  <div className="p-3 bg-violet-50 rounded-xl">
+                    <p className="text-xs text-violet-600 font-medium">Commission</p>
+                    <p className="text-lg font-bold text-violet-700">{formatCurrency(selectedDeal.commission)}</p>
                   </div>
                 )}
               </div>
@@ -550,7 +573,7 @@ const CRMPage = () => {
         <>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             <KpiCard label="Total Clients" value={clientsData.stats?.totalClients ?? '—'} icon={<SI d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" size={14} color="text-violet-600" />} color="violet" />
-            <KpiCard label="Total Deal Value" value={clientsData.stats?.totalDealValue ? formatCurrency(clientsData.stats.totalDealValue) : '—'} icon={<SI d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" size={14} color="text-blue-600" />} color="blue" />
+            <KpiCard label="Total Deal Value" value={clientsData.stats?.totalDealValue ? formatCurrency(clientsData.stats.totalDealValue) : '—'} icon={<SI d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" size={14} color="text-violet-600" />} color="blue" />
             <KpiCard label="Avg Deal Value" value={clientsData.stats?.avgDealValue ? formatCurrency(clientsData.stats.avgDealValue) : '—'} icon={<SI d="M13 10V3L4 14h7v7l9-11h-7z" size={14} color="text-amber-500" />} color="golden" />
           </div>
 
@@ -634,6 +657,11 @@ const CRMPage = () => {
       )}
 
       {/* ============ QUOTATIONS TAB ============ */}
+      {/* ============ PRODUCTS TAB ============ */}
+      {activeTab === 'products' && (
+        <ProductsTab />
+      )}
+
       {activeTab === 'quotations' && (
         <QuotationsTab leads={leadsData.leads} />
       )}

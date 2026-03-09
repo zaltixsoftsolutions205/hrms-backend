@@ -43,11 +43,15 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // Force new SW to activate immediately on deploy — no waiting for old tabs to close
+        skipWaiting: true,
+        clientsClaim: true,
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        globIgnores: ['**/firebase-messaging-sw.js'],
         // SPA: serve index.html for all navigation requests (enables offline routing)
         navigateFallback: 'index.html',
         // Don't apply SPA fallback to API or upload routes
-        navigateFallbackDenylist: [/^\/api\//, /^\/uploads\//],
+        navigateFallbackDenylist: [/^\/api\//, /^\/uploads\//, /^\/firebase-messaging-sw\.js/],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
@@ -67,14 +71,20 @@ export default defineConfig({
               cacheableResponse: { statuses: [0, 200] },
             },
           },
+          // Attendance real-time endpoints — never serve from cache
+          {
+            urlPattern: /\/api\/attendance\/.*/i,
+            handler: 'NetworkOnly',
+          },
+          // Other API calls — network first, very short cache (30s) as fallback only
           {
             urlPattern: /\/api\/.*/i,
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api-cache',
-              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 5 },
-              cacheableResponse: { statuses: [0, 200] },
-              networkTimeoutSeconds: 10,
+              expiration: { maxEntries: 50, maxAgeSeconds: 30 },
+              cacheableResponse: { statuses: [200] },
+              networkTimeoutSeconds: 8,
             },
           },
           {

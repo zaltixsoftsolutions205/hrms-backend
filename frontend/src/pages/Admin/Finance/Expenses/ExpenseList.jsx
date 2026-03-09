@@ -14,16 +14,16 @@ const SI = ({ d, size = 16, color }) => (
 );
 
 const categoryColors = {
-  salary: 'red',
-  commission: 'orange',
-  rent: 'blue',
-  software: 'purple',
-  marketing: 'green',
-  operational: 'gray',
-  custom: 'yellow',
+  salary:        'red',
+  commission:    'orange',
+  rent:          'blue',
+  software:      'purple',
+  marketing:     'green',
+  operational:   'gray',
+  miscellaneous: 'yellow',
 };
 
-const ExpenseList = ({ month, year, refresh, onRefresh, isViewOnly = false }) => {
+const ExpenseList = ({ month, year, refresh, onRefresh, canAdd = false, canApprove = false }) => {
   const [expenses, setExpenses] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState('');
@@ -52,25 +52,14 @@ const ExpenseList = ({ month, year, refresh, onRefresh, isViewOnly = false }) =>
     }
   };
 
-  const handleApprove = async (id) => {
+  const handleStatusChange = async (id, newStatus) => {
     try {
-      await api.put(`/finance/expenses/${id}/approve`);
-      toast.success('Expense approved');
+      await api.put(`/finance/expenses/${id}/set-status`, { status: newStatus });
+      toast.success(`Status set to ${newStatus}`);
       fetchExpenses();
       onRefresh();
     } catch (err) {
-      toast.error('Failed to approve');
-    }
-  };
-
-  const handleReject = async (id) => {
-    try {
-      await api.put(`/finance/expenses/${id}/reject`);
-      toast.success('Expense rejected');
-      fetchExpenses();
-      onRefresh();
-    } catch (err) {
-      toast.error('Failed to reject');
+      toast.error('Failed to update status');
     }
   };
 
@@ -86,26 +75,22 @@ const ExpenseList = ({ month, year, refresh, onRefresh, isViewOnly = false }) =>
     }
   };
 
-  const categories = ['salary', 'commission', 'rent', 'software', 'marketing', 'operational'];
+  const categories = ['salary', 'commission', 'rent', 'software', 'marketing', 'operational', 'miscellaneous'];
   const statuses = ['pending', 'approved', 'rejected'];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Filters */}
       <Card>
         <div className="space-y-3">
           <div>
-            <p className="text-xs font-semibold text-gray-600 mb-2">Category</p>
-            <div className="flex flex-wrap gap-2">
+            <p className="text-xs font-semibold text-violet-600 mb-2">Category</p>
+            <div className="filter-bar">
               {['', ...categories].map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setCategoryFilter(cat)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                    categoryFilter === cat
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
+                  className={categoryFilter === cat ? 'filter-pill-active' : 'filter-pill-inactive'}
                 >
                   {cat === '' ? 'All' : cat.charAt(0).toUpperCase() + cat.slice(1)}
                 </button>
@@ -113,24 +98,20 @@ const ExpenseList = ({ month, year, refresh, onRefresh, isViewOnly = false }) =>
             </div>
           </div>
           <div>
-            <p className="text-xs font-semibold text-gray-600 mb-2">Status</p>
-            <div className="flex flex-wrap gap-2">
+            <p className="text-xs font-semibold text-violet-600 mb-2">Status</p>
+            <div className="filter-bar">
               {['', ...statuses].map((status) => (
                 <button
                   key={status}
                   onClick={() => setStatusFilter(status)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                    statusFilter === status
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
+                  className={statusFilter === status ? 'filter-pill-active' : 'filter-pill-inactive'}
                 >
                   {status === '' ? 'All' : status.charAt(0).toUpperCase() + status.slice(1)}
                 </button>
               ))}
             </div>
           </div>
-          {!isViewOnly && (
+          {canAdd && (
             <div className="pt-2">
               <button onClick={() => setShowAddModal(true)} className="btn-primary btn-sm">
                 + Add Expense
@@ -148,7 +129,7 @@ const ExpenseList = ({ month, year, refresh, onRefresh, isViewOnly = false }) =>
               <SI
                 d="M13 10V3L4 14h7v7l9-11h-7z"
                 size={40}
-                color="text-red-400"
+                color="text-gray-900"
               />
             }
             title="No expenses"
@@ -173,50 +154,50 @@ const ExpenseList = ({ month, year, refresh, onRefresh, isViewOnly = false }) =>
                     <td className="text-sm">{formatDate(exp.date)}</td>
                     <td>
                       <span className={`px-2 py-1 rounded-lg text-xs font-semibold bg-${categoryColors[exp.category]}-100 text-${categoryColors[exp.category]}-700`}>
-                        {exp.customCategory || exp.category.charAt(0).toUpperCase() + exp.category.slice(1)}
+                        {exp.category.charAt(0).toUpperCase() + exp.category.slice(1)}
                       </span>
                     </td>
                     <td className="text-sm text-gray-600">{exp.description}</td>
-                    <td className="font-semibold text-red-600">{formatCurrency(exp.amount)}</td>
+                    <td className="font-semibold text-gray-900">{formatCurrency(exp.amount)}</td>
                     <td>
-                      <span
-                        className={`px-2 py-1 rounded-lg text-xs font-semibold ${
-                          exp.status === 'pending'
-                            ? 'bg-yellow-100 text-yellow-700'
-                            : exp.status === 'approved'
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-red-100 text-red-700'
-                        }`}
-                      >
-                        {exp.status.charAt(0).toUpperCase() + exp.status.slice(1)}
-                      </span>
+                      {canApprove ? (
+                        <select
+                          value={exp.status}
+                          onChange={(e) => handleStatusChange(exp._id, e.target.value)}
+                          className={`text-xs font-semibold rounded-lg px-2 py-1 border-0 outline-none cursor-pointer focus:ring-2 focus:ring-offset-1 ${
+                            exp.status === 'pending'
+                              ? 'bg-yellow-100 text-yellow-700 focus:ring-yellow-300'
+                              : exp.status === 'approved'
+                              ? 'bg-violet-100 text-violet-700 focus:ring-violet-300'
+                              : 'bg-gray-100 text-gray-900 focus:ring-gray-300'
+                          }`}
+                        >
+                          <option value="pending">Pending</option>
+                          <option value="approved">Approved</option>
+                          <option value="rejected">Rejected</option>
+                        </select>
+                      ) : (
+                        <span
+                          className={`px-2 py-1 rounded-lg text-xs font-semibold ${
+                            exp.status === 'pending'
+                              ? 'bg-yellow-100 text-yellow-700'
+                              : exp.status === 'approved'
+                              ? 'bg-violet-100 text-violet-700'
+                              : 'bg-gray-100 text-gray-900'
+                          }`}
+                        >
+                          {exp.status.charAt(0).toUpperCase() + exp.status.slice(1)}
+                        </span>
+                      )}
                     </td>
                     <td>
-                      {!isViewOnly && (
-                        <div className="flex gap-1 flex-wrap">
-                          {exp.status === 'pending' && (
-                            <>
-                              <button
-                                onClick={() => handleApprove(exp._id)}
-                                className="text-xs font-semibold text-green-600 hover:text-green-800"
-                              >
-                                ✓
-                              </button>
-                              <button
-                                onClick={() => handleReject(exp._id)}
-                                className="text-xs font-semibold text-red-600 hover:text-red-800"
-                              >
-                                ✗
-                              </button>
-                              <button
-                                onClick={() => handleDelete(exp._id)}
-                                className="text-xs font-semibold text-gray-600 hover:text-gray-800"
-                              >
-                                🗑️
-                              </button>
-                            </>
-                          )}
-                        </div>
+                      {canAdd && exp.status === 'pending' && (
+                        <button
+                          onClick={() => handleDelete(exp._id)}
+                          className="text-xs font-semibold text-gray-500 hover:text-gray-900"
+                        >
+                          🗑️
+                        </button>
                       )}
                     </td>
                   </tr>
@@ -228,7 +209,7 @@ const ExpenseList = ({ month, year, refresh, onRefresh, isViewOnly = false }) =>
       </Card>
 
       {/* Add Modal */}
-      <Modal isOpen={!isViewOnly && showAddModal} onClose={() => setShowAddModal(false)} title="Add Expense">
+      <Modal isOpen={canAdd && showAddModal} onClose={() => setShowAddModal(false)} title="Add Expense">
         <ExpenseForm
           onSuccess={() => {
             setShowAddModal(false);

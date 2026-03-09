@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import api from '../utils/api';
+import usePushNotifications from '../hooks/usePushNotifications';
 
 const AuthContext = createContext(null);
 
@@ -37,6 +38,9 @@ export const AuthProvider = ({ children }) => {
   };
 
   const refreshUser = loadUser;
+
+  // Register FCM push token + listen for foreground messages
+  usePushNotifications(user);
 
   return (
     <AuthContext.Provider value={{ user, loading, login, logout, refreshUser }}>

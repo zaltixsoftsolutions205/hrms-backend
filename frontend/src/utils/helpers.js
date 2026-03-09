@@ -20,24 +20,24 @@ export const monthName = (month) => {
 
 export const getStatusBadge = (status) => {
   const map = {
-    pending: 'badge-yellow',
-    approved: 'badge-green',
-    rejected: 'badge-red',
-    present: 'badge-green',
-    absent: 'badge-red',
-    'half-day': 'badge-yellow',
-    'not-started': 'badge-gray',
-    'in-progress': 'badge-blue',
-    completed: 'badge-green',
-    new: 'badge-blue',
-    interested: 'badge-yellow',
-    'not-interested': 'badge-red',
-    converted: 'badge-green',
-    published: 'badge-green',
-    generated: 'badge-blue',
-    low: 'badge-gray',
-    medium: 'badge-yellow',
-    high: 'badge-red',
+    pending:        'badge-yellow',
+    approved:       'badge-green',
+    rejected:       'badge-red',
+    present:        'badge-green',
+    absent:         'badge-red',
+    'half-day':     'badge-yellow',
+    'not-started':  'badge-gray',
+    'in-progress':  'badge-purple',
+    completed:      'badge-purple',
+    new:            'badge-purple',
+    interested:     'badge-yellow',
+    'not-interested':'badge-red',
+    converted:      'badge-purple',
+    published:      'badge-purple',
+    generated:      'badge-purple',
+    low:            'badge-gray',
+    medium:         'badge-yellow',
+    high:           'badge-red',
   };
   return map[status] || 'badge-gray';
 };
@@ -68,4 +68,23 @@ export const sumMoney = (item) => {
   if (Array.isArray(item)) return item.reduce((s, it) => s + (it?.amount || 0), 0);
   if (typeof item === 'object') return Object.values(item).reduce((s, v) => s + (parseFloat(v) || 0), 0);
   return 0;
+};
+
+// Resolves a relative /uploads/... path to an absolute URL using VITE_API_URL origin.
+// Required in production where /uploads is served by the backend, not the frontend host.
+export const getUploadUrl = (path) => {
+  if (!path) return null;
+  if (/^https?:\/\//i.test(path)) return path;
+  const p = path.startsWith('/') ? path : `/${path}`;
+  const apiUrl = import.meta.env.VITE_API_URL;
+  if (apiUrl) {
+    try {
+      const { origin } = new URL(apiUrl);
+      return `${origin}${p}`;
+    } catch { /* ignore */ }
+  }
+  if (window.location.hostname === 'localhost') {
+    return `${window.location.protocol}//${window.location.hostname}:5000${p}`;
+  }
+  return `${window.location.origin}${p}`;
 };

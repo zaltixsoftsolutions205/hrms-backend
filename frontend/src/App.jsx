@@ -14,6 +14,7 @@ import LeavePage from './pages/Leaves/LeavePage';
 import PayslipsPage from './pages/Payslips/PayslipsPage';
 import TasksPage from './pages/Tasks/TasksPage';
 import CRMPage from './pages/CRM/CRMPage';
+import ProductDetailPage from './pages/CRM/ProductDetailPage';
 import TeamPage from './pages/Team/TeamPage';
 
 // HR Pages
@@ -38,12 +39,17 @@ import AnnouncementsPage from './pages/Admin/AnnouncementsPage';
 import HolidaysPage from './pages/Admin/HolidaysPage';
 import AdminMyTasks from './pages/Admin/AdminMyTasks';
 import RecruitmentPage from './pages/Admin/RecruitmentPage';
+import RecruitmentProjectPage from './pages/Admin/RecruitmentProjectPage';
+import RecruitmentJobPage from './pages/Admin/RecruitmentJobPage';
+import AutomationPage from './pages/Admin/AutomationPage';
 
-const ProtectedRoute = ({ children, roles, allowFirstLogin = false }) => {
+const ProtectedRoute = ({ children, roles, allowEmployeeIds, allowFirstLogin = false }) => {
   const { user, loading } = useAuth();
   if (loading) return <PageLoader />;
   if (!user) return <Navigate to="/login" replace />;
-  if (roles && !roles.includes(user.role)) return <Navigate to="/dashboard" replace />;
+  const hasRole = roles && roles.includes(user.role);
+  const hasEmployeeId = allowEmployeeIds && allowEmployeeIds.includes(user.employeeId);
+  if (roles && !hasRole && !hasEmployeeId) return <Navigate to="/dashboard" replace />;
   if (user.isFirstLogin && !allowFirstLogin) return <Navigate to="/change-password" replace />;
   return children;
 };
@@ -72,6 +78,7 @@ const AppRoutes = () => {
         <Route path="/tasks" element={<TasksPage />} />
         <Route path="/team" element={<TeamPage />} />
         <Route path="/crm" element={<ProtectedRoute roles={['sales', 'hr', 'admin']}><CRMPage /></ProtectedRoute>} />
+        <Route path="/crm/products/:productId" element={<ProtectedRoute roles={['sales', 'hr', 'admin']}><ProductDetailPage /></ProtectedRoute>} />
 
         {/* HR Routes */}
         <Route path="/hr/employees" element={<ProtectedRoute roles={['hr', 'admin']}><HREmployees /></ProtectedRoute>} />
@@ -94,7 +101,10 @@ const AppRoutes = () => {
         <Route path="/admin/announcements" element={<ProtectedRoute roles={['admin', 'hr']}><AnnouncementsPage /></ProtectedRoute>} />
         <Route path="/admin/holidays" element={<ProtectedRoute roles={['admin', 'hr']}><HolidaysPage /></ProtectedRoute>} />
         <Route path="/admin/my-tasks" element={<ProtectedRoute roles={['admin']}><AdminMyTasks /></ProtectedRoute>} />
-        <Route path="/admin/recruitment" element={<ProtectedRoute roles={['admin', 'hr']}><RecruitmentPage /></ProtectedRoute>} />
+        <Route path="/admin/recruitment" element={<ProtectedRoute roles={['admin']} allowEmployeeIds={['ZSSE0023']}><RecruitmentPage /></ProtectedRoute>} />
+        <Route path="/admin/recruitment/p/:projectId" element={<ProtectedRoute roles={['admin']} allowEmployeeIds={['ZSSE0023']}><RecruitmentProjectPage /></ProtectedRoute>} />
+        <Route path="/admin/recruitment/:jobId" element={<ProtectedRoute roles={['admin']} allowEmployeeIds={['ZSSE0023']}><RecruitmentJobPage /></ProtectedRoute>} />
+        <Route path="/admin/automation" element={<ProtectedRoute roles={['admin', 'hr']}><AutomationPage /></ProtectedRoute>} />
       </Route>
 
       <Route path="/" element={<Navigate to="/dashboard" replace />} />

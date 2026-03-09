@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import api from '../../utils/api';
 
 const priorityConfig = {
-  urgent:    { label: 'Urgent',    bg: 'bg-red-100',    text: 'text-red-700',    border: 'border-red-200',   dot: 'bg-red-500' },
+  urgent:    { label: 'Urgent',    bg: 'bg-gray-100',    text: 'text-gray-900',    border: 'border-gray-200',   dot: 'bg-gray-200' },
   important: { label: 'Important', bg: 'bg-amber-100',  text: 'text-amber-700',  border: 'border-amber-200', dot: 'bg-amber-500' },
   normal:    { label: 'Normal',    bg: 'bg-gray-100',   text: 'text-gray-600',   border: 'border-gray-200',  dot: 'bg-gray-400' },
 };
@@ -61,12 +61,12 @@ const AnnouncementsPage = () => {
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-3 sm:px-4 space-y-6 animate-fade-in">
+    <div className="max-w-3xl mx-auto px-3 sm:px-4 space-y-4 animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="page-header">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Announcements</h1>
-          <p className="text-sm text-gray-500 mt-1">Post notices visible to all employees</p>
+          <h2 className="page-title">Announcements</h2>
+          <p className="page-subtitle">Post notices visible to all employees</p>
         </div>
         <button onClick={() => setShowForm(v => !v)} className="btn-primary btn-sm">
           {showForm ? 'Cancel' : '+ New Announcement'}
@@ -76,7 +76,7 @@ const AnnouncementsPage = () => {
       {/* Post Form */}
       {showForm && (
         <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
-          className="glass-card p-5">
+          className="glass-card p-4">
           <h3 className="font-bold text-violet-900 mb-4">New Announcement</h3>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -166,7 +166,7 @@ const AnnouncementsPage = () => {
                     </div>
                   </div>
                   <button onClick={() => handleDelete(ann._id)}
-                    className="text-xs font-semibold text-red-500 hover:text-red-700 flex-shrink-0 mt-0.5">
+                    className="text-xs font-semibold text-gray-900 hover:text-gray-900 flex-shrink-0 mt-0.5">
                     Delete
                   </button>
                 </div>

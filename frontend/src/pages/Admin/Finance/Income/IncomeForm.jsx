@@ -2,10 +2,20 @@ import { useState } from 'react';
 import toast from 'react-hot-toast';
 import api from '../../../../utils/api';
 
+const CATEGORIES = [
+  { value: 'client_payment',     label: 'Client Payment' },
+  { value: 'deal',               label: 'Deal Revenue' },
+  { value: 'investment',         label: 'Investment' },
+  { value: 'product_sale',       label: 'Product Sale' },
+  { value: 'talent_acquisition', label: 'Talent Acquisition' },
+  { value: 'general',            label: 'General / Other' },
+];
+
 const IncomeForm = ({ onSuccess, onClose }) => {
   const [form, setForm] = useState({
-    amount: 0,
+    amount: '',
     date: new Date().toISOString().split('T')[0],
+    category: 'client_payment',
     description: '',
     notes: '',
   });
@@ -13,13 +23,13 @@ const IncomeForm = ({ onSuccess, onClose }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.amount || !form.date) {
+    if (!form.amount || parseFloat(form.amount) <= 0 || !form.date) {
       return toast.error('Amount and date are required');
     }
 
     setLoading(true);
     try {
-      await api.post('/finance/income', form);
+      await api.post('/finance/income', { ...form, amount: parseFloat(form.amount) });
       toast.success('Income added');
       onSuccess();
     } catch (err) {
@@ -32,13 +42,31 @@ const IncomeForm = ({ onSuccess, onClose }) => {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
+        <label className="input-label">Category *</label>
+        <select
+          className="input-field"
+          value={form.category}
+          onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+          required
+        >
+          {CATEGORIES.map((c) => (
+            <option key={c.value} value={c.value}>{c.label}</option>
+          ))}
+        </select>
+      </div>
+
+      <div>
         <label className="input-label">Amount (₹) *</label>
         <input
-          type="number"
+          type="text"
+          inputMode="decimal"
           className="input-field"
           value={form.amount}
-          onChange={(e) => setForm((f) => ({ ...f, amount: parseFloat(e.target.value) || 0 }))}
-          placeholder="0"
+          onChange={(e) => {
+            const v = e.target.value;
+            if (v === '' || /^\d*\.?\d*$/.test(v)) setForm((f) => ({ ...f, amount: v }));
+          }}
+          placeholder="Enter amount"
           required
         />
       </div>
@@ -61,7 +89,7 @@ const IncomeForm = ({ onSuccess, onClose }) => {
           className="input-field"
           value={form.description}
           onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-          placeholder="e.g., Customer payment for project XYZ"
+          placeholder="e.g., Payment from client for project XYZ"
         />
       </div>
 

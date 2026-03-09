@@ -1,6 +1,6 @@
 const Document = require('../models/Document');
 const User = require('../models/User');
-const Notification = require('../models/Notification');
+const notificationService = require('../services/notificationService');
 const path = require('path');
 const fs = require('fs');
 
@@ -110,8 +110,7 @@ exports.reviewDocument = async (req, res) => {
     await doc.save();
 
     // Notify the employee
-    await Notification.create({
-      recipient: doc.employee,
+    await notificationService.notify(doc.employee, {
       title: `Document ${status === 'approved' ? 'Approved' : 'Rejected'}`,
       message: `Your ${doc.docType} has been ${status}${status === 'rejected' && rejectionReason ? ': ' + rejectionReason : ''}.`,
       type: 'document',

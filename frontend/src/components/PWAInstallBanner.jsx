@@ -60,7 +60,7 @@ const PWAInstallBanner = () => {
       <motion.div
         initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
         exit={{ y: 80, opacity: 0 }} transition={{ type: 'spring', stiffness: 260, damping: 22 }}
-        className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 px-5 py-3 bg-green-600 text-white text-sm font-semibold rounded-2xl shadow-xl flex items-center gap-2 whitespace-nowrap"
+        className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 px-5 py-3 bg-violet-600 text-white text-sm font-semibold rounded-2xl shadow-xl flex items-center gap-2 whitespace-nowrap"
       >
         <span>✓</span> Zaltix HRMS installed!
       </motion.div>

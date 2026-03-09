@@ -46,13 +46,14 @@ const LeaveApprovals = () => {
     const map = { casual: 'Casual', sick: 'Sick', other: 'Other', lop: 'Loss of Pay' };
     return map[type] || type;
   };
+  const sessionLabel = (s) => s === 'afternoon' ? 'Afternoon' : 'Morning';
 
   return (
     <Card>
-      <div className="flex flex-wrap gap-2 mb-5">
+      <div className="filter-bar mb-5">
         {['pending', 'approved', 'rejected', ''].map(s => (
           <button key={s} onClick={() => setFilter(s)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${filter === s ? 'bg-violet-700 text-white' : 'bg-violet-100 text-violet-600 hover:bg-violet-200'}`}>
+            className={filter === s ? 'filter-pill-active' : 'filter-pill-inactive'}>
             {s === '' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
           </button>
         ))}
@@ -71,7 +72,12 @@ const LeaveApprovals = () => {
                     <span className="text-xs text-violet-400">{leave.employee?.employeeId}</span>
                     <Badge status={leave.status} />
                   </div>
-                  <p className="text-sm text-violet-700">{leaveTypeLabel(leave.type)} Leave · {leave.totalDays} day(s)</p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-sm text-violet-700">{leaveTypeLabel(leave.type)} Leave · {leave.totalDays} day(s)</p>
+                    {leave.halfDay && (
+                      <span className="badge badge-yellow">½ Day · {sessionLabel(leave.session)}</span>
+                    )}
+                  </div>
                   <p className="text-sm text-violet-500">{formatDate(leave.fromDate)} → {formatDate(leave.toDate)}</p>
                   <p className="text-sm text-gray-600 mt-1">Reason: {leave.reason}</p>
                   {leave.approverComments && (
@@ -103,6 +109,7 @@ const LeaveApprovals = () => {
                 { label: 'From', value: formatDate(selected.fromDate) },
                 { label: 'To', value: formatDate(selected.toDate) },
                 { label: 'Total Days', value: `${selected.totalDays} day(s)` },
+                ...(selected.halfDay ? [{ label: 'Session', value: sessionLabel(selected.session) }] : []),
               ].map(item => (
                 <div key={item.label} className="p-3 bg-violet-50 rounded-xl">
                   <p className="text-xs text-violet-500">{item.label}</p>
@@ -120,7 +127,7 @@ const LeaveApprovals = () => {
                 onChange={e => setComments(e.target.value)} placeholder="Add a note for the employee..." />
             </div>
             <div className="flex gap-3">
-              <button onClick={() => handleAction('approved')} disabled={loading} className="btn-primary flex-1 bg-green-600 hover:bg-green-700">
+              <button onClick={() => handleAction('approved')} disabled={loading} className="btn-primary flex-1 bg-violet-600 hover:bg-violet-700">
                 <span className="flex items-center justify-center gap-1.5"><SI d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" size={15} color="text-white" /> Approve</span>
               </button>
               <button onClick={() => handleAction('rejected')} disabled={loading} className="btn-danger flex-1">
@@ -193,7 +200,7 @@ const LeavePolicies = () => {
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {policies.map(p => (
-            <motion.div key={p._id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-5">
+            <motion.div key={p._id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-4">
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <h3 className="font-bold text-violet-900">{p.name}</h3>
@@ -204,7 +211,7 @@ const LeavePolicies = () => {
               <div className="space-y-2 mt-3">
                 {[
                   { label: 'Casual Leave', value: p.casualLeaves, color: 'bg-violet-100 text-violet-700' },
-                  { label: 'Sick Leave',   value: p.sickLeaves,   color: 'bg-blue-100 text-blue-700' },
+                  { label: 'Sick Leave',   value: p.sickLeaves,   color: 'bg-violet-100 text-violet-700' },
                   { label: 'Other Leave',  value: p.otherLeaves,  color: 'bg-amber-100 text-amber-700' },
                 ].map(item => (
                   <div key={item.label} className="flex justify-between items-center">

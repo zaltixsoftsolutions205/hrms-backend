@@ -7,6 +7,7 @@ import Modal from '../../components/UI/Modal';
 import Badge from '../../components/UI/Badge';
 import EmptyState from '../../components/UI/EmptyState';
 import { formatDate, daysUntil } from '../../utils/helpers';
+import IntelligenceAlerts from '../../components/UI/IntelligenceAlerts';
 
 const SI = ({ d, d2, size = 16, color }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className={color || ''}>
@@ -14,7 +15,7 @@ const SI = ({ d, d2, size = 16, color }) => (
   </svg>
 );
 
-const priorityColors = { low: 'text-gray-500', medium: 'text-golden-600', high: 'text-red-600' };
+const priorityColors = { low: 'text-gray-500', medium: 'text-golden-600', high: 'text-gray-900' };
 
 const TasksPage = () => {
   const [data, setData] = useState({ tasks: [], kpi: {} });
@@ -43,12 +44,31 @@ const TasksPage = () => {
     finally { setLoading(false); }
   };
 
+  // Derive intelligence alerts from existing task data — no extra API call
+  const taskAlerts = (() => {
+    if (!data.tasks.length) return [];
+    const now = new Date();
+    const in24h = new Date(now.getTime() + 24 * 3600000);
+    const overdue = data.tasks.filter(t => t.status !== 'completed' && new Date(t.deadline) < now);
+    const soonDue = data.tasks.filter(t => t.status !== 'completed' && new Date(t.deadline) >= now && new Date(t.deadline) <= in24h);
+    const notStartedOld = data.tasks.filter(t => t.status === 'not-started' && new Date(t.deadline) < now);
+    const alerts = [];
+    if (overdue.length > 0)
+      alerts.push({ level: 'error', message: `${overdue.length} overdue task${overdue.length > 1 ? 's' : ''} — update status immediately to avoid affecting your performance score.`, link: '/tasks' });
+    if (soonDue.length > 0)
+      alerts.push({ level: 'warning', message: `${soonDue.length} task${soonDue.length > 1 ? 's are' : ' is'} due within the next 24 hours. Complete them before the deadline.` });
+    if (notStartedOld.length > 0)
+      alerts.push({ level: 'info', message: `${notStartedOld.length} task${notStartedOld.length > 1 ? 's are' : ' is'} still marked "Not Started" but deadline has passed. Please start or update status.` });
+    return alerts;
+  })();
+
   return (
-    <div className="max-w-7xl mx-auto px-3 sm:px-4 space-y-6 animate-fade-in">
+    <div className="max-w-7xl mx-auto px-3 sm:px-4 space-y-4 animate-fade-in">
+      <IntelligenceAlerts alerts={taskAlerts} />
       {/* KPI */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         <KpiCard label="Total Tasks" value={data.kpi?.total ?? '—'} icon={<SI d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" size={14} color="text-violet-600" />} color="violet" />
-        <KpiCard label="Completed" value={data.kpi?.completed ?? '—'} icon={<SI d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" size={14} color="text-green-600" />} color="green" />
+        <KpiCard label="Completed" value={data.kpi?.completed ?? '—'} icon={<SI d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" size={14} color="text-violet-600" />} color="green" />
         <KpiCard label="In Progress" value={data.kpi?.inProgress ?? '—'} icon={<SI d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" size={14} color="text-amber-500" />} color="golden" />
         <KpiCard label="Not Started" value={data.kpi?.notStarted ?? '—'} icon={<SI d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" size={14} color="text-violet-600" />} color="violet" />
         <KpiCard label="Completion %" value={data.kpi?.completionRate !== undefined ? `${data.kpi.completionRate}%` : '—'} icon={<SI d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" size={14} color="text-amber-500" />} color="golden" className="col-span-2 sm:col-span-1" />
@@ -58,10 +78,10 @@ const TasksPage = () => {
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
           <h3 className="font-bold text-violet-900">My Tasks</h3>
-          <div className="flex flex-wrap gap-2">
+          <div className="filter-bar">
             {['', 'not-started', 'in-progress', 'completed'].map(s => (
               <button key={s} onClick={() => setFilter(s)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${filter === s ? 'bg-violet-700 text-white' : 'bg-violet-100 text-violet-600 hover:bg-violet-200'}`}>
+                className={filter === s ? 'filter-pill-active' : 'filter-pill-inactive'}>
                 {s === '' ? 'All' : s.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
               </button>
             ))}
@@ -90,7 +110,7 @@ const TasksPage = () => {
                         <span>Assigned by: {task.assignedBy?.name}</span>
                         <span>Due: {formatDate(task.deadline)}</span>
                         {daysLeft !== undefined && (
-                          <span className={`font-semibold ${daysLeft < 0 ? 'text-red-600' : daysLeft <= 2 ? 'text-golden-600' : 'text-green-600'}`}>
+                          <span className={`font-semibold ${daysLeft < 0 ? 'text-gray-900' : daysLeft <= 2 ? 'text-golden-600' : 'text-violet-600'}`}>
                             {daysLeft < 0 ? `${Math.abs(daysLeft)}d overdue` : daysLeft === 0 ? 'Due today!' : `${daysLeft}d left`}
                           </span>
                         )}

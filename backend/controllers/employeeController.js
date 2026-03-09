@@ -1,6 +1,6 @@
 const User = require('../models/User');
 const Department = require('../models/Department');
-const Notification = require('../models/Notification');
+const notificationService = require('../services/notificationService');
 const Document = require('../models/Document');
 const { sendMail } = require('../config/mail');
 const { offerLetterTemplate, credentialsTemplate } = require('../utils/emailTemplates');
@@ -110,11 +110,11 @@ exports.sendCredentials = async (req, res) => {
     employee.isFirstLogin = true;
     await employee.save();
 
-    await Notification.create({
-      recipient: employee._id,
+    await notificationService.notify(employee._id, {
       title: 'Welcome to Zaltix Soft Solutions!',
       message: 'Your login credentials have been sent to your email.',
       type: 'credential',
+      link: '/dashboard',
     });
 
     res.json({ message: 'Credentials sent successfully' });
@@ -151,7 +151,7 @@ exports.getTeamMembers = async (req, res) => {
 exports.getAllEmployees = async (req, res) => {
   try {
     const filter = { role: { $ne: 'admin' }, isActive: true };
-    if (req.user.role === 'hr') filter.role = { $in: ['employee', 'sales'] };
+    if (req.user.role === 'hr') filter.role = { $in: ['employee', 'sales', 'hr'] };
     const employees = await User.find(filter).populate('department').sort({ employeeId: 1 });
     res.json(employees);
   } catch (err) {
@@ -211,7 +211,7 @@ exports.deleteEmployee = async (req, res) => {
 
 // Employee: Update own profile (limited fields)
 exports.updateOwnProfile = async (req, res) => {
-  const allowed = ['phone', 'address', 'emergencyContact'];
+  const allowed = ['phone', 'address', 'emergencyContact', 'accountNumber', 'ifscCode', 'uanNumber'];
   try {
     const employee = await User.findById(req.user._id);
     allowed.forEach(field => { if (req.body[field] !== undefined) employee[field] = req.body[field]; });

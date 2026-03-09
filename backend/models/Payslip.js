@@ -15,6 +15,7 @@ const payslipSchema = new mongoose.Schema(
     pdfPath: { type: String, default: '' },
     workingDays: { type: Number, default: 0 },
     presentDays: { type: Number, default: 0 },
+    lwpDays: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

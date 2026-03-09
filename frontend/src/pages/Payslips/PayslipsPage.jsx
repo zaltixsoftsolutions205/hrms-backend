@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import api from '../../utils/api';
@@ -17,24 +18,27 @@ const PayslipsPage = () => {
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(null);
   const [profileCompletion, setProfileCompletion] = useState(null);
+  const { user } = useAuth();
 
   useEffect(() => {
     api.get('/payslips/my').then(r => setPayslips(r.data)).catch(() => {}).finally(() => setLoading(false));
     api.get('/user/profile-completion').then(r => setProfileCompletion(r.data)).catch(() => {});
   }, []);
 
-  const handleDownload = async (id, month, year) => {
+  const handleDownload = async (id, month, year, empId) => {
     setDownloading(id);
     try {
       const res = await api.get(`/payslips/${id}/download`, { responseType: 'blob' });
       const url = URL.createObjectURL(res.data);
-      const cd = res.headers && (res.headers['content-disposition'] || res.headers['Content-Disposition']);
+      const FULL_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+      const cd = res.headers?.['content-disposition'];
       let filename = '';
       if (cd) {
         const m = cd.match(/filename\*?=(?:UTF-8''?)?"?([^";]+)/i);
         if (m && m[1]) filename = decodeURIComponent(m[1].replace(/"/g, ''));
       }
-      if (!filename) filename = `Payslip_${monthName(month)}_${year}.pdf`;
+      // Fallback: match backend's format — Payslip_Month_Year.pdf (employee ID not available client-side)
+      if (!filename) filename = `Payslip_${FULL_MONTHS[month - 1]}_${year}${empId ? '_' + empId : ''}.pdf`;
       const a = document.createElement('a');
       a.href = url; a.download = filename; a.click();
       URL.revokeObjectURL(url);
@@ -109,7 +113,7 @@ const PayslipsPage = () => {
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Deductions</span>
-                    <span className="font-medium text-red-600">- {formatCurrency(sumMoney(ps.deductions))}</span>
+                    <span className="font-medium text-gray-900">- {formatCurrency(sumMoney(ps.deductions))}</span>
                   </div>
                   <div className="border-t border-violet-100 pt-2 flex justify-between">
                     <span className="font-semibold text-violet-900">Net Pay</span>
@@ -125,7 +129,7 @@ const PayslipsPage = () => {
                     <p className="text-[10px] text-amber-600 mt-1">Complete your profile to unlock</p>
                   </div>
                 ) : (
-                  <button onClick={() => handleDownload(ps._id, ps.month, ps.year)}
+                  <button onClick={() => handleDownload(ps._id, ps.month, ps.year, user?.employeeId)}
                     disabled={downloading === ps._id}
                     className="w-full btn-primary btn-sm flex items-center justify-center gap-2">
                     {downloading === ps._id ? 'Downloading...' : <span className="flex items-center gap-1.5"><SI d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" size={14} /> Download PDF</span>}

@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 
-const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
 const LocationCheckModal = ({ modal, onConfirm, onCancel, loading }) => {
   if (!modal) return null;
@@ -11,14 +11,9 @@ const LocationCheckModal = ({ modal, onConfirm, onCancel, loading }) => {
   // Block both check-in and check-out outside office radius
   const confirmDisabled = loading || (!withinRange && office?.enabled);
 
-  // Google Maps Static API image — office = red R, user = blue U
-  const mapUrl = MAPS_KEY && office?.enabled
-    ? `https://maps.googleapis.com/maps/api/staticmap` +
-      `?size=600x240&scale=2&zoom=17` +
-      `&markers=color:red%7Clabel:O%7C${office.lat},${office.lng}` +
-      `&markers=color:blue%7Clabel:U%7C${userLat},${userLng}` +
-      `&path=color:0x7C3AED80%7Cweight:2%7C${userLat},${userLng}%7C${office.lat},${office.lng}` +
-      `&key=${MAPS_KEY}`
+  // Map image proxied through backend — avoids Google API key referrer restrictions
+  const mapUrl = office?.enabled && userLat != null && userLng != null
+    ? `${API_BASE}/attendance/map-image?userLat=${userLat}&userLng=${userLng}`
     : null;
 
   const gmapsLink =
@@ -51,10 +46,10 @@ const LocationCheckModal = ({ modal, onConfirm, onCancel, loading }) => {
             />
             <div className="absolute bottom-2 left-2 flex gap-1.5">
               <span className="inline-flex items-center gap-1 text-[10px] font-semibold bg-white/90 backdrop-blur-sm px-2 py-0.5 rounded-full shadow-sm">
-                <span className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0" /> Office
+                <span className="w-2 h-2 rounded-full bg-gray-200 flex-shrink-0" /> Office
               </span>
               <span className="inline-flex items-center gap-1 text-[10px] font-semibold bg-white/90 backdrop-blur-sm px-2 py-0.5 rounded-full shadow-sm">
-                <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" /> You
+                <span className="w-2 h-2 rounded-full bg-violet-500 flex-shrink-0" /> You
               </span>
             </div>
           </div>
@@ -69,29 +64,29 @@ const LocationCheckModal = ({ modal, onConfirm, onCancel, loading }) => {
           {office?.enabled && distance !== null ? (
             <div className={`flex items-center gap-3 p-3 rounded-xl border ${
               withinRange
-                ? 'bg-green-50 border-green-100'
-                : 'bg-red-50 border-red-100'
+                ? 'bg-violet-50 border-violet-100'
+                : 'bg-gray-100 border-gray-100'
             }`}>
               <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${
-                withinRange ? 'bg-green-100' : 'bg-red-100'
+                withinRange ? 'bg-violet-100' : 'bg-gray-100'
               }`}>
                 {withinRange ? (
-                  <svg className="w-5 h-5 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                  <svg className="w-5 h-5 text-violet-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
                     <path d="M5 13l4 4L19 7" />
                   </svg>
                 ) : (
-                  <svg className="w-5 h-5 text-red-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                  <svg className="w-5 h-5 text-gray-900" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
                     <path d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
                   </svg>
                 )}
               </div>
               <div className="min-w-0">
-                <p className={`text-sm font-bold leading-tight ${withinRange ? 'text-green-700' : 'text-red-700'}`}>
+                <p className={`text-sm font-bold leading-tight ${withinRange ? 'text-violet-700' : 'text-gray-900'}`}>
                   {withinRange
                     ? 'Within office range ✓'
                     : `Outside office range — ${isCheckin ? 'check-in' : 'check-out'} blocked`}
                 </p>
-                <p className={`text-xs mt-0.5 ${withinRange ? 'text-green-600' : 'text-red-600'}`}>
+                <p className={`text-xs mt-0.5 ${withinRange ? 'text-violet-600' : 'text-gray-900'}`}>
                   {distance < 1000 ? `${distance} m` : `${(distance / 1000).toFixed(2)} km`} from office · allowed within {office.radius}m
                 </p>
               </div>
@@ -131,8 +126,8 @@ const LocationCheckModal = ({ modal, onConfirm, onCancel, loading }) => {
               disabled={confirmDisabled}
               className={`flex-1 px-4 py-2.5 rounded-xl text-sm font-bold text-white transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${
                 isCheckin
-                  ? 'bg-green-600 hover:bg-green-700'
-                  : 'bg-red-600 hover:bg-red-700'
+                  ? 'bg-violet-600 hover:bg-violet-700'
+                  : 'bg-gray-200 hover:bg-gray-200'
               }`}
             >
               {loading

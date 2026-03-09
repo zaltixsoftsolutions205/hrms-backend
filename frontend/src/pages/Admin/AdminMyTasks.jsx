@@ -6,7 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { formatDate } from '../../utils/helpers';
 
 const priorityStyle = {
-  high:   { bg: 'bg-red-100',   text: 'text-red-700',   label: 'High' },
+  high:   { bg: 'bg-gray-100',   text: 'text-gray-900',   label: 'High' },
   medium: { bg: 'bg-amber-100', text: 'text-amber-700', label: 'Medium' },
   low:    { bg: 'bg-gray-100',  text: 'text-gray-600',  label: 'Low' },
 };
@@ -15,7 +15,7 @@ const statusCycle = { 'not-started': 'in-progress', 'in-progress': 'completed', 
 const statusStyle = {
   'not-started': { dot: 'bg-gray-300',  label: 'To Do',       ring: 'ring-gray-300' },
   'in-progress': { dot: 'bg-amber-400', label: 'In Progress', ring: 'ring-amber-400' },
-  'completed':   { dot: 'bg-green-500', label: 'Done',        ring: 'ring-green-500' },
+  'completed':   { dot: 'bg-violet-500', label: 'Done',        ring: 'ring-violet-500' },
 };
 
 const trashD = "M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16";
@@ -118,12 +118,12 @@ const AdminMyTasks = () => {
   ];
 
   return (
-    <div className="max-w-3xl mx-auto px-3 sm:px-4 space-y-6 animate-fade-in">
+    <div className="max-w-3xl mx-auto px-3 sm:px-4 space-y-4 animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="page-header">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">My Tasks</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <h2 className="page-title">My Tasks</h2>
+          <p className="page-subtitle">
             {tasks.filter(t => t.status !== 'completed').length} active &middot; {tasks.filter(t => t.status === 'completed').length} completed
           </p>
         </div>
@@ -136,7 +136,7 @@ const AdminMyTasks = () => {
       <AnimatePresence>
         {showForm && (
           <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
-            className="glass-card p-5">
+            className="glass-card p-4">
             <h3 className="font-bold text-violet-900 mb-4">New Task</h3>
             <form onSubmit={handleAdd} className="space-y-4">
               <div>
@@ -179,8 +179,8 @@ const AdminMyTasks = () => {
       <div className="grid grid-cols-3 gap-3">
         {[
           { label: 'Active',      count: tasks.filter(t => t.status !== 'completed').length, bg: 'bg-violet-50', text: 'text-violet-700' },
-          { label: 'Completed',   count: tasks.filter(t => t.status === 'completed').length, bg: 'bg-green-50',  text: 'text-green-700' },
-          { label: 'Overdue',     count: tasks.filter(t => isOverdue(t)).length,              bg: 'bg-red-50',    text: 'text-red-700' },
+          { label: 'Completed',   count: tasks.filter(t => t.status === 'completed').length, bg: 'bg-violet-50',  text: 'text-violet-700' },
+          { label: 'Overdue',     count: tasks.filter(t => isOverdue(t)).length,              bg: 'bg-gray-100',    text: 'text-gray-900' },
         ].map(s => (
           <div key={s.label} className={`rounded-xl p-3 ${s.bg} flex items-center justify-between`}>
             <span className={`text-sm font-semibold ${s.text}`}>{s.label}</span>
@@ -232,7 +232,7 @@ const AdminMyTasks = () => {
                       task.status === 'completed'
                         ? 'bg-gray-50 border-gray-100 opacity-70'
                         : overdue
-                        ? 'bg-red-50 border-red-100'
+                        ? 'bg-gray-100 border-gray-100'
                         : 'bg-white border-gray-100 hover:bg-violet-50/40'
                     }`}
                   >
@@ -241,7 +241,7 @@ const AdminMyTasks = () => {
                       onClick={() => handleStatusToggle(task)}
                       title={`${st.label} — click to advance`}
                       className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all hover:ring-2 ring-offset-1 ${st.ring} ${
-                        task.status === 'completed' ? 'bg-green-500 border-green-500' : 'bg-white border-gray-300'
+                        task.status === 'completed' ? 'bg-violet-500 border-violet-500' : 'bg-white border-gray-300'
                       }`}
                     >
                       {task.status === 'completed' && (
@@ -263,7 +263,7 @@ const AdminMyTasks = () => {
                         <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md ${pr.bg} ${pr.text}`}>
                           {pr.label}
                         </span>
-                        <span className={`text-[10px] ${overdue ? 'text-red-500 font-semibold' : 'text-gray-400'}`}>
+                        <span className={`text-[10px] ${overdue ? 'text-gray-900 font-semibold' : 'text-gray-400'}`}>
                           {overdue ? '⚠ Overdue · ' : ''}{formatDate(task.deadline)}
                         </span>
                       </div>
@@ -271,7 +271,7 @@ const AdminMyTasks = () => {
 
                     {/* Status pill */}
                     <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${
-                      task.status === 'completed' ? 'bg-green-100 text-green-700' :
+                      task.status === 'completed' ? 'bg-violet-100 text-violet-700' :
                       task.status === 'in-progress' ? 'bg-amber-100 text-amber-700' :
                       'bg-gray-100 text-gray-500'
                     }`}>
@@ -292,7 +292,7 @@ const AdminMyTasks = () => {
 
                     {/* Delete */}
                     <button onClick={() => handleDelete(task._id)}
-                      className="text-gray-300 hover:text-red-500 transition-colors flex-shrink-0 ml-1">
+                      className="text-gray-300 hover:text-gray-900 transition-colors flex-shrink-0 ml-1">
                       <DI d={trashD} size={14} />
                     </button>
                   </motion.div>

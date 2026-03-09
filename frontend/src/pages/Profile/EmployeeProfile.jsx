@@ -5,13 +5,14 @@ import { useAuth } from '../../contexts/AuthContext';
 import api from '../../utils/api';
 import Card from '../../components/UI/Card';
 import ProfileCompletionIndicator from '../../components/UI/ProfileCompletionIndicator';
-import { formatDate, getInitials } from '../../utils/helpers';
+import { formatDate, getInitials, getUploadUrl } from '../../utils/helpers';
+import IntelligenceAlerts from '../../components/UI/IntelligenceAlerts';
 
 const DOC_STATUS_STYLES = {
   pending_upload: 'bg-gray-100 text-gray-600',
-  uploaded: 'bg-blue-100 text-blue-700',
-  approved: 'bg-green-100 text-green-700',
-  rejected: 'bg-red-100 text-red-700',
+  uploaded: 'bg-violet-100 text-violet-700',
+  approved: 'bg-violet-100 text-violet-700',
+  rejected: 'bg-gray-100 text-gray-900',
 };
 const DOC_STATUS_LABEL = {
   pending_upload: 'Pending Upload',
@@ -26,7 +27,10 @@ const EmployeeProfile = () => {
   const [form, setForm] = useState({
     phone: user?.phone || '',
     address: user?.address || '',
-    emergencyContact: user?.emergencyContact || { name: '', phone: '', relation: '' }
+    emergencyContact: user?.emergencyContact || { name: '', phone: '', relation: '' },
+    accountNumber: user?.accountNumber || '',
+    ifscCode: user?.ifscCode || '',
+    uanNumber: user?.uanNumber || '',
   });
   const [loading, setLoading] = useState(false);
   const [profileCompletion, setProfileCompletion] = useState(null);
@@ -152,8 +156,38 @@ const EmployeeProfile = () => {
   const allApproved = totalDocs > 0 && approvedCount === totalDocs;
   const progressPercent = totalDocs > 0 ? Math.round((approvedCount / totalDocs) * 100) : 0;
 
+  // Derive alerts from own profile data only
+  const profileAlerts = (() => {
+    const alerts = [];
+    if (profileCompletion && profileCompletion.percentage < 100) {
+      const missing = profileCompletion.missing || [];
+      if (profileCompletion.percentage < 60)
+        alerts.push({ level: 'error', message: `Your profile is only ${profileCompletion.percentage}% complete. Complete it to access all features like payslip downloads.` });
+      else if (profileCompletion.percentage < 80)
+        alerts.push({ level: 'warning', message: `Your profile is ${profileCompletion.percentage}% complete. Missing: ${missing.join(', ') || 'some fields'}.` });
+      else
+        alerts.push({ level: 'info', message: `Profile ${profileCompletion.percentage}% complete. Add the remaining details to reach 100%.` });
+    }
+    if (docsData?.docs?.length > 0) {
+      const rejected = docsData.docs.filter(d => d.status === 'rejected');
+      const pendingUpload = docsData.docs.filter(d => d.status === 'pending_upload');
+      if (rejected.length > 0)
+        alerts.push({ level: 'error', message: `${rejected.length} document${rejected.length > 1 ? 's were' : ' was'} rejected. Please re-upload: ${rejected.map(d => d.docType).join(', ')}.` });
+      if (pendingUpload.length > 0)
+        alerts.push({ level: 'warning', message: `${pendingUpload.length} document${pendingUpload.length > 1 ? 's are' : ' is'} still pending upload. Upload them to complete onboarding.` });
+    }
+    if (!user?.phone)
+      alerts.push({ level: 'info', message: 'Add your phone number so HR can reach you quickly.' });
+    if (!user?.accountNumber || !user?.ifscCode)
+      alerts.push({ level: 'info', message: 'Bank account details are missing. Add them so your salary can be processed correctly.' });
+    return alerts;
+  })();
+
   return (
     <div className="max-w-4xl mx-auto space-y-4 sm:space-y-5 animate-fade-in px-4 sm:px-0">
+      {/* My Profile Intelligence Alerts */}
+      <IntelligenceAlerts alerts={profileAlerts} />
+
       {/* Single file input — image/* lets OS offer camera + gallery on mobile */}
       <input type="file" accept="image/*" className="hidden" ref={photoInputRef}
         onChange={e => { handlePhotoUpload(e.target.files[0]); e.target.value = ''; }} />
@@ -177,7 +211,7 @@ const EmployeeProfile = () => {
                 title="Click to update photo"
               >
                 {user?.profilePicture ? (
-                  <img src={user.profilePicture} alt={user?.name} className="w-full h-full object-cover" />
+                  <img src={getUploadUrl(user.profilePicture)} alt={user?.name} className="w-full h-full object-cover" />
                 ) : (
                   <span className="w-full h-full flex items-center justify-center text-2xl sm:text-3xl font-bold text-white">
                     {getInitials(user?.name)}
@@ -212,7 +246,7 @@ const EmployeeProfile = () => {
             {user?.profilePicture && !photoLoading && !photoDeleting && (
               <button
                 onClick={handlePhotoDelete}
-                className="text-[10px] text-red-400 hover:text-red-600 transition-colors leading-none"
+                className="text-[10px] text-gray-900 hover:text-gray-900 transition-colors leading-none"
               >
                 Remove
               </button>
@@ -226,12 +260,12 @@ const EmployeeProfile = () => {
               {user?.designation || user?.role} · {user?.department?.name || 'No Department'}
             </p>
             <div className="flex flex-wrap items-center gap-1.5 mt-2">
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-semibold">
-                <span className="w-1.5 h-1.5 bg-green-500 rounded-full" /> Active
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-violet-100 text-violet-700 text-xs font-semibold">
+                <span className="w-1.5 h-1.5 bg-violet-500 rounded-full" /> Active
               </span>
               {docsData?.employeeType && (
                 <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize ${
-                  docsData.employeeType === 'fresher' ? 'bg-blue-100 text-blue-700' : 'bg-violet-100 text-violet-700'
+                  docsData.employeeType === 'fresher' ? 'bg-violet-100 text-violet-700' : 'bg-violet-100 text-violet-700'
                 }`}>
                   {docsData.employeeType}
                 </span>
@@ -361,6 +395,71 @@ const EmployeeProfile = () => {
         )}
       </Card>
 
+      {/* Bank & Payment Details */}
+      <Card>
+        <div className="flex items-center justify-between mb-3 sm:mb-4 gap-2">
+          <h3 className="font-bold text-violet-900">Bank & Payment Details</h3>
+          {!editing && (
+            <button onClick={() => setEditing(true)} className="btn-secondary btn-sm whitespace-nowrap text-xs sm:text-sm">Edit</button>
+          )}
+        </div>
+
+        {!editing ? (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="p-2.5 sm:p-3 bg-violet-50/60 rounded-xl">
+              <p className="text-[10px] sm:text-xs text-violet-500 font-medium uppercase tracking-wide">Account Number</p>
+              <p className="text-xs sm:text-sm font-semibold text-violet-900 mt-0.5">{user?.accountNumber || '—'}</p>
+            </div>
+            <div className="p-2.5 sm:p-3 bg-violet-50/60 rounded-xl">
+              <p className="text-[10px] sm:text-xs text-violet-500 font-medium uppercase tracking-wide">IFSC Code</p>
+              <p className="text-xs sm:text-sm font-semibold text-violet-900 mt-0.5">{user?.ifscCode || '—'}</p>
+            </div>
+            <div className="p-2.5 sm:p-3 bg-violet-50/60 rounded-xl">
+              <p className="text-[10px] sm:text-xs text-violet-500 font-medium uppercase tracking-wide">UAN Number</p>
+              <p className="text-xs sm:text-sm font-semibold text-violet-900 mt-0.5">{user?.uanNumber || '—'}</p>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="input-label text-xs sm:text-sm">Account Number</label>
+                <input
+                  className="input-field text-sm"
+                  value={form.accountNumber}
+                  onChange={e => setForm(f => ({ ...f, accountNumber: e.target.value }))}
+                  placeholder="Bank account number"
+                />
+              </div>
+              <div>
+                <label className="input-label text-xs sm:text-sm">IFSC Code</label>
+                <input
+                  className="input-field text-sm"
+                  value={form.ifscCode}
+                  onChange={e => setForm(f => ({ ...f, ifscCode: e.target.value.toUpperCase() }))}
+                  placeholder="e.g. HDFC0001234"
+                />
+              </div>
+              <div>
+                <label className="input-label text-xs sm:text-sm">UAN Number</label>
+                <input
+                  className="input-field text-sm"
+                  value={form.uanNumber}
+                  onChange={e => setForm(f => ({ ...f, uanNumber: e.target.value }))}
+                  placeholder="Universal Account Number"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2 sm:gap-3">
+              <button onClick={handleSave} disabled={loading} className="btn-primary text-sm py-1.5 sm:py-2">
+                {loading ? 'Saving...' : 'Save Changes'}
+              </button>
+              <button onClick={() => setEditing(false)} className="btn-secondary text-sm py-1.5 sm:py-2">Cancel</button>
+            </div>
+          </div>
+        )}
+      </Card>
+
       {/* Documents Section */}
       {docsData?.employeeType && (
         <Card>
@@ -416,18 +515,18 @@ const EmployeeProfile = () => {
                         {DOC_STATUS_LABEL[doc.status] || doc.status}
                       </span>
                       {doc.status === 'rejected' && doc.rejectionReason && (
-                        <span className="text-[10px] sm:text-xs text-red-600 font-medium">{doc.rejectionReason}</span>
+                        <span className="text-[10px] sm:text-xs text-gray-900 font-medium">{doc.rejectionReason}</span>
                       )}
                     </div>
                   </div>
 
                   <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0 w-full sm:w-auto">
                     {doc.status === 'approved' && (
-                      <div className="flex items-center gap-1 px-2.5 sm:px-3 py-1 sm:py-1.5 bg-green-100 rounded-lg w-full sm:w-auto justify-center">
+                      <div className="flex items-center gap-1 px-2.5 sm:px-3 py-1 sm:py-1.5 bg-violet-100 rounded-lg w-full sm:w-auto justify-center">
                         <svg width={12} height={12} className="sm:w-3.5 sm:h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
                           <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
-                        <span className="text-[10px] sm:text-xs font-semibold text-green-700">Approved</span>
+                        <span className="text-[10px] sm:text-xs font-semibold text-violet-700">Approved</span>
                       </div>
                     )}
 
@@ -481,8 +580,8 @@ const EmployeeProfile = () => {
       {profileCompletion?.percentage === 100 && (
         <Card>
           <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-8 rounded-xl bg-green-100 flex items-center justify-center flex-shrink-0">
-              <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="text-green-600">
+            <div className="w-8 h-8 rounded-xl bg-violet-100 flex items-center justify-center flex-shrink-0">
+              <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="text-violet-600">
                 <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
             </div>
@@ -556,17 +655,17 @@ const EmployeeProfile = () => {
                     return `${window.location.origin}${n}`;
                   })();
                   return (
-                    <div key={doc._id || i} className="flex items-center justify-between p-3 border border-green-100 rounded-xl bg-green-50/40">
+                    <div key={doc._id || i} className="flex items-center justify-between p-3 border border-violet-100 rounded-xl bg-violet-50/40">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0">
-                          <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="text-green-600">
+                        <div className="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center flex-shrink-0">
+                          <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="text-violet-600">
                             <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                         </div>
                         <span className="text-sm font-semibold text-violet-900">{doc.docType}</span>
                       </div>
                       <a href={fileUrl} target="_blank" rel="noreferrer" download
-                        className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors">
+                        className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-violet-600 text-white hover:bg-violet-700 transition-colors">
                         <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
                           <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                         </svg>

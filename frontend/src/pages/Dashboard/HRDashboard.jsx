@@ -5,12 +5,13 @@ import api from '../../utils/api';
 import { KpiCard } from '../../components/UI/Card';
 import Badge from '../../components/UI/Badge';
 import Spinner from '../../components/UI/Spinner';
-import { formatDate, formatTime12, getInitials, formatCurrency } from '../../utils/helpers';
+import { formatDate, formatTime12, getInitials, formatCurrency, getUploadUrl } from '../../utils/helpers';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAttendance } from '../../hooks/useAttendance';
 import LocationCheckModal from '../../components/UI/LocationCheckModal';
 import AnnouncementWidget from '../../components/UI/AnnouncementWidget';
 import HolidayWidget from '../../components/UI/HolidayWidget';
+import IntelligenceAlerts from '../../components/UI/IntelligenceAlerts';
 
 const DI = ({ d, size = 20, className = '' }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -40,6 +41,8 @@ const HRDashboard = () => {
   const [loading, setLoading] = useState(true);
 
   const [financeStats, setFinanceStats] = useState(null);
+  const [automationData, setAutomationData] = useState(null);
+  const [myScore, setMyScore] = useState(null);
 
   // Personal attendance & leave state
   const [todayRecord, setTodayRecord] = useState(null);
@@ -63,6 +66,8 @@ const HRDashboard = () => {
       api.get('/leaves?status=pending').then(r => setPendingLeaves(r.data.slice(0, 5))).catch(() => {}),
       api.get('/tasks').then(r => setRecentTasks(r.data.slice(0, 5))).catch(() => {}),
       api.get(`/finance/dashboard?month=${m}&year=${y}`).then(r => setFinanceStats(r.data)).catch(() => {}),
+      api.get('/automation/dashboard').then(r => setAutomationData(r.data)).catch(() => {}),
+      api.get('/automation/my-score').then(r => setMyScore(r.data)).catch(() => {}),
     ]).finally(() => setLoading(false));
     fetchPersonal();
   }, []);
@@ -72,6 +77,27 @@ const HRDashboard = () => {
     locationModal, setLocationModal,
     handleCheckIn, handleCheckOut, confirmAction,
   } = useAttendance(fetchPersonal);
+
+  // Derive personal intelligence alerts from already-fetched data
+  const personalAlerts = (() => {
+    const alerts = [];
+    if (myAttendance?.late >= 5)
+      alerts.push({ level: 'error', message: `You've been late ${myAttendance.late} times this month — this may affect your performance score.`, link: '/attendance' });
+    else if (myAttendance?.late >= 3)
+      alerts.push({ level: 'warning', message: `You've been late ${myAttendance.late} times this month. Try to check in on time.`, link: '/attendance' });
+    const casualLeft = myLeaves?.balance?.casual?.remaining ?? null;
+    const sickLeft = myLeaves?.balance?.sick?.remaining ?? null;
+    if (casualLeft !== null && casualLeft === 0)
+      alerts.push({ level: 'error', message: 'You have no casual leaves remaining. Any unplanned absence will be unpaid.', link: '/leaves' });
+    else if (casualLeft !== null && casualLeft === 1)
+      alerts.push({ level: 'warning', message: 'Only 1 casual leave remaining for this year. Use it wisely.', link: '/leaves' });
+    if (sickLeft !== null && sickLeft === 0)
+      alerts.push({ level: 'warning', message: 'No sick leaves remaining. Plan accordingly.', link: '/leaves' });
+    const pendingLeaveCount = myLeaves?.leaves?.filter(l => l.status === 'pending').length || 0;
+    if (pendingLeaveCount > 0)
+      alerts.push({ level: 'info', message: `You have ${pendingLeaveCount} pending leave application${pendingLeaveCount > 1 ? 's' : ''} awaiting approval.`, link: '/leaves' });
+    return alerts;
+  })();
 
   if (loading) {
     return (
@@ -97,7 +123,7 @@ const HRDashboard = () => {
         <div className="relative px-4 sm:px-6 pt-4 sm:pt-5 pb-3 flex items-center gap-3 sm:gap-4">
           <div className="w-12 h-12 sm:w-14 sm:h-14 lg:w-16 lg:h-16 rounded-2xl flex-shrink-0 ring-2 ring-white/20 shadow-inner overflow-hidden">
             {user?.profilePicture ? (
-              <img src={user.profilePicture} alt={user.name} className="w-full h-full object-cover" />
+              <img src={getUploadUrl(user.profilePicture)} alt={user.name} className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full bg-white/20 flex items-center justify-center text-lg sm:text-xl font-bold">
                 {getInitials(user?.name)}
@@ -121,9 +147,9 @@ const HRDashboard = () => {
         {/* Check-in row */}
         <div className="relative px-4 sm:px-6 py-3 flex flex-wrap items-center gap-2 sm:gap-3">
           <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold flex-shrink-0 ${
-            todayRecord?.checkIn ? 'bg-green-400/20 text-green-200' : 'bg-white/10 text-violet-200'
+            todayRecord?.checkIn ? 'bg-violet-400/20 text-violet-200' : 'bg-white/10 text-violet-200'
           }`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${todayRecord?.checkIn ? 'bg-green-300 animate-pulse' : 'bg-violet-400'}`} />
+            <span className={`w-1.5 h-1.5 rounded-full ${todayRecord?.checkIn ? 'bg-violet-300 animate-pulse' : 'bg-violet-400'}`} />
             {todayRecord?.checkIn
               ? `Checked in at ${formatTime12(todayRecord.checkIn)}${todayRecord.checkOut ? ` · Out at ${formatTime12(todayRecord.checkOut)}` : ''}`
               : 'Not checked in today'}
@@ -132,18 +158,18 @@ const HRDashboard = () => {
           <div className="flex items-center gap-2 ml-auto flex-shrink-0">
             {!todayRecord?.checkIn && (
               <button onClick={handleCheckIn} disabled={checkLoading}
-                className="px-4 py-1.5 bg-green-500 hover:bg-green-400 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-xs font-bold text-white transition-colors shadow-sm min-w-[70px]">
+                className="px-4 py-1.5 bg-violet-500 hover:bg-violet-400 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-xs font-bold text-white transition-colors shadow-sm min-w-[70px]">
                 {checkLoading ? '...' : 'Check In'}
               </button>
             )}
             {todayRecord?.checkIn && !todayRecord?.checkOut && (
               <button onClick={handleCheckOut} disabled={checkLoading}
-                className="px-4 py-1.5 bg-red-500 hover:bg-red-400 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-xs font-bold text-white transition-colors shadow-sm min-w-[70px]">
+                className="px-4 py-1.5 bg-gray-200 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-xs font-bold text-white transition-colors shadow-sm min-w-[70px]">
                 Check Out
               </button>
             )}
             {todayRecord?.checkIn && todayRecord?.checkOut && (
-              <span className="px-3 py-1.5 bg-green-400/20 text-green-200 rounded-lg text-xs font-semibold flex items-center gap-1">
+              <span className="px-3 py-1.5 bg-violet-400/20 text-violet-200 rounded-lg text-xs font-semibold flex items-center gap-1">
                 <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
                   <path d="M5 13l4 4L19 7" />
                 </svg>
@@ -157,6 +183,84 @@ const HRDashboard = () => {
         </div>
       </motion.div>
 
+      {/* Personal Intelligence Alerts */}
+      <IntelligenceAlerts alerts={personalAlerts} />
+
+      {/* Team Work Intelligence */}
+      {automationData && (
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+          className="glass-card p-4 sm:p-5">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <div>
+              <h3 className="font-bold text-violet-900">Team Work Intelligence</h3>
+              <p className="text-xs text-violet-400 mt-0.5">Live signals — auto-updated every hour</p>
+            </div>
+            <span className="flex items-center gap-1.5 text-xs font-semibold text-green-700 bg-green-50 border border-green-200 px-2.5 py-1 rounded-full">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+              Auto-running
+            </span>
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <Link to="/hr/tasks" className="p-3 rounded-xl bg-red-50 border border-red-100 hover:bg-red-100 transition-colors">
+              <p className="text-2xl font-bold text-red-700">{automationData.overdueTasks?.length ?? 0}</p>
+              <p className="text-xs font-semibold text-red-600 mt-0.5">Overdue Tasks</p>
+              <p className="text-[10px] text-red-400 mt-0.5">Need immediate attention</p>
+            </Link>
+            <Link to="/hr/attendance" className="p-3 rounded-xl bg-amber-50 border border-amber-100 hover:bg-amber-100 transition-colors">
+              <p className="text-2xl font-bold text-amber-700">{automationData.missingCheckouts?.length ?? 0}</p>
+              <p className="text-xs font-semibold text-amber-600 mt-0.5">Missing Checkouts</p>
+              <p className="text-[10px] text-amber-400 mt-0.5">Yesterday's pending</p>
+            </Link>
+            <div className="p-3 rounded-xl bg-violet-50 border border-violet-100">
+              <p className="text-2xl font-bold text-violet-700">{automationData.pendingDocs?.length ?? 0}</p>
+              <p className="text-xs font-semibold text-violet-600 mt-0.5">Pending Documents</p>
+              <p className="text-[10px] text-violet-400 mt-0.5">Compliance review needed</p>
+            </div>
+            <div className="p-3 rounded-xl bg-violet-50 border border-violet-100">
+              <p className="text-2xl font-bold text-violet-700">{automationData.avgScore ?? 0}%</p>
+              <p className="text-xs font-semibold text-violet-600 mt-0.5">Team Avg Score</p>
+              <p className="text-[10px] text-violet-400 mt-0.5">Productivity this week</p>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* My Productivity Score */}
+      {myScore?.scores?.length > 0 && (() => {
+        const latest = myScore.scores[0];
+        return (
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
+            className="glass-card p-4 sm:p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-bold text-violet-900">My Productivity Score</h3>
+              <span className="text-xs text-violet-400">{latest.week}</span>
+            </div>
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-600 to-violet-400 flex items-center justify-center flex-shrink-0">
+                <span className="text-xl font-bold text-white">{latest.totalScore}</span>
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-violet-900">Overall Score</p>
+                <div className="h-2 bg-violet-100 rounded-full mt-1.5 overflow-hidden">
+                  <motion.div initial={{ width: 0 }} animate={{ width: `${latest.totalScore}%` }} transition={{ delay: 0.3, duration: 0.6 }}
+                    className="h-full bg-gradient-to-r from-violet-600 to-violet-400 rounded-full" />
+                </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="p-2.5 bg-violet-50 rounded-xl">
+                <p className="text-[10px] text-violet-500 font-medium">Task Score</p>
+                <p className="text-lg font-bold text-violet-700">{latest.taskScore}<span className="text-xs font-normal">/40</span></p>
+              </div>
+              <div className="p-2.5 bg-violet-50 rounded-xl">
+                <p className="text-[10px] text-violet-500 font-medium">Attendance Score</p>
+                <p className="text-lg font-bold text-violet-700">{latest.attendanceScore}<span className="text-xs font-normal">/40</span></p>
+              </div>
+            </div>
+          </motion.div>
+        );
+      })()}
+
       {/* Quick Actions */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
         className="glass-card p-4 sm:p-5">
@@ -168,12 +272,12 @@ const HRDashboard = () => {
             <span className="text-[10px] sm:text-xs font-semibold text-center leading-tight">Add Employee</span>
           </Link>
           <Link to="/hr/attendance"
-            className="bg-blue-100 text-blue-700 p-3 sm:p-4 rounded-xl flex flex-col items-center gap-1.5 sm:gap-2 hover:opacity-80 transition-opacity">
+            className="bg-violet-100 text-violet-700 p-3 sm:p-4 rounded-xl flex flex-col items-center gap-1.5 sm:gap-2 hover:opacity-80 transition-opacity">
             <DI d={calendarD} className="w-5 h-5 sm:w-6 sm:h-6" />
             <span className="text-[10px] sm:text-xs font-semibold text-center leading-tight">Attendance</span>
           </Link>
           <Link to="/hr/leaves"
-            className="bg-green-100 text-green-700 p-3 sm:p-4 rounded-xl flex flex-col items-center gap-1.5 sm:gap-2 hover:opacity-80 transition-opacity">
+            className="bg-violet-100 text-violet-700 p-3 sm:p-4 rounded-xl flex flex-col items-center gap-1.5 sm:gap-2 hover:opacity-80 transition-opacity">
             <DI d={clockD} className="w-5 h-5 sm:w-6 sm:h-6" />
             <span className="text-[10px] sm:text-xs font-semibold text-center leading-tight">Leave Requests</span>
           </Link>
@@ -183,7 +287,7 @@ const HRDashboard = () => {
             <span className="text-[10px] sm:text-xs font-semibold text-center leading-tight">Assign Work</span>
           </Link>
           <Link to="/hr/payslips"
-            className="bg-red-100 text-red-700 p-3 sm:p-4 rounded-xl flex flex-col items-center gap-1.5 sm:gap-2 hover:opacity-80 transition-opacity">
+            className="bg-gray-100 text-gray-900 p-3 sm:p-4 rounded-xl flex flex-col items-center gap-1.5 sm:gap-2 hover:opacity-80 transition-opacity">
             <DI d={creditCardD} className="w-5 h-5 sm:w-6 sm:h-6" />
             <span className="text-[10px] sm:text-xs font-semibold text-center leading-tight">Payslip</span>
           </Link>
@@ -219,36 +323,36 @@ const HRDashboard = () => {
           <Link to="/admin/finance" className="text-xs text-golden-600 font-semibold hover:text-golden-700">Manage Finance →</Link>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="bg-green-50 rounded-xl p-3 sm:p-4 flex flex-col gap-1">
+          <div className="bg-violet-50 rounded-xl p-3 sm:p-4 flex flex-col gap-1">
             <div className="flex items-center gap-2 mb-1">
-              <span className="w-7 h-7 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0">
-                <DI d={currencyD} size={15} className="text-green-600" />
+              <span className="w-7 h-7 rounded-lg bg-violet-100 flex items-center justify-center flex-shrink-0">
+                <DI d={currencyD} size={15} className="text-violet-600" />
               </span>
-              <span className="text-xs font-semibold text-green-700">Income</span>
+              <span className="text-xs font-semibold text-violet-700">Income</span>
             </div>
-            <p className="text-lg sm:text-xl font-bold text-green-700 truncate">
+            <p className="text-lg sm:text-xl font-bold text-violet-700 truncate">
               {financeStats ? formatCurrency(financeStats.totalIncome) : '—'}
             </p>
           </div>
-          <div className="bg-red-50 rounded-xl p-3 sm:p-4 flex flex-col gap-1">
+          <div className="bg-gray-100 rounded-xl p-3 sm:p-4 flex flex-col gap-1">
             <div className="flex items-center gap-2 mb-1">
-              <span className="w-7 h-7 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0">
-                <DI d={trendDownD} size={15} className="text-red-600" />
+              <span className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+                <DI d={trendDownD} size={15} className="text-gray-900" />
               </span>
-              <span className="text-xs font-semibold text-red-700">Expenses</span>
+              <span className="text-xs font-semibold text-gray-900">Expenses</span>
             </div>
-            <p className="text-lg sm:text-xl font-bold text-red-700 truncate">
+            <p className="text-lg sm:text-xl font-bold text-gray-900 truncate">
               {financeStats ? formatCurrency(financeStats.totalExpense) : '—'}
             </p>
           </div>
-          <div className={`rounded-xl p-3 sm:p-4 flex flex-col gap-1 ${financeStats?.profit >= 0 ? 'bg-blue-50' : 'bg-orange-50'}`}>
+          <div className={`rounded-xl p-3 sm:p-4 flex flex-col gap-1 ${financeStats?.profit >= 0 ? 'bg-violet-50' : 'bg-gray-100'}`}>
             <div className="flex items-center gap-2 mb-1">
-              <span className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${financeStats?.profit >= 0 ? 'bg-blue-100' : 'bg-orange-100'}`}>
-                <DI d={trendUpD} size={15} className={financeStats?.profit >= 0 ? 'text-blue-600' : 'text-orange-600'} />
+              <span className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${financeStats?.profit >= 0 ? 'bg-violet-100' : 'bg-gray-100'}`}>
+                <DI d={trendUpD} size={15} className={financeStats?.profit >= 0 ? 'text-violet-600' : 'text-gray-900'} />
               </span>
-              <span className={`text-xs font-semibold ${financeStats?.profit >= 0 ? 'text-blue-700' : 'text-orange-700'}`}>Net Profit</span>
+              <span className={`text-xs font-semibold ${financeStats?.profit >= 0 ? 'text-violet-700' : 'text-gray-900'}`}>Net Profit</span>
             </div>
-            <p className={`text-lg sm:text-xl font-bold truncate ${financeStats?.profit >= 0 ? 'text-blue-700' : 'text-orange-700'}`}>
+            <p className={`text-lg sm:text-xl font-bold truncate ${financeStats?.profit >= 0 ? 'text-violet-700' : 'text-gray-900'}`}>
               {financeStats ? formatCurrency(financeStats.profit) : '—'}
             </p>
           </div>
@@ -293,7 +397,7 @@ const HRDashboard = () => {
                     />
                   </div>
                   <div className="flex justify-end mt-1">
-                    <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
+                    <span className="text-xs font-bold text-violet-600 bg-violet-50 px-2 py-0.5 rounded-full">
                       {bal.remaining} remaining
                     </span>
                   </div>

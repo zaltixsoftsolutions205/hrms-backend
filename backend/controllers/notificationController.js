@@ -1,4 +1,5 @@
 const Notification = require('../models/Notification');
+const User = require('../models/User');
 
 exports.getNotifications = async (req, res) => {
   try {
@@ -27,3 +28,56 @@ exports.markAllAsRead = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+// Save FCM push token for the logged-in user
+exports.savePushToken = async (req, res) => {
+  const { token, oldToken } = req.body;
+  if (!token) return res.status(400).json({ message: 'Token required' });
+  try {
+    // Remove old token (if rotated) then add new one — prevents duplicate notifications
+    const update = oldToken && oldToken !== token
+      ? { $pull: { pushTokens: oldToken } }
+      : {};
+    if (Object.keys(update).length) {
+      await User.findByIdAndUpdate(req.user._id, update);
+    }
+    await User.findByIdAndUpdate(req.user._id, { $addToSet: { pushTokens: token } });
+    res.json({ message: 'Push token saved' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Remove FCM push token (called on logout or permission revoked)
+exports.removePushToken = async (req, res) => {
+  const { token } = req.body;
+  if (!token) return res.status(400).json({ message: 'Token required' });
+  try {
+    await User.findByIdAndUpdate(req.user._id, { $pull: { pushTokens: token } });
+    res.json({ message: 'Push token removed' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Send a test push notification to the current user (for debugging)
+exports.testPush = async (req, res) => {
+  try {
+    const { notify } = require('../services/notificationService');
+    const note = await notify(req.user._id, {
+      title: 'Test Notification 🔔',
+      message: 'Push notifications are working correctly!',
+      type: 'general',
+      link: '',
+    });
+    const user = await User.findById(req.user._id).select('pushTokens').lean();
+    res.json({
+      message: 'Test sent',
+      pushTokensOnFile: user?.pushTokens?.length || 0,
+      notificationId: note?._id,
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+

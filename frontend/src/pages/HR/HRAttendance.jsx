@@ -21,7 +21,7 @@ const getISTClock = () => new Date().toLocaleTimeString('en-IN', { timeZone: 'As
 const REG_BADGE = {
   pending:  'bg-amber-100 text-amber-700',
   approved: 'bg-green-100 text-green-700',
-  rejected: 'bg-red-100 text-red-600',
+  rejected: 'bg-red-100 text-red-700',
 };
 
 // ── Regularization review panel ─────────────────────────────────────────────
@@ -69,10 +69,10 @@ const RegularizationsPanel = () => {
   return (
     <Card>
       {/* Sub-filter */}
-      <div className="flex items-center gap-2 mb-5">
+      <div className="filter-bar mb-5">
         {['pending', 'approved', 'rejected', ''].map((s, i) => (
           <button key={i}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${statusFilter === s ? 'bg-violet-700 text-white' : 'bg-violet-50 text-violet-600 hover:bg-violet-100'}`}
+            className={statusFilter === s ? 'filter-pill-active' : 'filter-pill-inactive'}
             onClick={() => setStatusFilter(s)}>
             {s === '' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
           </button>
@@ -105,12 +105,12 @@ const RegularizationsPanel = () => {
                     </div>
                     <div className="flex flex-wrap gap-2 mb-2">
                       {r.isLate && (
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-orange-100 text-orange-700">
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-900">
                           Late Arrival · {formatTime12(r.checkIn)}
                         </span>
                       )}
                       {r.isEarlyLeave && (
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-700">
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-900">
                           Early Leave · {formatTime12(r.checkOut)}
                         </span>
                       )}
@@ -148,13 +148,13 @@ const RegularizationsPanel = () => {
                             <button
                               onClick={() => submit(r._id, 'approved')}
                               disabled={rv.loading}
-                              className="flex-1 text-xs font-semibold px-2 py-1.5 rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 transition-colors">
+                              className="flex-1 text-xs font-semibold px-2 py-1.5 rounded-lg bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-50 transition-colors">
                               {rv.loading ? '…' : 'Approve'}
                             </button>
                             <button
                               onClick={() => submit(r._id, 'rejected')}
                               disabled={rv.loading}
-                              className="flex-1 text-xs font-semibold px-2 py-1.5 rounded-lg bg-red-500 text-white hover:bg-red-600 disabled:opacity-50 transition-colors">
+                              className="flex-1 text-xs font-semibold px-2 py-1.5 rounded-lg bg-gray-200 text-white hover:bg-gray-200 disabled:opacity-50 transition-colors">
                               {rv.loading ? '…' : 'Reject'}
                             </button>
                             <button
@@ -315,7 +315,7 @@ const HRAttendance = () => {
                 <button onClick={handleCheckIn} disabled={actionLoading} className="btn-primary btn-sm flex-1 sm:flex-none">
                   {actionLoading ? '...' : (
                     <span className="flex items-center justify-center gap-1.5">
-                      <SI d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" size={15} color="text-green-100" /> Check In
+                      <SI d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" size={15} color="text-violet-100" /> Check In
                     </span>
                   )}
                 </button>
@@ -323,13 +323,13 @@ const HRAttendance = () => {
               {todayRecord?.checkIn && !todayRecord?.checkOut && (
                 <button onClick={handleCheckOut} disabled={actionLoading} className="btn-danger btn-sm flex-1 sm:flex-none">
                   <span className="flex items-center justify-center gap-1.5">
-                    <SI d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" size={15} color="text-red-100" /> Check Out
+                    <SI d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" size={15} color="text-gray-900" /> Check Out
                   </span>
                 </button>
               )}
               {todayRecord?.checkIn && todayRecord?.checkOut && (
                 <span className="badge-green px-4 py-2 text-sm font-semibold flex items-center gap-1.5">
-                  Day Complete <SI d="M5 13l4 4L19 7" size={14} color="text-green-600" />
+                  Day Complete <SI d="M5 13l4 4L19 7" size={14} color="text-violet-600" />
                 </span>
               )}
             </div>
@@ -349,7 +349,7 @@ const HRAttendance = () => {
           onClick={() => { setTab('regularizations'); setPendingRegCount(0); }}>
           Regularizations
           {pendingRegCount > 0 && (
-            <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+            <span className="absolute -top-1 -right-1 w-4 h-4 bg-gray-200 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
               {pendingRegCount > 9 ? '9+' : pendingRegCount}
             </span>
           )}
@@ -441,12 +441,12 @@ const HRAttendance = () => {
                       </td>
                       <td className="whitespace-nowrap">{r.date}</td>
                       <td className="whitespace-nowrap">
-                        <span className={r.isLate ? 'text-orange-600 font-semibold' : ''}>{formatTime12(r.checkIn)}</span>
-                        {r.isLate && <span className="ml-1 text-[10px] text-orange-500 font-bold">LATE</span>}
+                        <span className={r.isLate ? 'text-gray-900 font-semibold' : ''}>{formatTime12(r.checkIn)}</span>
+                        {r.isLate && <span className="ml-1 text-[10px] text-gray-900 font-bold">LATE</span>}
                       </td>
                       <td className="whitespace-nowrap">
-                        <span className={r.isEarlyLeave ? 'text-red-500 font-semibold' : ''}>{formatTime12(r.checkOut)}</span>
-                        {r.isEarlyLeave && <span className="ml-1 text-[10px] text-red-400 font-bold">EARLY</span>}
+                        <span className={r.isEarlyLeave ? 'text-gray-900 font-semibold' : ''}>{formatTime12(r.checkOut)}</span>
+                        {r.isEarlyLeave && <span className="ml-1 text-[10px] text-gray-900 font-bold">EARLY</span>}
                       </td>
                       <td>{r.workHours ? `${r.workHours}h` : '—'}</td>
                       <td><Badge status={r.status} /></td>
@@ -456,7 +456,7 @@ const HRAttendance = () => {
                             {r.regularizationStatus}
                           </span>
                         ) : (r.isLate || r.isEarlyLeave) ? (
-                          <span className="text-xs text-orange-500 font-medium">Not submitted</span>
+                          <span className="text-xs text-gray-900 font-medium">Not submitted</span>
                         ) : (
                           <span className="text-violet-300 text-xs">—</span>
                         )}

@@ -1,7 +1,7 @@
 const Payslip = require('../models/Payslip');
 const User = require('../models/User');
 const Attendance = require('../models/Attendance');
-const Notification = require('../models/Notification');
+const notificationService = require('../services/notificationService');
 const { sendMail } = require('../config/mail');
 const { payslipNotificationTemplate } = require('../utils/emailTemplates');
 const generatePayslipPDF = require('../utils/generatePayslipPDF');
@@ -14,7 +14,7 @@ const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct',
 
 // HR / Admin: Generate payslip
 exports.generatePayslip = async (req, res) => {
-  const { employeeId, month, year, basicSalary, allowances, deductions, workingDays, presentDays } = req.body;
+  const { employeeId, month, year, basicSalary, allowances, deductions, workingDays, presentDays, lwpDays } = req.body;
   try {
     const existing = await Payslip.findOne({ employee: employeeId, month, year });
     if (existing) return res.status(400).json({ message: `Payslip for ${monthNames[month - 1]} ${year} already generated` });
@@ -30,6 +30,7 @@ exports.generatePayslip = async (req, res) => {
     const actualBasic       = basicSalary || 0;
     const actualWorkingDays = workingDays || 26;
     const actualPresentDays = presentDays != null ? presentDays : actualWorkingDays;
+    const actualLwpDays     = lwpDays || 0;
 
     const totalAllowances = (allowances || []).reduce((s, a) => s + (a.amount || 0), 0);
     const totalDeductions = (deductions || []).reduce((s, d) => s + (d.amount || 0), 0);
@@ -46,6 +47,7 @@ exports.generatePayslip = async (req, res) => {
       generatedBy: req.user._id,
       workingDays: actualWorkingDays,
       presentDays: actualPresentDays,
+      lwpDays: actualLwpDays,
       status: 'published',
     });
 
@@ -55,7 +57,11 @@ exports.generatePayslip = async (req, res) => {
         employee, month, year, basicSalary: payslip.basicSalary,
         allowances: payslip.allowances, deductions: payslip.deductions,
         grossSalary, netSalary, workingDays: payslip.workingDays, presentDays: actualPresentDays,
+        lwpDays: actualLwpDays,
         periodStart, periodEnd,
+        accountNumber: employee.accountNumber || '',
+        ifscCode: employee.ifscCode || '',
+        uanNumber: employee.uanNumber || '',
       });
       payslip.pdfPath = pdfPath;
       await payslip.save();
@@ -64,8 +70,7 @@ exports.generatePayslip = async (req, res) => {
     }
 
     // Notification
-    await Notification.create({
-      recipient: employeeId,
+    await notificationService.notify(employeeId, {
       title: 'Payslip Published',
       message: `Your payslip for ${monthNames[month - 1]} ${year} is now available.`,
       type: 'payslip',
@@ -162,24 +167,29 @@ exports.downloadPayslip = async (req, res) => {
     }
 
     const toAbs = (p) => path.join(__dirname, '..', (p || '').replace(/^[/\\]/, ''));
-    let absolutePath = toAbs(payslip.pdfPath);
-    if (!payslip.pdfPath || !fs.existsSync(absolutePath)) {
-      // Re-generate PDF on the fly
-      const employee = await User.findById(payslip.employee._id).populate('department');
-      const ps = payslip.toObject();
-      const pStart = moment(`${ps.year}-${String(ps.month).padStart(2, '0')}-25`).subtract(1, 'month').format('YYYY-MM-DD');
-      const pEnd   = moment(`${ps.year}-${String(ps.month).padStart(2, '0')}-24`).format('YYYY-MM-DD');
-      const pdfPath = await generatePayslipPDF({ ...ps, employee, periodStart: pStart, periodEnd: pEnd });
-      payslip.pdfPath = pdfPath;
-      await payslip.save();
-      absolutePath = toAbs(payslip.pdfPath);
-    }
+    // Always regenerate to pick up latest template + account details
+    const employee = await User.findById(payslip.employee._id).populate('department');
+    const ps = payslip.toObject();
+    const pStart = moment(`${ps.year}-${String(ps.month).padStart(2, '0')}-25`).subtract(1, 'month').format('YYYY-MM-DD');
+    const pEnd   = moment(`${ps.year}-${String(ps.month).padStart(2, '0')}-24`).format('YYYY-MM-DD');
+    const pdfPath = await generatePayslipPDF({
+      ...ps, employee, periodStart: pStart, periodEnd: pEnd,
+      accountNumber: employee.accountNumber || '',
+      ifscCode: employee.ifscCode || '',
+      uanNumber: employee.uanNumber || '',
+    });
+    payslip.pdfPath = pdfPath;
+    await payslip.save();
+    const absolutePath = toAbs(payslip.pdfPath);
     if (!fs.existsSync(absolutePath)) {
       return res.status(500).json({ message: 'PDF generation failed' });
     }
-    const filename = `${payslip.employee.employeeId}_${String(payslip.year)}-${String(payslip.month).padStart(2, '0')}.pdf`;
+    const fullMonthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const filename = `Payslip_${fullMonthNames[payslip.month - 1]}_${payslip.year}_${payslip.employee.employeeId}.pdf`;
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    // Expose Content-Disposition so the browser JS can read the filename (required for cross-origin in production)
+    res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
     fs.createReadStream(absolutePath).pipe(res);
   } catch (err) {
     res.status(500).json({ message: err.message });

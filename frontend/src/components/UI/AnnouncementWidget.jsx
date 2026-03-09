@@ -5,7 +5,7 @@ import api from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
 
 const priorityConfig = {
-  urgent:    { label: 'Urgent',    bg: 'bg-red-100',    text: 'text-red-700',    dot: 'bg-red-500' },
+  urgent:    { label: 'Urgent',    bg: 'bg-gray-100',    text: 'text-gray-900',    dot: 'bg-gray-200' },
   important: { label: 'Important', bg: 'bg-amber-100',  text: 'text-amber-700',  dot: 'bg-amber-500' },
   normal:    { label: 'Normal',    bg: 'bg-gray-100',   text: 'text-gray-600',   dot: 'bg-gray-400' },
 };

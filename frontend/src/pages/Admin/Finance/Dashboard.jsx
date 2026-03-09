@@ -37,7 +37,7 @@ const Dashboard = ({ month, year, refresh }) => {
   const profitStatus = stats.profit >= 0 ? 'positive' : 'negative';
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
@@ -47,7 +47,7 @@ const Dashboard = ({ month, year, refresh }) => {
             <SI
               d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
               size={14}
-              color="text-green-600"
+              color="text-violet-600"
             />
           }
           color="green"
@@ -59,7 +59,7 @@ const Dashboard = ({ month, year, refresh }) => {
             <SI
               d="M13 10V3L4 14h7v7l9-11h-7z"
               size={14}
-              color="text-red-600"
+              color="text-gray-900"
             />
           }
           color="red"
@@ -71,7 +71,7 @@ const Dashboard = ({ month, year, refresh }) => {
             <SI
               d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
               size={14}
-              color={profitStatus === 'positive' ? 'text-blue-600' : 'text-orange-600'}
+              color={profitStatus === 'positive' ? 'text-violet-600' : 'text-gray-900'}
             />
           }
           color={profitStatus === 'positive' ? 'blue' : 'golden'}
@@ -83,7 +83,7 @@ const Dashboard = ({ month, year, refresh }) => {
             <SI
               d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
               size={14}
-              color="text-purple-600"
+              color="text-violet-600"
             />
           }
           color="purple"
@@ -95,15 +95,15 @@ const Dashboard = ({ month, year, refresh }) => {
         <div className="grid grid-cols-3 gap-6">
           <div>
             <p className="text-sm text-gray-600 mb-2">Income</p>
-            <p className="text-2xl font-bold text-green-600">{formatCurrency(stats.totalIncome)}</p>
+            <p className="text-2xl font-bold text-violet-600">{formatCurrency(stats.totalIncome)}</p>
           </div>
           <div>
             <p className="text-sm text-gray-600 mb-2">Expenses</p>
-            <p className="text-2xl font-bold text-red-600">{formatCurrency(stats.totalExpense)}</p>
+            <p className="text-2xl font-bold text-gray-900">{formatCurrency(stats.totalExpense)}</p>
           </div>
           <div>
             <p className="text-sm text-gray-600 mb-2">Net Result</p>
-            <p className={`text-2xl font-bold ${stats.profit >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>
+            <p className={`text-2xl font-bold ${stats.profit >= 0 ? 'text-violet-600' : 'text-gray-900'}`}>
               {formatCurrency(stats.profit)}
             </p>
           </div>
@@ -111,12 +111,12 @@ const Dashboard = ({ month, year, refresh }) => {
       </Card>
 
       {/* Help Card */}
-      <Card className="bg-blue-50 border border-blue-200">
+      <Card className="bg-violet-50 border border-violet-200">
         <div className="flex items-start gap-3">
           <div className="text-2xl">ℹ️</div>
           <div>
-            <p className="font-semibold text-blue-900">Finance Dashboard</p>
-            <p className="text-sm text-blue-700 mt-1">
+            <p className="font-semibold text-violet-900">Finance Dashboard</p>
+            <p className="text-sm text-violet-700 mt-1">
               Monitor your financial health. Income is auto-synced from won deals in CRM. Track all expenses and view detailed reports by category and service.
             </p>
           </div>

@@ -7,10 +7,10 @@ import Modal from '../../components/UI/Modal';
 
 const STATUS_CONFIG = {
   pending:     { label: 'Pending',     bg: 'bg-gray-100',   text: 'text-gray-600' },
-  confirmed:   { label: 'Confirmed',   bg: 'bg-blue-100',   text: 'text-blue-700' },
+  confirmed:   { label: 'Confirmed',   bg: 'bg-violet-100',   text: 'text-violet-700' },
   'in-progress': { label: 'In Progress', bg: 'bg-amber-100', text: 'text-amber-700' },
-  delivered:   { label: 'Delivered',   bg: 'bg-green-100',  text: 'text-green-700' },
-  cancelled:   { label: 'Cancelled',   bg: 'bg-red-100',    text: 'text-red-700' },
+  delivered:   { label: 'Delivered',   bg: 'bg-violet-100',  text: 'text-violet-700' },
+  cancelled:   { label: 'Cancelled',   bg: 'bg-gray-100',    text: 'text-gray-900' },
 };
 
 const STATUSES = ['pending', 'confirmed', 'in-progress', 'delivered', 'cancelled'];
@@ -117,7 +117,7 @@ const PurchaseOrdersTab = () => {
       <AnimatePresence>
         {showForm && (
           <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-            className="glass-card p-5">
+            className="glass-card p-4">
             <h3 className="font-bold text-violet-900 mb-4">New Purchase Order</h3>
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Client Info */}
@@ -181,7 +181,7 @@ const PurchaseOrdersTab = () => {
                       </span>
                       {form.items.length > 1 && (
                         <button type="button" onClick={() => removeItem(idx)}
-                          className="col-span-1 text-red-400 hover:text-red-600 text-xs font-bold text-center">✕</button>
+                          className="col-span-1 text-gray-900 hover:text-gray-900 text-xs font-bold text-center">✕</button>
                       )}
                     </div>
                   ))}
@@ -255,7 +255,7 @@ const PurchaseOrdersTab = () => {
                     <p className="font-bold text-violet-900">{formatCurrency(po.total)}</p>
                     <p className="text-xs text-gray-400">{formatDate(po.createdAt)}</p>
                     {po.deliveryDate && (
-                      <p className={`text-[10px] ${new Date(po.deliveryDate) < new Date() && po.status !== 'delivered' ? 'text-red-400' : 'text-gray-400'}`}>
+                      <p className={`text-[10px] ${new Date(po.deliveryDate) < new Date() && po.status !== 'delivered' ? 'text-gray-900' : 'text-gray-400'}`}>
                         Delivery: {formatDate(po.deliveryDate)}
                       </p>
                     )}
@@ -334,7 +334,7 @@ const PurchaseOrdersTab = () => {
 
             <div className="flex gap-2 pt-1">
               <button onClick={() => handleDelete(selected._id)}
-                className="btn-sm border border-red-200 text-red-500 hover:bg-red-50 rounded-lg px-3 py-1 text-xs font-semibold">
+                className="btn-sm border border-gray-200 text-gray-900 hover:bg-gray-100 rounded-lg px-3 py-1 text-xs font-semibold">
                 Delete
               </button>
             </div>

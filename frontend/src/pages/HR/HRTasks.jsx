@@ -13,18 +13,21 @@ const SI = ({ d, d2, size = 16, color }) => (
   </svg>
 );
 
+const EMPTY_FORM = { title: '', description: '', assignedTo: '', priority: 'medium', deadline: '' };
+
 const HRTasks = () => {
   const [tasks, setTasks] = useState([]);
   const [kpiData, setKpiData] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [showModal, setShowModal] = useState(false);
+  const [editingTask, setEditingTask] = useState(null); // task being edited
   const [loading, setLoading] = useState(false);
   const [reminding, setReminding] = useState(null);
   const [activeTab, setActiveTab] = useState('tasks');
-  const [form, setForm] = useState({ title: '', description: '', assignedTo: '', priority: 'medium', deadline: '' });
+  const [form, setForm] = useState(EMPTY_FORM);
   const [filterEmp, setFilterEmp] = useState('');
 
-  const fetch = async () => {
+  const fetchAll = async () => {
     const [tasksRes, kpiRes, empRes] = await Promise.all([
       api.get(`/tasks${filterEmp ? `?employeeId=${filterEmp}` : ''}`).catch(() => ({ data: [] })),
       api.get('/tasks/kpi').catch(() => ({ data: [] })),
@@ -35,7 +38,7 @@ const HRTasks = () => {
     setEmployees(empRes.data);
   };
 
-  useEffect(() => { fetch(); }, [filterEmp]);
+  useEffect(() => { fetchAll(); }, [filterEmp]);
 
   const handleRemind = async (taskId) => {
     setReminding(taskId);
@@ -46,15 +49,39 @@ const HRTasks = () => {
     finally { setReminding(null); }
   };
 
-  const handleCreate = async (e) => {
+  const openCreate = () => {
+    setEditingTask(null);
+    setForm(EMPTY_FORM);
+    setShowModal(true);
+  };
+
+  const openEdit = (task) => {
+    setEditingTask(task);
+    setForm({
+      title: task.title,
+      description: task.description || '',
+      assignedTo: task.assignedTo?._id || '',
+      priority: task.priority,
+      deadline: task.deadline ? task.deadline.split('T')[0] : '',
+    });
+    setShowModal(true);
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await api.post('/tasks', form);
-      toast.success('Task assigned!');
+      if (editingTask) {
+        await api.put(`/tasks/${editingTask._id}`, form);
+        toast.success('Task updated!');
+      } else {
+        await api.post('/tasks', form);
+        toast.success('Task assigned!');
+      }
       setShowModal(false);
-      setForm({ title: '', description: '', assignedTo: '', priority: 'medium', deadline: '' });
-      fetch();
+      setForm(EMPTY_FORM);
+      setEditingTask(null);
+      fetchAll();
     } catch (err) { toast.error(err.response?.data?.message || 'Failed'); }
     finally { setLoading(false); }
   };
@@ -63,16 +90,18 @@ const HRTasks = () => {
     <div className="max-w-7xl mx-auto px-3 sm:px-4 space-y-5 animate-fade-in">
       <div className="page-header">
         <div><h2 className="page-title">Work & KPI Management</h2></div>
-        <button onClick={() => setShowModal(true)} className="btn-primary">+ Assign Task</button>
+        <button onClick={openCreate} className="btn-primary">+ Assign Task</button>
       </div>
 
-      <div className="flex gap-2">
-        {['tasks', 'kpi'].map(t => (
-          <button key={t} onClick={() => setActiveTab(t)}
-            className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${activeTab === t ? 'bg-violet-700 text-white' : 'bg-violet-100 text-violet-600 hover:bg-violet-200'}`}>
-            {t === 'tasks' ? <span className="flex items-center gap-1.5"><SI d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" size={14} /> Task List</span> : <span className="flex items-center gap-1.5"><SI d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" size={14} /> KPI Overview</span>}
-          </button>
-        ))}
+      <div className="filter-bar">
+        <button onClick={() => setActiveTab('tasks')}
+          className={activeTab === 'tasks' ? 'filter-pill-active' : 'filter-pill-inactive'}>
+          <SI d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" size={14} /> Task List
+        </button>
+        <button onClick={() => setActiveTab('kpi')}
+          className={activeTab === 'kpi' ? 'filter-pill-active' : 'filter-pill-inactive'}>
+          <SI d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" size={14} /> KPI Overview
+        </button>
       </div>
 
       {activeTab === 'tasks' ? (
@@ -85,19 +114,19 @@ const HRTasks = () => {
           </div>
           {tasks.length === 0 ? (
             <EmptyState icon={<SI d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" size={40} color="text-violet-400" />} title="No tasks" message="Assign work to employees."
-              action={{ label: 'Assign Task', onClick: () => setShowModal(true) }} />
+              action={{ label: 'Assign Task', onClick: openCreate }} />
           ) : (
-            <div className="overflow-x-auto">
-              <table className="data-table">
+            <div className="overflow-x-auto -mx-5 px-5">
+              <table className="data-table min-w-[700px]">
                 <thead>
-                  <tr><th>Task</th><th>Assigned To</th><th>Priority</th><th>Deadline</th><th>Status</th><th>Action</th></tr>
+                  <tr><th>Task</th><th>Assigned To</th><th>Priority</th><th>Deadline</th><th>Status</th><th>Remarks</th><th>Actions</th></tr>
                 </thead>
                 <tbody>
                   {tasks.map(t => (
                     <tr key={t._id}>
                       <td>
                         <p className="font-medium text-violet-900">{t.title}</p>
-                        {t.description && <p className="text-xs text-violet-400 mt-0.5 truncate max-w-xs">{t.description}</p>}
+                        {t.description && <p className="text-xs text-violet-400 mt-0.5 truncate max-w-[200px]">{t.description}</p>}
                       </td>
                       <td>
                         <p className="font-medium">{t.assignedTo?.name}</p>
@@ -107,17 +136,34 @@ const HRTasks = () => {
                       <td>{formatDate(t.deadline)}</td>
                       <td><Badge status={t.status} /></td>
                       <td>
-                        {t.status !== 'completed' && (
+                        {t.remarks
+                          ? <p className="text-xs text-gray-600 max-w-[140px] truncate" title={t.remarks}>{t.remarks}</p>
+                          : <span className="text-xs text-violet-300">—</span>}
+                      </td>
+                      <td>
+                        <div className="flex items-center gap-1.5">
+                          {/* Edit button — always available */}
                           <button
-                            onClick={() => handleRemind(t._id)}
-                            disabled={reminding === t._id}
-                            title="Send reminder to employee"
-                            className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition-colors disabled:opacity-50"
+                            onClick={() => openEdit(t)}
+                            title="Edit task"
+                            className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg bg-violet-50 text-violet-700 border border-violet-200 hover:bg-violet-100 transition-colors"
                           >
-                            <SI d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" size={13} />
-                            {reminding === t._id ? 'Sending...' : 'Remind'}
+                            <SI d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" size={12} />
+                            Edit
                           </button>
-                        )}
+                          {/* Remind button — only for incomplete tasks */}
+                          {t.status !== 'completed' && (
+                            <button
+                              onClick={() => handleRemind(t._id)}
+                              disabled={reminding === t._id}
+                              title="Send reminder"
+                              className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition-colors disabled:opacity-50"
+                            >
+                              <SI d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" size={12} />
+                              {reminding === t._id ? '...' : 'Remind'}
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -132,7 +178,7 @@ const HRTasks = () => {
             <EmptyState icon={<SI d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" size={40} color="text-violet-400" />} title="No KPI data" message="Assign tasks to employees to see KPI overview." />
           ) : (
             kpiData.map(item => (
-              <div key={item.employee._id} className="glass-card p-5">
+              <div key={item.employee._id} className="glass-card p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="font-bold text-violet-900">{item.employee.name}</p>
@@ -149,9 +195,9 @@ const HRTasks = () => {
                 </div>
                 <div className="flex gap-4 mt-3 text-xs">
                   <span className="text-violet-500">Total: <strong className="text-violet-900">{item.total}</strong></span>
-                  <span className="text-green-600">Done: <strong>{item.completed}</strong></span>
+                  <span className="text-violet-600">Done: <strong>{item.completed}</strong></span>
                   <span className="text-golden-600">Active: <strong>{item.inProgress}</strong></span>
-                  {item.overdue > 0 && <span className="text-red-600">Overdue: <strong>{item.overdue}</strong></span>}
+                  {item.overdue > 0 && <span className="text-gray-900">Overdue: <strong>{item.overdue}</strong></span>}
                 </div>
               </div>
             ))
@@ -159,28 +205,35 @@ const HRTasks = () => {
         </div>
       )}
 
-      {/* Create Task Modal */}
-      <Modal isOpen={showModal} onClose={() => setShowModal(false)} title="Assign New Task">
-        <form onSubmit={handleCreate} className="space-y-4">
+      {/* Create / Edit Task Modal */}
+      <Modal isOpen={showModal} onClose={() => { setShowModal(false); setEditingTask(null); setForm(EMPTY_FORM); }}
+        title={editingTask ? 'Edit Task' : 'Assign New Task'}>
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="input-label">Task Title *</label>
-            <input className="input-field" required value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Task title" />
+            <input className="input-field" required value={form.title}
+              onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Task title" />
           </div>
           <div>
             <label className="input-label">Description</label>
-            <textarea className="input-field" rows={3} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Task details..." />
+            <textarea className="input-field" rows={3} value={form.description}
+              onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Task details..." />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="input-label">Assign To *</label>
-              <select className="input-field" required value={form.assignedTo} onChange={e => setForm(f => ({ ...f, assignedTo: e.target.value }))}>
+              <select className="input-field" required value={form.assignedTo}
+                onChange={e => setForm(f => ({ ...f, assignedTo: e.target.value }))}
+                disabled={!!editingTask}>
                 <option value="">Select employee</option>
                 {employees.map(e => <option key={e._id} value={e._id}>{e.name}</option>)}
               </select>
+              {editingTask && <p className="text-xs text-violet-400 mt-1">Assigned employee cannot be changed</p>}
             </div>
             <div>
               <label className="input-label">Priority</label>
-              <select className="input-field" value={form.priority} onChange={e => setForm(f => ({ ...f, priority: e.target.value }))}>
+              <select className="input-field" value={form.priority}
+                onChange={e => setForm(f => ({ ...f, priority: e.target.value }))}>
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>
                 <option value="high">High</option>
@@ -190,12 +243,16 @@ const HRTasks = () => {
           <div>
             <label className="input-label">Deadline *</label>
             <input type="date" className="input-field" required value={form.deadline}
-              onChange={e => setForm(f => ({ ...f, deadline: e.target.value }))}
-              min={new Date().toISOString().split('T')[0]} />
+              onChange={e => setForm(f => ({ ...f, deadline: e.target.value }))} />
           </div>
-          <div className="flex gap-3">
-            <button type="submit" className="btn-primary flex-1" disabled={loading}>{loading ? 'Assigning...' : 'Assign Task'}</button>
-            <button type="button" className="btn-secondary flex-1" onClick={() => setShowModal(false)}>Cancel</button>
+          <div className="flex gap-3 pt-1">
+            <button type="submit" className="btn-primary flex-1" disabled={loading}>
+              {loading ? (editingTask ? 'Saving...' : 'Assigning...') : (editingTask ? 'Save Changes' : 'Assign Task')}
+            </button>
+            <button type="button" className="btn-secondary flex-1"
+              onClick={() => { setShowModal(false); setEditingTask(null); setForm(EMPTY_FORM); }}>
+              Cancel
+            </button>
           </div>
         </form>
       </Modal>

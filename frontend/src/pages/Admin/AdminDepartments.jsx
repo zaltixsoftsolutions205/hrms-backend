@@ -76,14 +76,14 @@ const AdminDepartments = () => {
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {departments.map(dept => (
             <motion.div key={dept._id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-              className="glass-card p-5">
+              className="glass-card p-4">
               <div className="flex items-start justify-between mb-3">
                 <div className="w-10 h-10 bg-violet-100 rounded-xl flex items-center justify-center flex-shrink-0">
                   <SI d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" size={20} color="text-violet-600" />
                 </div>
                 <div className="flex gap-1">
                   <button onClick={() => openEdit(dept)} className="btn-ghost btn-sm text-xs">Edit</button>
-                  <button onClick={() => handleDelete(dept._id)} className="btn-ghost btn-sm text-xs text-red-500 hover:text-red-700 hover:bg-red-50">Delete</button>
+                  <button onClick={() => handleDelete(dept._id)} className="btn-ghost btn-sm text-xs text-gray-900 hover:text-gray-900 hover:bg-gray-100">Delete</button>
                 </div>
               </div>
               <h3 className="font-bold text-violet-900 text-lg">{dept.name}</h3>

@@ -253,7 +253,7 @@
 //             <div className="flex justify-between"><span className="text-gray-600">Basic Salary</span><span className="font-semibold">{formatCurrency(basicVal)}</span></div>
 //             <div className="flex justify-between"><span className="text-gray-600">Allowances</span><span className="font-semibold">{formatCurrency(totalAllowances)}</span></div>
 //             <div className="flex justify-between"><span className="text-gray-600">Gross Salary</span><span className="font-semibold">{formatCurrency(grossSalary)}</span></div>
-//             <div className="flex justify-between"><span className="text-gray-600">Total Deductions (PF + ESI + Tax + ...)</span><span className="font-semibold text-red-600">- {formatCurrency(totalDeductions)}</span></div>
+//             <div className="flex justify-between"><span className="text-gray-600">Total Deductions (PF + ESI + Tax + ...)</span><span className="font-semibold text-gray-900">- {formatCurrency(totalDeductions)}</span></div>
 //             <div className="flex justify-between border-t border-violet-200 pt-2"><span className="font-bold text-violet-900">Net Pay</span><span className="font-bold text-golden-600 text-lg">{formatCurrency(netSalary)}</span></div>
 //           </div>
 
@@ -305,24 +305,23 @@ const HRPayslips = () => {
     designation: '',
     panNo: '',
     // Attendance
-    presentDays: 31,
-    weeklyOffDays: 0,
+    workingDays: 26,
+    presentDays: 26,
     lwpDays: 0,
-    paidDays: 31,
     extraWorkedHours: 0,
     // Earnings
     earnings: {
-      basic: 0,
-      da: 0,
-      hra: 0,
-      otherAllowance: 0,
-      incentives: 0,
+      basic: '',
+      da: '',
+      hra: '',
+      otherAllowance: '',
+      incentives: '',
     },
     // Deductions
     deductions: {
-      pf: 0,
-      pt: 0,
-      esi: 0,
+      pf: '',
+      pt: '',
+      esi: '',
     },
   });
 
@@ -357,11 +356,11 @@ const HRPayslips = () => {
         designation: emp.designation || 'Management Trainee',
         panNo: emp.panNo || '',
         earnings: {
-          basic: emp.basicSalary || 0,
-          da: emp.da || 0,
-          hra: emp.hra || 0,
-          otherAllowance: emp.otherAllowance || 0,
-          incentives: 0,
+          basic: emp.basicSalary ? String(emp.basicSalary) : '',
+          da: emp.da ? String(emp.da) : '',
+          hra: emp.hra ? String(emp.hra) : '',
+          otherAllowance: emp.otherAllowance ? String(emp.otherAllowance) : '',
+          incentives: '',
         }
       }));
     }
@@ -379,24 +378,14 @@ const HRPayslips = () => {
 
   // Handle input changes for earnings
   const handleEarningChange = (field, value) => {
-    setForm(f => ({
-      ...f,
-      earnings: {
-        ...f.earnings,
-        [field]: parseFloat(value) || 0
-      }
-    }));
+    if (value !== '' && !/^\d*\.?\d*$/.test(value)) return;
+    setForm(f => ({ ...f, earnings: { ...f.earnings, [field]: value } }));
   };
 
   // Handle input changes for deductions
   const handleDeductionChange = (field, value) => {
-    setForm(f => ({
-      ...f,
-      deductions: {
-        ...f.deductions,
-        [field]: parseFloat(value) || 0
-      }
-    }));
+    if (value !== '' && !/^\d*\.?\d*$/.test(value)) return;
+    setForm(f => ({ ...f, deductions: { ...f.deductions, [field]: value } }));
   };
 
   const handleGenerate = async (e) => {
@@ -429,8 +418,9 @@ const HRPayslips = () => {
         month: form.month,
         year: form.year,
         basicSalary: parseFloat(form.earnings.basic) || 0,
-        workingDays: form.paidDays || 26,
-        presentDays: form.presentDays || form.paidDays || 26,
+        workingDays: form.workingDays || 26,
+        presentDays: form.presentDays || form.workingDays || 26,
+        lwpDays: form.lwpDays || 0,
         grossSalary,
         netSalary,
         allowances,
@@ -462,13 +452,15 @@ const HRPayslips = () => {
     try {
       const res = await api.get(`/payslips/${id}/download`, { responseType: 'blob' });
       const url = URL.createObjectURL(res.data);
-      const cd = res.headers && (res.headers['content-disposition'] || res.headers['Content-Disposition']);
+      const FULL_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+      const cd = res.headers?.['content-disposition'];
       let filename = '';
       if (cd) {
         const m = cd.match(/filename\*?=(?:UTF-8''?)?"?([^";]+)/i);
         if (m && m[1]) filename = decodeURIComponent(m[1].replace(/"/g, ''));
       }
-      if (!filename) filename = `${emp?.name?.replace(/ /g, '_')}_${String(year)}-${String(month).padStart(2, '0')}.pdf`;
+      // Fallback: match backend's format exactly — Payslip_Month_Year_EmployeeCode.pdf
+      if (!filename) filename = `Payslip_${FULL_MONTHS[month - 1]}_${year}_${emp?.employeeId || 'EMP'}.pdf`;
       const a = document.createElement('a');
       a.href = url;
       a.download = filename;
@@ -534,100 +526,148 @@ const HRPayslips = () => {
         </div>
 
         {payslips.length === 0 ? (
-          <EmptyState 
-            icon={<SI d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" size={40} color="text-violet-400" />} 
-            title="No payslips" 
+          <EmptyState
+            icon={<SI d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" size={40} color="text-violet-400" />}
+            title="No payslips"
             message="Generate payslips for employees."
-            action={{ label: 'Generate', onClick: () => setShowModal(true) }} 
+            action={{ label: 'Generate', onClick: () => setShowModal(true) }}
           />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Employee</th>
-                  <th>Period</th>
-                  <th>Basic</th>
-                  <th>Gross</th>
-                  <th>Net Pay</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {payslips.map(ps => (
-                  <tr key={ps._id}>
-                    <td>
-                      <p className="font-medium text-violet-900">{ps.employeeName || ps.employee?.name}</p>
-                      <p className="text-xs text-violet-400">{ps.employeeCode || ps.employee?.employeeId}</p>
-                    </td>
-                    <td>{monthName(ps.month)} {ps.year}</td>
-                    <td>{formatCurrency(ps.earnings?.basic || 0)}</td>
-                    <td>{formatCurrency(ps.grossSalary || 0)}</td>
-                    <td className="font-bold text-golden-600">{formatCurrency(ps.netSalary || 0)}</td>
-                    <td>
-                      <div className="flex items-center gap-2">
-                        <button 
-                          onClick={() => handleDownload(ps._id, { name: ps.employeeName }, ps.month, ps.year)}
-                          disabled={downloading === ps._id}
-                          className="btn-primary btn-sm flex items-center gap-1"
-                        >
-                          {downloading === ps._id ? '...' : (
-                            <>
-                              <SI d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" size={13} color="text-white" /> 
-                              PDF
-                            </>
-                          )}
-                        </button>
-                        <button 
-                          onClick={() => handleDelete(ps._id)}
-                          disabled={deleting === ps._id}
-                          className="btn-danger btn-sm flex items-center justify-center aspect-square"
-                        >
-                          {deleting === ps._id ? '…' : (
-                            <SI d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" size={14} color="text-white" />
-                          )}
-                        </button>
-                      </div>
-                    </td>
+          <>
+            {/* Mobile cards */}
+            <div className="md:hidden space-y-3">
+              {payslips.map(ps => (
+                <div key={ps._id} className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+                  <div className="flex items-start justify-between gap-2 mb-3">
+                    <div>
+                      <p className="font-semibold text-violet-900 text-sm">{ps.employee?.name}</p>
+                      <p className="text-xs text-violet-400">{ps.employee?.employeeId}</p>
+                      {ps.generatedBy?.name && (
+                        <p className="text-xs text-gray-400 mt-0.5">By {ps.generatedBy.name}</p>
+                      )}
+                    </div>
+                    <span className="text-xs font-semibold bg-violet-50 text-violet-600 px-2 py-0.5 rounded-full whitespace-nowrap">
+                      {monthName(ps.month)} {ps.year}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 mb-3 text-center">
+                    <div className="bg-gray-50 rounded-lg p-2">
+                      <p className="text-[10px] text-gray-400 uppercase font-semibold">Basic</p>
+                      <p className="text-xs font-bold text-gray-700">{formatCurrency(ps.basicSalary || 0)}</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-2">
+                      <p className="text-[10px] text-gray-400 uppercase font-semibold">Gross</p>
+                      <p className="text-xs font-bold text-gray-700">{formatCurrency(ps.grossSalary || 0)}</p>
+                    </div>
+                    <div className="bg-violet-50 rounded-lg p-2">
+                      <p className="text-[10px] text-violet-400 uppercase font-semibold">Net Pay</p>
+                      <p className="text-xs font-bold text-violet-700">{formatCurrency(ps.netSalary || 0)}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleDownload(ps._id, ps.employee, ps.month, ps.year)}
+                      disabled={downloading === ps._id}
+                      className="btn-primary btn-sm flex items-center gap-1 flex-1 justify-center text-xs"
+                    >
+                      {downloading === ps._id ? 'Downloading...' : (
+                        <><SI d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" size={13} color="text-white" /> Download PDF</>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => handleDelete(ps._id)}
+                      disabled={deleting === ps._id}
+                      className="btn-danger btn-sm flex items-center justify-center px-3"
+                    >
+                      {deleting === ps._id ? '…' : <SI d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" size={14} color="text-white" />}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Employee</th>
+                    <th>Period</th>
+                    <th>Generated By</th>
+                    <th>Basic</th>
+                    <th>Gross</th>
+                    <th>Net Pay</th>
+                    <th>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {payslips.map(ps => (
+                    <tr key={ps._id}>
+                      <td>
+                        <p className="font-medium text-violet-900">{ps.employee?.name}</p>
+                        <p className="text-xs text-violet-400">{ps.employee?.employeeId}</p>
+                      </td>
+                      <td>{monthName(ps.month)} {ps.year}</td>
+                      <td className="text-sm text-gray-600">{ps.generatedBy?.name || '—'}</td>
+                      <td>{formatCurrency(ps.basicSalary || 0)}</td>
+                      <td>{formatCurrency(ps.grossSalary || 0)}</td>
+                      <td className="font-bold text-golden-600">{formatCurrency(ps.netSalary || 0)}</td>
+                      <td>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleDownload(ps._id, ps.employee, ps.month, ps.year)}
+                            disabled={downloading === ps._id}
+                            className="btn-primary btn-sm flex items-center gap-1"
+                          >
+                            {downloading === ps._id ? '...' : (
+                              <><SI d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" size={13} color="text-white" /> PDF</>
+                            )}
+                          </button>
+                          <button
+                            onClick={() => handleDelete(ps._id)}
+                            disabled={deleting === ps._id}
+                            className="btn-danger btn-sm flex items-center justify-center aspect-square"
+                          >
+                            {deleting === ps._id ? '…' : <SI d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" size={14} color="text-white" />}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </Card>
 
       {/* Generate Payslip Modal */}
       <Modal isOpen={showModal} onClose={() => setShowModal(false)} title="Generate Payslip" size="lg">
-        <form onSubmit={handleGenerate} className="space-y-4 max-h-[70vh] overflow-y-auto p-1">
-          {/* Employee Selection */}
+        <form onSubmit={handleGenerate} className="space-y-5 max-h-[78vh] overflow-y-auto px-1 pb-1">
+
+          {/* ── Employee + Period ── */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="input-label">Employee *</label>
               <select className="input-field" required value={form.employeeId} onChange={e => handleEmpSelect(e.target.value)}>
                 <option value="">Select employee</option>
                 {employees.map(e => (
-                  <option key={e._id} value={e._id}>
-                    {e.name} ({e.employeeId})
-                  </option>
+                  <option key={e._id} value={e._id}>{e.name} ({e.employeeId})</option>
                 ))}
               </select>
             </div>
             <div>
               <label className="input-label">PAN No.</label>
-              <input type="text" className="input-field" value={form.panNo} readOnly placeholder="Auto-filled" />
+              <input type="text" className="input-field bg-gray-50" value={form.panNo} readOnly placeholder="Auto-filled" />
             </div>
           </div>
 
-          {/* Period */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="input-label">Month *</label>
               <select className="input-field" value={form.month} onChange={e => setForm(f => ({ ...f, month: parseInt(e.target.value) }))}>
                 {Array.from({ length: 12 }, (_, i) => (
-                  <option key={i + 1} value={i + 1}>
-                    {new Date(0, i).toLocaleString('default', { month: 'long' })}
-                  </option>
+                  <option key={i + 1} value={i + 1}>{new Date(0, i).toLocaleString('default', { month: 'long' })}</option>
                 ))}
               </select>
             </div>
@@ -641,135 +681,131 @@ const HRPayslips = () => {
             </div>
           </div>
 
-          {/* Employee Details Display */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-gray-50 p-3 rounded-lg">
-            <div>
-              <label className="text-xs text-gray-500">Location</label>
-              <p className="font-medium text-sm">{form.location}</p>
+          {/* ── Employee Info (read-only) ── */}
+          {form.employeeId && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-violet-50 border border-violet-100 p-3 rounded-xl">
+              {[
+                { label: 'Employee Code', value: form.employeeCode },
+                { label: 'Designation',   value: form.designation },
+                { label: 'Department',    value: form.department },
+                { label: 'Location',      value: form.location },
+              ].map(({ label, value }) => (
+                <div key={label}>
+                  <p className="text-[11px] font-semibold text-violet-400 uppercase tracking-wide">{label}</p>
+                  <p className="text-sm font-semibold text-violet-900 mt-0.5 truncate">{value || '—'}</p>
+                </div>
+              ))}
             </div>
-            <div>
-              <label className="text-xs text-gray-500">Department</label>
-              <p className="font-medium text-sm">{form.department}</p>
-            </div>
-            <div>
-              <label className="text-xs text-gray-500">Designation</label>
-              <p className="font-medium text-sm">{form.designation}</p>
-            </div>
-            <div>
-              <label className="text-xs text-gray-500">Employee Code</label>
-              <p className="font-medium text-sm">{form.employeeCode}</p>
-            </div>
-          </div>
+          )}
 
-          {/* Attendance */}
-          <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-            <div>
-              <label className="input-label">Present Days</label>
-              <input type="number" className="input-field" value={form.presentDays}
-                onChange={e => setForm(f => ({ ...f, presentDays: parseInt(e.target.value) }))} />
-            </div>
-            <div>
-              <label className="input-label">Weekly Off</label>
-              <input type="number" className="input-field" value={form.weeklyOffDays}
-                onChange={e => setForm(f => ({ ...f, weeklyOffDays: parseInt(e.target.value) }))} />
-            </div>
-            <div>
-              <label className="input-label">LWP Days</label>
-              <input type="number" className="input-field" value={form.lwpDays}
-                onChange={e => setForm(f => ({ ...f, lwpDays: parseInt(e.target.value) }))} />
-            </div>
-            <div>
-              <label className="input-label">Paid Days</label>
-              <input type="number" className="input-field" value={form.paidDays}
-                onChange={e => setForm(f => ({ ...f, paidDays: parseInt(e.target.value) }))} />
-            </div>
-            <div>
-              <label className="input-label">Extra Hrs</label>
-              <input type="number" className="input-field" value={form.extraWorkedHours}
-                onChange={e => setForm(f => ({ ...f, extraWorkedHours: parseInt(e.target.value) }))} />
-            </div>
-          </div>
-
-          {/* Earnings Section */}
-          <div className="border border-violet-100 rounded-lg p-3">
-            <h3 className="font-semibold text-violet-900 mb-2">Earnings</h3>
-            <div className="grid grid-cols-2 gap-2">
+          {/* ── Attendance ── */}
+          <div>
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Attendance</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div>
-                <label className="input-label">Basic Salary (₹)</label>
-                <input type="number" className="input-field" value={form.earnings.basic}
+                <label className="input-label">Working Days</label>
+                <input type="number" className="input-field" value={form.workingDays}
+                  onChange={e => setForm(f => ({ ...f, workingDays: parseInt(e.target.value) }))} />
+              </div>
+              <div>
+                <label className="input-label">Present Days</label>
+                <input type="number" className="input-field" value={form.presentDays}
+                  onChange={e => setForm(f => ({ ...f, presentDays: parseInt(e.target.value) }))} />
+              </div>
+              <div>
+                <label className="input-label">Loss of Pay</label>
+                <input type="number" className="input-field" value={form.lwpDays}
+                  onChange={e => setForm(f => ({ ...f, lwpDays: parseInt(e.target.value) || 0 }))} />
+              </div>
+              <div>
+                <label className="input-label">Extra Hrs</label>
+                <input type="number" className="input-field" value={form.extraWorkedHours}
+                  onChange={e => setForm(f => ({ ...f, extraWorkedHours: parseInt(e.target.value) }))} />
+              </div>
+            </div>
+          </div>
+
+          {/* ── Earnings ── */}
+          <div className="border border-violet-100 rounded-xl p-4">
+            <p className="text-xs font-bold text-violet-700 uppercase tracking-wide mb-3">Earnings</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="input-label">Basic Salary (Rs.)</label>
+                <input type="text" inputMode="decimal" className="input-field" value={form.earnings.basic}
                   onChange={e => handleEarningChange('basic', e.target.value)} placeholder="0" />
               </div>
               <div>
-                <label className="input-label">Dearness Allowance (₹)</label>
-                <input type="number" className="input-field" value={form.earnings.da}
+                <label className="input-label">Dearness Allowance (Rs.)</label>
+                <input type="text" inputMode="decimal" className="input-field" value={form.earnings.da}
                   onChange={e => handleEarningChange('da', e.target.value)} placeholder="0" />
               </div>
               <div>
-                <label className="input-label">House Rent Allowance (₹)</label>
-                <input type="number" className="input-field" value={form.earnings.hra}
+                <label className="input-label">House Rent Allowance (Rs.)</label>
+                <input type="text" inputMode="decimal" className="input-field" value={form.earnings.hra}
                   onChange={e => handleEarningChange('hra', e.target.value)} placeholder="0" />
               </div>
               <div>
-                <label className="input-label">Other Allowance (₹)</label>
-                <input type="number" className="input-field" value={form.earnings.otherAllowance}
+                <label className="input-label">Other Allowance (Rs.)</label>
+                <input type="text" inputMode="decimal" className="input-field" value={form.earnings.otherAllowance}
                   onChange={e => handleEarningChange('otherAllowance', e.target.value)} placeholder="0" />
               </div>
               {isSalesEmployee && (
                 <div>
-                  <label className="input-label">Incentives (₹)</label>
-                  <input type="number" className="input-field" value={form.earnings.incentives}
+                  <label className="input-label">Incentives (Rs.)</label>
+                  <input type="text" inputMode="decimal" className="input-field" value={form.earnings.incentives}
                     onChange={e => handleEarningChange('incentives', e.target.value)} placeholder="0" />
                 </div>
               )}
             </div>
           </div>
 
-          {/* Deductions Section */}
-          <div className="border border-violet-100 rounded-lg p-3">
-            <h3 className="font-semibold text-violet-900 mb-2">Deductions</h3>
-            <div className="grid grid-cols-3 gap-2">
+          {/* ── Deductions ── */}
+          <div className="border border-gray-100 rounded-xl p-4">
+            <p className="text-xs font-bold text-gray-900 uppercase tracking-wide mb-3">Deductions</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
-                <label className="input-label">Provident Fund (₹)</label>
-                <input type="number" className="input-field" value={form.deductions.pf}
+                <label className="input-label">Provident Fund (Rs.)</label>
+                <input type="text" inputMode="decimal" className="input-field" value={form.deductions.pf}
                   onChange={e => handleDeductionChange('pf', e.target.value)} placeholder="0" />
               </div>
               <div>
-                <label className="input-label">Professional Tax (₹)</label>
-                <input type="number" className="input-field" value={form.deductions.pt}
+                <label className="input-label">Professional Tax (Rs.)</label>
+                <input type="text" inputMode="decimal" className="input-field" value={form.deductions.pt}
                   onChange={e => handleDeductionChange('pt', e.target.value)} placeholder="0" />
               </div>
               <div>
-                <label className="input-label">ESI (₹)</label>
-                <input type="number" className="input-field" value={form.deductions.esi}
+                <label className="input-label">ESI (Rs.)</label>
+                <input type="text" inputMode="decimal" className="input-field" value={form.deductions.esi}
                   onChange={e => handleDeductionChange('esi', e.target.value)} placeholder="0" />
               </div>
             </div>
           </div>
 
-          {/* Summary */}
-          <div className="bg-gradient-to-r from-violet-50 to-golden-50 rounded-xl p-4 space-y-2 text-sm">
-            <div className="flex justify-between">
+          {/* ── Summary ── */}
+          <div className="bg-gradient-to-br from-violet-50 to-purple-50 border border-violet-100 rounded-xl p-4 space-y-2 text-sm">
+            <div className="flex justify-between items-center">
               <span className="text-gray-600">Total Earnings</span>
-              <span className="font-semibold">{formatCurrency(totalEarnings)}</span>
+              <span className="font-semibold text-violet-700">{formatCurrency(totalEarnings)}</span>
             </div>
-            <div className="flex justify-between">
+            <div className="flex justify-between items-center">
               <span className="text-gray-600">Total Deductions</span>
-              <span className="font-semibold text-red-600">- {formatCurrency(totalDeductions)}</span>
+              <span className="font-semibold text-gray-900">− {formatCurrency(totalDeductions)}</span>
             </div>
-            <div className="flex justify-between border-t border-violet-200 pt-2">
+            <div className="flex justify-between items-center border-t border-violet-200 pt-2">
               <span className="font-bold text-violet-900">Net Payable</span>
-              <span className="font-bold text-golden-600 text-lg">{formatCurrency(netPayable)}</span>
+              <span className="font-bold text-violet-700 text-lg">{formatCurrency(netPayable)}</span>
             </div>
-            <p className="text-xs text-gray-500 mt-1">
-              In Words: {numberToWords(Math.round(netPayable))}
+            <p className="text-xs text-gray-400 pt-1 leading-relaxed">
+              In Words: <span className="text-gray-600 italic">{numberToWords(Math.round(netPayable))}</span>
             </p>
           </div>
 
-          <div className="flex gap-3">
-            <button type="submit" className="btn-primary flex-1" disabled={loading}>
+          {/* ── Actions ── */}
+          <div className="flex flex-col sm:flex-row gap-3 pt-1">
+            <button type="submit" className="btn-primary flex-1 justify-center" disabled={loading}>
               {loading ? 'Generating...' : 'Generate & Publish'}
             </button>
-            <button type="button" className="btn-secondary flex-1" onClick={() => setShowModal(false)}>
+            <button type="button" className="btn-secondary flex-1 justify-center" onClick={() => setShowModal(false)}>
               Cancel
             </button>
           </div>
