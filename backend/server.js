@@ -69,7 +69,8 @@ app.use('/api/holidays', require('./routes/holidays'));
 app.use('/api/quotations', require('./routes/quotations'));
 app.use('/api/purchase-orders', require('./routes/purchaseOrders'));
 app.use('/api/recruitment', require('./routes/recruitment'));
-app.use('/api/products',   require('./routes/products'));
+app.use('/api/products',    require('./routes/products'));
+app.use('/api/field-leads', require('./routes/fieldLeads'));
 app.use('/api/automation', require('./routes/automation'));
 
 // =======================

@@ -97,22 +97,25 @@ async function checkTasks() {
     const now = new Date();
     const in24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
-    // Overdue (deadline passed, not complete)
+    // Overdue (deadline passed, not complete) — exclude admin self-tasks
     const overdueTasks = await Task.find({
       deadline: { $lt: now },
       status: { $nin: ['completed'] },
+      isSelfTask: { $ne: true },
     }).populate('assignedTo assignedBy', '_id name');
 
     for (const task of overdueTasks) {
       const daysPast = Math.floor((now - task.deadline) / 86400000);
       const label = daysPast === 0 ? 'today' : `${daysPast}d ago`;
 
-      // Notify employee (once per day — avoid spam by checking no recent notification)
+      // Notify employee once per day
       await notify(task.assignedTo._id, {
         title: '⏰ Task Overdue',
         message: `Your task "${task.title}" was due ${label}. Please update the status.`,
         type: 'task',
         link: '/tasks',
+        dedupKey: `overdue-emp-${task._id}`,
+        dedupWindowMs: 24 * 60 * 60 * 1000,
       });
 
       // Escalate to admin/assignedBy if different from employee
@@ -122,14 +125,17 @@ async function checkTasks() {
           message: `"${task.title}" assigned to ${task.assignedTo.name} is overdue (due ${label}). Status: ${task.status}.`,
           type: 'task',
           link: '/admin/tasks',
+          dedupKey: `overdue-mgr-${task._id}`,
+          dedupWindowMs: 24 * 60 * 60 * 1000,
         });
       }
     }
 
-    // Due in next 24h — reminder
+    // Due in next 24h — reminder (exclude admin self-tasks)
     const upcomingTasks = await Task.find({
       deadline: { $gte: now, $lte: in24h },
       status: { $nin: ['completed'] },
+      isSelfTask: { $ne: true },
     }).populate('assignedTo', '_id name');
 
     for (const task of upcomingTasks) {
@@ -139,6 +145,8 @@ async function checkTasks() {
         message: `"${task.title}" is due in ~${hoursLeft}h. Mark it complete before the deadline.`,
         type: 'task',
         link: '/tasks',
+        dedupKey: `upcoming-${task._id}`,
+        dedupWindowMs: 6 * 60 * 60 * 1000,
       });
     }
 
@@ -169,6 +177,8 @@ async function checkMissingCheckout() {
         message: `You haven't checked out today. Please update your attendance to avoid discrepancy.`,
         type: 'general',
         link: '/attendance',
+        dedupKey: `checkout-${rec.employee._id}-${today}`,
+        dedupWindowMs: 24 * 60 * 60 * 1000,
       });
     }
 
@@ -206,6 +216,8 @@ async function checkAttendancePatterns() {
           message: `You have been late ${lateDays} times in the last 10 working days. Please maintain office hours (9:30 AM).`,
           type: 'general',
           link: '/attendance',
+          dedupKey: `late-att-${emp._id}`,
+          dedupWindowMs: 7 * 24 * 60 * 60 * 1000,
         });
       }
 
@@ -215,6 +227,8 @@ async function checkAttendancePatterns() {
           message: `You have ${absentDays} unrecorded days in the last 10 working days. Please regularize if needed.`,
           type: 'general',
           link: '/attendance',
+          dedupKey: `absent-att-${emp._id}`,
+          dedupWindowMs: 7 * 24 * 60 * 60 * 1000,
         });
       }
 
@@ -226,6 +240,8 @@ async function checkAttendancePatterns() {
             message: `${emp.name} — Late: ${lateDays}, Absent: ${absentDays} in last 10 days. Attendance rate: ${Math.round((presentDays / recentDays.length) * 100)}%`,
             type: 'general',
             link: '/admin/attendance',
+            dedupKey: `poor-att-mgr-${mgr._id}-${emp._id}`,
+            dedupWindowMs: 7 * 24 * 60 * 60 * 1000,
           });
         }
       }
@@ -262,6 +278,8 @@ async function checkCRMAlerts() {
         message: `Lead "${lead.name}" has had no activity for ${daysSince} days. Schedule a follow-up.`,
         type: 'general',
         link: '/crm',
+        dedupKey: `stale-lead-${lead._id}`,
+        dedupWindowMs: 24 * 60 * 60 * 1000,
       });
     }
 
@@ -277,6 +295,8 @@ async function checkCRMAlerts() {
         message: `Follow-up for "${lead.name}" was due on ${lead.followUpDate.toLocaleDateString('en-IN')}. Take action today.`,
         type: 'general',
         link: '/crm',
+        dedupKey: `followup-overdue-${lead._id}`,
+        dedupWindowMs: 24 * 60 * 60 * 1000,
       });
     }
 
@@ -292,6 +312,8 @@ async function checkCRMAlerts() {
         message: `"${lead.name}" has been in "New" status for 14+ days. Qualify or mark as not interested.`,
         type: 'general',
         link: '/crm',
+        dedupKey: `aging-lead-${lead._id}`,
+        dedupWindowMs: 7 * 24 * 60 * 60 * 1000,
       });
     }
 
@@ -318,6 +340,8 @@ async function checkCRMAlerts() {
             message: `Only ${daysLeft} days left in the month. You've achieved ₹${achieved.toLocaleString('en-IN')} of ₹${user.salesTarget.toLocaleString('en-IN')} target (${pct}%).`,
             type: 'general',
             link: '/crm',
+            dedupKey: `sales-target-${user._id}-${now.getFullYear()}-${now.getMonth()}`,
+            dedupWindowMs: 24 * 60 * 60 * 1000,
           });
         }
       }
@@ -351,6 +375,8 @@ async function checkDocumentCompliance() {
         message: `Please upload your missing documents: ${docs.join(', ')}. These are required for compliance.`,
         type: 'document',
         link: '/profile',
+        dedupKey: `doc-pending-${employee._id}`,
+        dedupWindowMs: 24 * 60 * 60 * 1000,
       });
     }
 
@@ -370,17 +396,19 @@ async function sendMorningSummary() {
     const employees = await User.find({ isActive: true }, '_id name role');
 
     for (const emp of employees) {
-      // Pending + in-progress tasks
+      // Pending + in-progress tasks (exclude self-tasks)
       const pendingTasks = await Task.countDocuments({
         assignedTo: emp._id,
         status: { $nin: ['completed'] },
+        isSelfTask: { $ne: true },
       });
 
-      // Overdue tasks
+      // Overdue tasks (exclude self-tasks)
       const overdueTasks = await Task.countDocuments({
         assignedTo: emp._id,
         status: { $nin: ['completed'] },
         deadline: { $lt: now },
+        isSelfTask: { $ne: true },
       });
 
       // CRM: overdue follow-ups (for sales/admin)
@@ -429,12 +457,14 @@ async function sendEveningSummary() {
         assignedTo: emp._id,
         status: 'completed',
         completedDate: { $gte: dayStart, $lte: now },
+        isSelfTask: { $ne: true },
       });
 
       const stillPending = await Task.countDocuments({
         assignedTo: emp._id,
         status: { $nin: ['completed'] },
         deadline: { $lte: now },
+        isSelfTask: { $ne: true },
       });
 
       // Only notify if they have something to report
@@ -474,9 +504,10 @@ async function calculateProductivityScores(weekLabel) {
   const scores = [];
 
   for (const emp of employees) {
-    // ── Task Score ──
+    // ── Task Score (exclude self-tasks) ──
     const tasksTotal = await Task.countDocuments({
       assignedTo: emp._id,
+      isSelfTask: { $ne: true },
       $or: [
         { deadline: { $gte: start, $lte: end } },
         { createdAt: { $gte: start, $lte: end } },
@@ -484,6 +515,7 @@ async function calculateProductivityScores(weekLabel) {
     });
     const tasksCompleted = await Task.countDocuments({
       assignedTo: emp._id,
+      isSelfTask: { $ne: true },
       status: 'completed',
       $or: [
         { completedDate: { $gte: start, $lte: end } },
@@ -492,6 +524,7 @@ async function calculateProductivityScores(weekLabel) {
     });
     const tasksOverdue = await Task.countDocuments({
       assignedTo: emp._id,
+      isSelfTask: { $ne: true },
       status: { $nin: ['completed'] },
       deadline: { $gte: start, $lte: end },
     });
