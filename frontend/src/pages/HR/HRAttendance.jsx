@@ -419,53 +419,85 @@ const HRAttendance = () => {
               message="No records found for the selected filters."
             />
           ) : (
-            <div className="overflow-x-auto -mx-5 px-5">
-              <table className="data-table min-w-[640px]">
-                <thead>
-                  <tr>
-                    <th>Employee</th>
-                    <th>Date</th>
-                    <th>Check In</th>
-                    <th>Check Out</th>
-                    <th>Hours</th>
-                    <th>Status</th>
-                    <th>Regularization</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {records.map(r => (
-                    <tr key={r._id}>
-                      <td>
-                        <p className="font-medium text-violet-900 whitespace-nowrap">{r.employee?.name}</p>
-                        <p className="text-xs text-violet-400">{r.employee?.employeeId}</p>
-                      </td>
-                      <td className="whitespace-nowrap">{r.date}</td>
-                      <td className="whitespace-nowrap">
-                        <span className={r.isLate ? 'text-gray-900 font-semibold' : ''}>{formatTime12(r.checkIn)}</span>
-                        {r.isLate && <span className="ml-1 text-[10px] text-gray-900 font-bold">LATE</span>}
-                      </td>
-                      <td className="whitespace-nowrap">
-                        <span className={r.isEarlyLeave ? 'text-gray-900 font-semibold' : ''}>{formatTime12(r.checkOut)}</span>
-                        {r.isEarlyLeave && <span className="ml-1 text-[10px] text-gray-900 font-bold">EARLY</span>}
-                      </td>
-                      <td>{r.workHours ? `${r.workHours}h` : '—'}</td>
-                      <td><Badge status={r.status} /></td>
-                      <td>
-                        {r.regularizationStatus ? (
-                          <span className={`inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full ${REG_BADGE[r.regularizationStatus]}`}>
-                            {r.regularizationStatus}
-                          </span>
-                        ) : (r.isLate || r.isEarlyLeave) ? (
-                          <span className="text-xs text-gray-900 font-medium">Not submitted</span>
-                        ) : (
-                          <span className="text-violet-300 text-xs">—</span>
-                        )}
-                      </td>
+            <>
+              {/* Mobile card list */}
+              <div className="sm:hidden space-y-2">
+                {records.map(r => (
+                  <div key={r._id} className="p-3 border border-violet-100 rounded-xl">
+                    <div className="flex items-start justify-between gap-2 mb-1">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-violet-900 text-sm truncate">{r.employee?.name}</p>
+                        <p className="text-[10px] text-violet-400">{r.employee?.employeeId} · {r.date}</p>
+                      </div>
+                      <Badge status={r.status} />
+                    </div>
+                    <div className="flex items-center gap-3 text-xs mt-1 flex-wrap">
+                      <span className={r.isLate ? 'font-semibold text-gray-900' : 'text-gray-600'}>
+                        In: {formatTime12(r.checkIn)}{r.isLate && <span className="ml-1 text-[10px] font-bold text-red-500">LATE</span>}
+                      </span>
+                      <span className={r.isEarlyLeave ? 'font-semibold text-gray-900' : 'text-gray-600'}>
+                        Out: {formatTime12(r.checkOut)}{r.isEarlyLeave && <span className="ml-1 text-[10px] font-bold text-amber-600">EARLY</span>}
+                      </span>
+                      {r.workHours > 0 && <span className="text-violet-600 font-medium">{r.workHours}h</span>}
+                      {r.regularizationStatus && (
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${REG_BADGE[r.regularizationStatus]}`}>
+                          {r.regularizationStatus}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop table */}
+              <div className="hidden sm:block overflow-x-auto -mx-5 px-5">
+                <table className="data-table min-w-[640px]">
+                  <thead>
+                    <tr>
+                      <th>Employee</th>
+                      <th>Date</th>
+                      <th>Check In</th>
+                      <th>Check Out</th>
+                      <th>Hours</th>
+                      <th>Status</th>
+                      <th>Regularization</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {records.map(r => (
+                      <tr key={r._id}>
+                        <td>
+                          <p className="font-medium text-violet-900 whitespace-nowrap">{r.employee?.name}</p>
+                          <p className="text-xs text-violet-400">{r.employee?.employeeId}</p>
+                        </td>
+                        <td className="whitespace-nowrap">{r.date}</td>
+                        <td className="whitespace-nowrap">
+                          <span className={r.isLate ? 'text-gray-900 font-semibold' : ''}>{formatTime12(r.checkIn)}</span>
+                          {r.isLate && <span className="ml-1 text-[10px] text-gray-900 font-bold">LATE</span>}
+                        </td>
+                        <td className="whitespace-nowrap">
+                          <span className={r.isEarlyLeave ? 'text-gray-900 font-semibold' : ''}>{formatTime12(r.checkOut)}</span>
+                          {r.isEarlyLeave && <span className="ml-1 text-[10px] text-gray-900 font-bold">EARLY</span>}
+                        </td>
+                        <td>{r.workHours ? `${r.workHours}h` : '—'}</td>
+                        <td><Badge status={r.status} /></td>
+                        <td>
+                          {r.regularizationStatus ? (
+                            <span className={`inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full ${REG_BADGE[r.regularizationStatus]}`}>
+                              {r.regularizationStatus}
+                            </span>
+                          ) : (r.isLate || r.isEarlyLeave) ? (
+                            <span className="text-xs text-gray-900 font-medium">Not submitted</span>
+                          ) : (
+                            <span className="text-violet-300 text-xs">—</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </Card>
       )}

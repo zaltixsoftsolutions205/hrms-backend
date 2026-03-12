@@ -109,19 +109,19 @@ const Navbar = ({ onMenuToggle, pageTitle }) => {
             {showNotif && (
               <motion.div initial={{ opacity: 0, y: 8, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8, scale: 0.95 }}
                 transition={{ duration: 0.15 }}
-                className="absolute right-0 top-10 w-72 sm:w-80 bg-white rounded-xl shadow-xl border border-violet-100 overflow-hidden z-50">
-                <div className="flex items-center justify-between px-4 py-3 border-b border-violet-100">
-                  <h3 className="font-semibold text-violet-900 text-sm">Notifications</h3>
+                className="absolute right-0 top-10 w-64 sm:w-72 bg-white rounded-xl shadow-xl border border-violet-100 overflow-hidden z-50">
+                <div className="flex items-center justify-between px-3 py-2 border-b border-violet-100">
+                  <h3 className="font-semibold text-violet-900 text-xs">Notifications</h3>
                   {unreadCount > 0 && (
-                    <button onClick={markAllRead} className="text-xs text-golden-600 hover:text-golden-700 font-medium">
+                    <button onClick={markAllRead} className="text-[10px] text-golden-600 hover:text-golden-700 font-medium">
                       Mark all read
                     </button>
                   )}
                 </div>
-                <div className="max-h-72 overflow-y-auto">
+                <div className="max-h-60 overflow-y-auto">
                   {notifications.length === 0 ? (
-                    <div className="py-8 text-center text-sm text-violet-400">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7 text-violet-300 mx-auto mb-2">
+                    <div className="py-6 text-center text-xs text-violet-400">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6 text-violet-300 mx-auto mb-1.5">
                         <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9M3 3l18 18" />
                       </svg>
                       No notifications
@@ -129,13 +129,13 @@ const Navbar = ({ onMenuToggle, pageTitle }) => {
                   ) : (
                     notifications.map((n) => (
                       <div key={n._id} onClick={() => { markRead(n._id); if (n.link) navigate(n.link); setShowNotif(false); }}
-                        className={`px-4 py-3 border-b border-violet-50 cursor-pointer hover:bg-violet-50 transition-colors ${!n.isRead ? 'bg-violet-50/50' : ''}`}>
-                        <div className="flex items-start gap-2">
-                          {!n.isRead && <span className="w-1.5 h-1.5 bg-golden-500 rounded-full mt-1.5 flex-shrink-0" />}
-                          <div className={!n.isRead ? '' : 'pl-3.5'}>
-                            <p className="text-xs font-semibold text-violet-800">{n.title}</p>
-                            <p className="text-xs text-violet-500 mt-0.5">{n.message}</p>
-                            <p className="text-[10px] text-violet-400 mt-1">{formatDateTime(n.createdAt)}</p>
+                        className={`px-3 py-2 border-b border-violet-50 cursor-pointer hover:bg-violet-50 transition-colors ${!n.isRead ? 'bg-violet-50/50' : ''}`}>
+                        <div className="flex items-start gap-1.5">
+                          {!n.isRead && <span className="w-1.5 h-1.5 bg-golden-500 rounded-full mt-1 flex-shrink-0" />}
+                          <div className={!n.isRead ? '' : 'pl-3'}>
+                            <p className="text-[11px] font-semibold text-violet-800 leading-snug">{n.title}</p>
+                            <p className="text-[10px] text-violet-500 mt-0.5 leading-snug">{n.message}</p>
+                            <p className="text-[9px] text-violet-400 mt-0.5">{formatDateTime(n.createdAt)}</p>
                           </div>
                         </div>
                       </div>

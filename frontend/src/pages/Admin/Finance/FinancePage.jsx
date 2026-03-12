@@ -5,6 +5,7 @@ import Dashboard from './Dashboard';
 import Income from './Income/IncomeList';
 import Expenses from './Expenses/ExpenseList';
 import Reports from './Reports/ReportsPage';
+import GenerateInvoice from './Invoice/GenerateInvoice';
 
 const FinancePage = () => {
   const { user } = useAuth();
@@ -58,7 +59,7 @@ const FinancePage = () => {
 
       {/* Tabs */}
       <div className="flex gap-2 border-b border-violet-200 overflow-x-auto">
-        {['dashboard', 'income', 'expenses', 'reports'].map((tab) => (
+        {['dashboard', 'income', 'expenses', 'reports', 'invoice'].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -68,7 +69,7 @@ const FinancePage = () => {
                 : 'text-violet-400 border-transparent hover:text-violet-600'
             }`}
           >
-            {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            {tab === 'invoice' ? 'Generate Invoice' : tab.charAt(0).toUpperCase() + tab.slice(1)}
           </button>
         ))}
       </div>
@@ -82,6 +83,7 @@ const FinancePage = () => {
         <Expenses month={month} year={year} refresh={refreshTrigger} onRefresh={handleRefresh} canAdd={canAdd} canApprove={canApprove} />
       )}
       {activeTab === 'reports' && <Reports month={month} year={year} refresh={refreshTrigger} />}
+      {activeTab === 'invoice' && <GenerateInvoice />}
     </div>
   );
 };

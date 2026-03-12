@@ -1,8 +1,30 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Component } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { PageLoader } from './components/UI/Spinner';
 import Layout from './components/Layout/Layout';
 import PWAInstallBanner from './components/PWAInstallBanner';
+
+class ErrorBoundary extends Component {
+  state = { error: null };
+  static getDerivedStateFromError(error) { return { error }; }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ padding: 32, fontFamily: 'monospace', background: '#fff1f2', minHeight: '100vh' }}>
+          <h2 style={{ color: '#dc2626' }}>React Error</h2>
+          <pre style={{ whiteSpace: 'pre-wrap', color: '#7f1d1d', fontSize: 13 }}>{this.state.error?.message}</pre>
+          <pre style={{ whiteSpace: 'pre-wrap', color: '#991b1b', fontSize: 11, marginTop: 8 }}>{this.state.error?.stack}</pre>
+          <button onClick={() => { this.setState({ error: null }); window.location.href = '/dashboard'; }}
+            style={{ marginTop: 16, padding: '8px 16px', background: '#dc2626', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer' }}>
+            Back to Dashboard
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 // Pages
 import Login from './pages/Login';
@@ -42,6 +64,12 @@ import RecruitmentPage from './pages/Admin/RecruitmentPage';
 import RecruitmentProjectPage from './pages/Admin/RecruitmentProjectPage';
 import RecruitmentJobPage from './pages/Admin/RecruitmentJobPage';
 import AutomationPage from './pages/Admin/AutomationPage';
+import AdminEmployeeHub from './pages/Admin/AdminEmployeeHub';
+import FieldLeadsPage from './pages/FieldSales/FieldLeadsPage';
+import AdminFieldSales from './pages/Admin/AdminFieldSales';
+import AdminKnowledgeCenter from './pages/Admin/KnowledgeCenter';
+import HRKnowledgeCenter from './pages/HR/HRKnowledgeCenter';
+import KnowledgeCenter from './pages/KnowledgeCenter/KnowledgeCenter';
 
 const ProtectedRoute = ({ children, roles, allowEmployeeIds, allowFirstLogin = false }) => {
   const { user, loading } = useAuth();
@@ -77,7 +105,9 @@ const AppRoutes = () => {
         <Route path="/payslips" element={<PayslipsPage />} />
         <Route path="/tasks" element={<TasksPage />} />
         <Route path="/team" element={<TeamPage />} />
+        <Route path="/knowledge-center" element={<KnowledgeCenter />} />
         <Route path="/crm" element={<ProtectedRoute roles={['sales', 'hr', 'admin']}><CRMPage /></ProtectedRoute>} />
+        <Route path="/field-sales/leads" element={<ProtectedRoute roles={['field_sales', 'admin']}><FieldLeadsPage /></ProtectedRoute>} />
         <Route path="/crm/products/:productId" element={<ProtectedRoute roles={['sales', 'hr', 'admin']}><ProductDetailPage /></ProtectedRoute>} />
 
         {/* HR Routes */}
@@ -86,6 +116,7 @@ const AppRoutes = () => {
         <Route path="/hr/leaves" element={<ProtectedRoute roles={['hr', 'admin']}><HRLeaves /></ProtectedRoute>} />
         <Route path="/hr/tasks" element={<ProtectedRoute roles={['hr', 'admin']}><HRTasks /></ProtectedRoute>} />
         <Route path="/hr/payslips" element={<ProtectedRoute roles={['hr', 'admin']}><HRPayslips /></ProtectedRoute>} />
+        <Route path="/hr/knowledge-center" element={<ProtectedRoute roles={['hr', 'admin']}><HRKnowledgeCenter /></ProtectedRoute>} />
 
         {/* Admin Routes */}
         <Route path="/admin/employees" element={<ProtectedRoute roles={['admin']}><AdminEmployees /></ProtectedRoute>} />
@@ -97,6 +128,7 @@ const AppRoutes = () => {
         <Route path="/admin/policies" element={<ProtectedRoute roles={['admin']}><AdminPolicies /></ProtectedRoute>} />
         <Route path="/admin/reports" element={<ProtectedRoute roles={['admin']}><AdminReports /></ProtectedRoute>} />
         <Route path="/admin/crm" element={<ProtectedRoute roles={['admin']}><AdminCRM /></ProtectedRoute>} />
+        <Route path="/admin/field-sales" element={<ProtectedRoute roles={['admin']}><AdminFieldSales /></ProtectedRoute>} />
         <Route path="/admin/finance" element={<ProtectedRoute roles={['admin', 'hr']}><FinancePage /></ProtectedRoute>} />
         <Route path="/admin/announcements" element={<ProtectedRoute roles={['admin', 'hr']}><AnnouncementsPage /></ProtectedRoute>} />
         <Route path="/admin/holidays" element={<ProtectedRoute roles={['admin', 'hr']}><HolidaysPage /></ProtectedRoute>} />
@@ -105,6 +137,8 @@ const AppRoutes = () => {
         <Route path="/admin/recruitment/p/:projectId" element={<ProtectedRoute roles={['admin']} allowEmployeeIds={['ZSSE0023']}><RecruitmentProjectPage /></ProtectedRoute>} />
         <Route path="/admin/recruitment/:jobId" element={<ProtectedRoute roles={['admin']} allowEmployeeIds={['ZSSE0023']}><RecruitmentJobPage /></ProtectedRoute>} />
         <Route path="/admin/automation" element={<ProtectedRoute roles={['admin', 'hr']}><AutomationPage /></ProtectedRoute>} />
+        <Route path="/admin/employee-management" element={<ProtectedRoute roles={['admin']}><AdminEmployeeHub /></ProtectedRoute>} />
+        <Route path="/admin/knowledge-center" element={<ProtectedRoute roles={['admin']}><AdminKnowledgeCenter /></ProtectedRoute>} />
       </Route>
 
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -115,10 +149,12 @@ const AppRoutes = () => {
 
 const App = () => (
   <BrowserRouter>
-    <AuthProvider>
-      <AppRoutes />
-      <PWAInstallBanner />
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <AppRoutes />
+        <PWAInstallBanner />
+      </AuthProvider>
+    </ErrorBoundary>
   </BrowserRouter>
 );
 

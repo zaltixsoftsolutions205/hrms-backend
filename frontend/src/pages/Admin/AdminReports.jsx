@@ -98,7 +98,37 @@ const AdminReports = () => {
         {/* Attendance Report */}
         {data && activeTab === 'attendance' && Array.isArray(data) && (
           <>
-            <div className="overflow-x-auto -mx-5 px-5">
+            {/* Mobile cards */}
+            <div className="sm:hidden space-y-2">
+              {data.map((r, i) => (
+                <div key={i} className="p-3 border border-violet-100 rounded-xl space-y-2">
+                  <div>
+                    <p className="font-semibold text-violet-900 text-sm">{r.employee?.name}</p>
+                    <p className="text-[10px] text-violet-400">{r.employee?.employeeId}</p>
+                  </div>
+                  <div className="grid grid-cols-4 gap-1 text-center">
+                    <div className="bg-violet-50 rounded-lg py-1.5">
+                      <p className="text-xs font-bold text-violet-600">{r.present}</p>
+                      <p className="text-[9px] text-violet-400">Present</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg py-1.5">
+                      <p className="text-xs font-bold text-gray-700">{r.absent}</p>
+                      <p className="text-[9px] text-gray-400">Absent</p>
+                    </div>
+                    <div className="bg-amber-50 rounded-lg py-1.5">
+                      <p className="text-xs font-bold text-amber-600">{r.halfDay}</p>
+                      <p className="text-[9px] text-amber-400">Half Day</p>
+                    </div>
+                    <div className="bg-violet-50 rounded-lg py-1.5">
+                      <p className="text-xs font-bold text-violet-700">{r.totalHours}h</p>
+                      <p className="text-[9px] text-violet-400">Hours</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* Desktop table */}
+            <div className="hidden sm:block overflow-x-auto -mx-5 px-5">
               <table className="data-table min-w-[480px]">
                 <thead><tr><th>Employee</th><th>Present</th><th>Absent</th><th>Half Day</th><th>Total Hours</th></tr></thead>
                 <tbody>
@@ -133,7 +163,30 @@ const AdminReports = () => {
                 </div>
               ))}
             </div>
-            <div className="overflow-x-auto -mx-5 px-5">
+            {/* Mobile cards */}
+            <div className="sm:hidden space-y-2">
+              {data.leaves.map(l => (
+                <div key={l._id} className="p-3 border border-violet-100 rounded-xl space-y-1.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-violet-900 text-sm truncate">{l.employee?.name}</p>
+                      <p className="text-[10px] text-violet-400">{l.employee?.employeeId}</p>
+                    </div>
+                    <Badge status={l.status} />
+                  </div>
+                  <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-gray-600">
+                    <span className="capitalize"><span className="text-violet-400">Type: </span>{l.type}</span>
+                    <span><span className="text-violet-400">Days: </span><strong>{l.totalDays}</strong></span>
+                  </div>
+                  <div className="flex gap-4 text-xs text-gray-600">
+                    <span><span className="text-violet-400">From: </span>{formatDate(l.fromDate)}</span>
+                    <span><span className="text-violet-400">To: </span>{formatDate(l.toDate)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* Desktop table */}
+            <div className="hidden sm:block overflow-x-auto -mx-5 px-5">
               <table className="data-table min-w-[500px]">
                 <thead><tr><th>Employee</th><th>Type</th><th>From</th><th>To</th><th>Days</th><th>Status</th></tr></thead>
                 <tbody>
@@ -168,7 +221,25 @@ const AdminReports = () => {
                 </div>
               ))}
             </div>
-            <div className="overflow-x-auto -mx-5 px-5">
+            {/* Mobile cards */}
+            <div className="sm:hidden space-y-2">
+              {data.payslips.map(p => (
+                <div key={p._id} className="p-3 border border-violet-100 rounded-xl space-y-2">
+                  <div>
+                    <p className="font-semibold text-violet-900 text-sm">{p.employee?.name}</p>
+                    <p className="text-[10px] text-violet-400">{p.employee?.employeeId}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div><span className="text-violet-400">Basic: </span>{formatCurrency(p.basicSalary)}</div>
+                    <div><span className="text-violet-400">Gross: </span>{formatCurrency(p.grossSalary)}</div>
+                    <div><span className="text-violet-400">Deductions: </span><span className="text-gray-700">{formatCurrency(sumMoney(p.deductions))}</span></div>
+                    <div><span className="text-violet-400">Net: </span><strong className="text-amber-600">{formatCurrency(p.netSalary)}</strong></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* Desktop table */}
+            <div className="hidden sm:block overflow-x-auto -mx-5 px-5">
               <table className="data-table min-w-[480px]">
                 <thead><tr><th>Employee</th><th>Basic</th><th>Gross</th><th>Deductions</th><th>Net Pay</th></tr></thead>
                 <tbody>

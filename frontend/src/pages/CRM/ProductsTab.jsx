@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import api from '../../utils/api';
 import { formatDate } from '../../utils/helpers';
 
-const CATEGORIES = ['Software', 'Hardware', 'Service', 'Subscription', 'Consulting', 'Other'];
+const STANDARD_CATEGORIES = ['Software', 'Hardware', 'Service', 'Subscription', 'Consulting'];
 
 export default function ProductsTab() {
   const navigate = useNavigate();
@@ -15,6 +15,7 @@ export default function ProductsTab() {
   const [editProduct, setEditProduct] = useState(null);
   const [form, setForm] = useState({ name: '', category: '' });
   const [submitting, setSubmitting] = useState(false);
+  const [isOtherCat, setIsOtherCat] = useState(false);
 
   const fetch = async () => {
     setLoading(true);
@@ -30,12 +31,15 @@ export default function ProductsTab() {
   const openAdd = () => {
     setEditProduct(null);
     setForm({ name: '', category: '' });
+    setIsOtherCat(false);
     setShowForm(true);
   };
 
   const openEdit = (p, e) => {
     e.stopPropagation();
     setEditProduct(p);
+    const isOther = !!p.category && !STANDARD_CATEGORIES.includes(p.category);
+    setIsOtherCat(isOther);
     setForm({ name: p.name, category: p.category });
     setShowForm(true);
   };
@@ -94,11 +98,30 @@ export default function ProductsTab() {
                 </div>
                 <div>
                   <label className="label-text">Category</label>
-                  <select className="input-field" value={form.category}
-                    onChange={e => setForm(f => ({ ...f, category: e.target.value }))}>
+                  <select className="input-field"
+                    value={isOtherCat ? 'Other' : (form.category || '')}
+                    onChange={e => {
+                      if (e.target.value === 'Other') {
+                        setIsOtherCat(true);
+                        setForm(f => ({ ...f, category: '' }));
+                      } else {
+                        setIsOtherCat(false);
+                        setForm(f => ({ ...f, category: e.target.value }));
+                      }
+                    }}>
                     <option value="">Select category</option>
-                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                    {STANDARD_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                    <option value="Other">Other (specify below)</option>
                   </select>
+                  {isOtherCat && (
+                    <input
+                      className="input-field mt-1"
+                      placeholder="Type the category e.g. IoT, AI Platform…"
+                      value={form.category}
+                      onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
+                      autoFocus
+                    />
+                  )}
                 </div>
               </div>
               <div className="flex gap-2 justify-end">

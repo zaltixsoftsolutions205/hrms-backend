@@ -145,7 +145,7 @@ const HolidaysPage = () => {
       )}
 
       {/* Summary */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {Object.entries(typeConfig).map(([type, cfg]) => (
           <div key={type} className={`rounded-xl p-3 ${cfg.bg} flex items-center justify-between`}>
             <span className={`text-sm font-semibold ${cfg.text}`}>{cfg.label}</span>

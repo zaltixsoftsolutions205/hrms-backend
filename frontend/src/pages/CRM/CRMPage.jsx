@@ -253,43 +253,79 @@ const CRMPage = () => {
               <EmptyState icon={<SI d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" size={40} color="text-violet-400" />} title="No leads yet" message="Start adding leads to build your pipeline."
                 action={{ label: 'Add Lead', onClick: () => setShowAddLeadModal(true) }} />
             ) : (
-              <div className="overflow-x-auto -mx-5 px-5">
-                <table className="data-table min-w-[540px]">
-                  <thead>
-                    <tr>
-                      <th>Lead</th><th>Phone</th><th>Source</th><th>Status</th><th>Added</th><th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {leadsData.leads.map(lead => (
-                      <tr key={lead._id} className="cursor-pointer" onClick={() => openLead(lead)}>
-                        <td>
-                          <div>
-                            <p className="font-semibold text-violet-900">{lead.name}</p>
-                            {lead.email && <p className="text-xs text-violet-400">{lead.email}</p>}
-                          </div>
-                        </td>
-                        <td>{lead.phone}</td>
-                        <td className="capitalize">{lead.source.replace(/-/g, ' ')}</td>
-                        <td>
-                          <select value={lead.status} onChange={e => { e.stopPropagation(); handleLeadStatusChange(lead._id, e.target.value); }}
-                            onClick={e => e.stopPropagation()}
-                            className="text-xs border border-violet-200 rounded-lg px-2 py-1 bg-white cursor-pointer focus:outline-none focus:ring-1 focus:ring-violet-400">
-                            <option value="new">New</option>
-                            <option value="interested">Interested</option>
-                            <option value="not-interested">Not Interested</option>
-                            <option value="converted">Converted</option>
-                          </select>
-                        </td>
-                        <td className="text-xs">{formatDate(lead.createdAt)}</td>
-                        <td>
-                          <button onClick={e => { e.stopPropagation(); openLead(lead); }} className="btn-ghost btn-sm text-xs">View</button>
-                        </td>
+              <>
+                {/* Mobile card list */}
+                <div className="sm:hidden space-y-2">
+                  {leadsData.leads.map(lead => (
+                    <div key={lead._id} className="p-3 border border-violet-100 rounded-xl hover:bg-violet-50/30 transition-colors"
+                      onClick={() => openLead(lead)}>
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-violet-900 text-sm truncate">{lead.name}</p>
+                          {lead.email && <p className="text-xs text-violet-400 truncate">{lead.email}</p>}
+                        </div>
+                        <Badge status={lead.status} />
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-gray-500 flex-wrap">
+                        {lead.phone && <span className="flex items-center gap-1"><SI d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" size={11} />{lead.phone}</span>}
+                        <span className="capitalize text-gray-400">{lead.source?.replace(/-/g, ' ')}</span>
+                        <span className="text-violet-300">{formatDate(lead.createdAt)}</span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-2 pt-2 border-t border-violet-50">
+                        <select value={lead.status} onChange={e => { e.stopPropagation(); handleLeadStatusChange(lead._id, e.target.value); }}
+                          onClick={e => e.stopPropagation()}
+                          className="flex-1 text-xs border border-violet-200 rounded-lg px-2 py-1.5 bg-white cursor-pointer focus:outline-none focus:ring-1 focus:ring-violet-400">
+                          <option value="new">New</option>
+                          <option value="interested">Interested</option>
+                          <option value="not-interested">Not Interested</option>
+                          <option value="converted">Converted</option>
+                        </select>
+                        <button onClick={e => { e.stopPropagation(); openLead(lead); }}
+                          className="btn-secondary btn-sm text-xs">View</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Desktop table */}
+                <div className="hidden sm:block overflow-x-auto -mx-5 px-5">
+                  <table className="data-table min-w-[540px]">
+                    <thead>
+                      <tr>
+                        <th>Lead</th><th>Phone</th><th>Source</th><th>Status</th><th>Added</th><th>Actions</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {leadsData.leads.map(lead => (
+                        <tr key={lead._id} className="cursor-pointer" onClick={() => openLead(lead)}>
+                          <td>
+                            <div>
+                              <p className="font-semibold text-violet-900">{lead.name}</p>
+                              {lead.email && <p className="text-xs text-violet-400">{lead.email}</p>}
+                            </div>
+                          </td>
+                          <td>{lead.phone}</td>
+                          <td className="capitalize">{lead.source.replace(/-/g, ' ')}</td>
+                          <td>
+                            <select value={lead.status} onChange={e => { e.stopPropagation(); handleLeadStatusChange(lead._id, e.target.value); }}
+                              onClick={e => e.stopPropagation()}
+                              className="text-xs border border-violet-200 rounded-lg px-2 py-1 bg-white cursor-pointer focus:outline-none focus:ring-1 focus:ring-violet-400">
+                              <option value="new">New</option>
+                              <option value="interested">Interested</option>
+                              <option value="not-interested">Not Interested</option>
+                              <option value="converted">Converted</option>
+                            </select>
+                          </td>
+                          <td className="text-xs">{formatDate(lead.createdAt)}</td>
+                          <td>
+                            <button onClick={e => { e.stopPropagation(); openLead(lead); }} className="btn-ghost btn-sm text-xs">View</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </Card>
 
@@ -432,38 +468,68 @@ const CRMPage = () => {
               <EmptyState icon={<SI d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" size={40} color="text-violet-400" />} title="No deals yet" message="Create your first deal to track sales pipeline."
                 action={{ label: 'Create Deal', onClick: () => setShowAddDealModal(true) }} />
             ) : (
-              <div className="overflow-x-auto -mx-5 px-5">
-                <table className="data-table min-w-[600px]">
-                  <thead>
-                    <tr>
-                      <th>Deal</th><th>Lead</th><th>Service</th><th>Amount</th><th>Probability</th><th>Status</th><th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {dealsData.deals.map(deal => (
-                      <tr key={deal._id} className="cursor-pointer" onClick={() => openDeal(deal)}>
-                        <td className="font-semibold text-violet-900">{deal.name}</td>
-                        <td>{deal.lead?.name || '—'}</td>
-                        <td className="text-xs">{SERVICE_TYPE_MAP[deal.serviceType] || deal.serviceType}</td>
-                        <td className="font-semibold">{formatCurrency(deal.finalDealAmount)}</td>
-                        <td>
-                          <span className={`px-2 py-1 rounded-lg text-xs font-semibold ${deal.probability >= 75 ? 'bg-violet-100 text-violet-700' : deal.probability >= 50 ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-900'}`}>
-                            {deal.probability}%
-                          </span>
-                        </td>
-                        <td>
-                          <span className={`px-2 py-1 rounded-lg text-xs font-semibold ${deal.status === 'open' ? 'bg-violet-100 text-violet-700' : deal.status === 'won' ? 'bg-violet-100 text-violet-700' : 'bg-gray-100 text-gray-900'}`}>
-                            {deal.status.charAt(0).toUpperCase() + deal.status.slice(1)}
-                          </span>
-                        </td>
-                        <td>
-                          <button onClick={e => { e.stopPropagation(); openDeal(deal); }} className="btn-ghost btn-sm text-xs">View</button>
-                        </td>
+              <>
+                {/* Mobile card list */}
+                <div className="sm:hidden space-y-2">
+                  {dealsData.deals.map(deal => (
+                    <div key={deal._id} className="p-3 border border-violet-100 rounded-xl hover:bg-violet-50/30 transition-colors"
+                      onClick={() => openDeal(deal)}>
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        <p className="font-semibold text-violet-900 text-sm truncate flex-1">{deal.name}</p>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${deal.status === 'open' ? 'bg-violet-100 text-violet-700' : deal.status === 'won' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600'}`}>
+                          {deal.status.charAt(0).toUpperCase() + deal.status.slice(1)}
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-gray-500 mb-2">
+                        {deal.lead?.name && <span>Lead: {deal.lead.name}</span>}
+                        <span className="text-gray-400">{SERVICE_TYPE_MAP[deal.serviceType] || deal.serviceType}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-base font-bold text-violet-700">{formatCurrency(deal.finalDealAmount)}</p>
+                          <p className="text-[10px] text-gray-400">{deal.probability}% probability</p>
+                        </div>
+                        <button onClick={e => { e.stopPropagation(); openDeal(deal); }}
+                          className="btn-secondary btn-sm text-xs">View</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Desktop table */}
+                <div className="hidden sm:block overflow-x-auto -mx-5 px-5">
+                  <table className="data-table min-w-[600px]">
+                    <thead>
+                      <tr>
+                        <th>Deal</th><th>Lead</th><th>Service</th><th>Amount</th><th>Probability</th><th>Status</th><th>Actions</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {dealsData.deals.map(deal => (
+                        <tr key={deal._id} className="cursor-pointer" onClick={() => openDeal(deal)}>
+                          <td className="font-semibold text-violet-900">{deal.name}</td>
+                          <td>{deal.lead?.name || '—'}</td>
+                          <td className="text-xs">{SERVICE_TYPE_MAP[deal.serviceType] || deal.serviceType}</td>
+                          <td className="font-semibold">{formatCurrency(deal.finalDealAmount)}</td>
+                          <td>
+                            <span className={`px-2 py-1 rounded-lg text-xs font-semibold ${deal.probability >= 75 ? 'bg-violet-100 text-violet-700' : deal.probability >= 50 ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-900'}`}>
+                              {deal.probability}%
+                            </span>
+                          </td>
+                          <td>
+                            <span className={`px-2 py-1 rounded-lg text-xs font-semibold ${deal.status === 'open' ? 'bg-violet-100 text-violet-700' : deal.status === 'won' ? 'bg-violet-100 text-violet-700' : 'bg-gray-100 text-gray-900'}`}>
+                              {deal.status.charAt(0).toUpperCase() + deal.status.slice(1)}
+                            </span>
+                          </td>
+                          <td>
+                            <button onClick={e => { e.stopPropagation(); openDeal(deal); }} className="btn-ghost btn-sm text-xs">View</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </Card>
 
@@ -585,29 +651,54 @@ const CRMPage = () => {
             {clientsData.clients.length === 0 ? (
               <EmptyState icon={<SI d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" size={40} color="text-violet-400" />} title="No clients yet" message="Clients will be created when deals are won." />
             ) : (
-              <div className="overflow-x-auto -mx-5 px-5">
-                <table className="data-table min-w-[600px]">
-                  <thead>
-                    <tr>
-                      <th>Name</th><th>Company</th><th>Email</th><th>Deal Value</th><th>Converted</th><th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {clientsData.clients.map(client => (
-                      <tr key={client._id} className="cursor-pointer" onClick={() => openClient(client)}>
-                        <td className="font-semibold text-violet-900">{client.name}</td>
-                        <td className="text-gray-600">{client.company || '—'}</td>
-                        <td className="text-sm text-violet-500">{client.email || '—'}</td>
-                        <td className="font-semibold">{formatCurrency(client.dealValue)}</td>
-                        <td className="text-xs">{formatDate(client.convertedDate)}</td>
-                        <td>
-                          <button onClick={e => { e.stopPropagation(); openClient(client); }} className="btn-ghost btn-sm text-xs">View</button>
-                        </td>
+              <>
+                {/* Mobile card list */}
+                <div className="sm:hidden space-y-2">
+                  {clientsData.clients.map(client => (
+                    <div key={client._id} className="p-3 border border-violet-100 rounded-xl hover:bg-violet-50/30 transition-colors"
+                      onClick={() => openClient(client)}>
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-violet-900 text-sm truncate">{client.name}</p>
+                          {client.company && <p className="text-xs text-gray-500 truncate">{client.company}</p>}
+                        </div>
+                        <p className="text-sm font-bold text-violet-700 flex-shrink-0">{formatCurrency(client.dealValue)}</p>
+                      </div>
+                      {client.email && <p className="text-xs text-violet-400 truncate mb-1">{client.email}</p>}
+                      <div className="flex items-center justify-between pt-1.5 border-t border-violet-50">
+                        <p className="text-[10px] text-gray-400">Converted: {formatDate(client.convertedDate)}</p>
+                        <button onClick={e => { e.stopPropagation(); openClient(client); }}
+                          className="btn-secondary btn-sm text-xs">View</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Desktop table */}
+                <div className="hidden sm:block overflow-x-auto -mx-5 px-5">
+                  <table className="data-table min-w-[600px]">
+                    <thead>
+                      <tr>
+                        <th>Name</th><th>Company</th><th>Email</th><th>Deal Value</th><th>Converted</th><th>Actions</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {clientsData.clients.map(client => (
+                        <tr key={client._id} className="cursor-pointer" onClick={() => openClient(client)}>
+                          <td className="font-semibold text-violet-900">{client.name}</td>
+                          <td className="text-gray-600">{client.company || '—'}</td>
+                          <td className="text-sm text-violet-500">{client.email || '—'}</td>
+                          <td className="font-semibold">{formatCurrency(client.dealValue)}</td>
+                          <td className="text-xs">{formatDate(client.convertedDate)}</td>
+                          <td>
+                            <button onClick={e => { e.stopPropagation(); openClient(client); }} className="btn-ghost btn-sm text-xs">View</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </Card>
 

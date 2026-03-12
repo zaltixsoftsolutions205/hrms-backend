@@ -22,7 +22,6 @@ const HRTasks = () => {
   const [showModal, setShowModal] = useState(false);
   const [editingTask, setEditingTask] = useState(null); // task being edited
   const [loading, setLoading] = useState(false);
-  const [reminding, setReminding] = useState(null);
   const [activeTab, setActiveTab] = useState('tasks');
   const [form, setForm] = useState(EMPTY_FORM);
   const [filterEmp, setFilterEmp] = useState('');
@@ -40,15 +39,6 @@ const HRTasks = () => {
 
   useEffect(() => { fetchAll(); }, [filterEmp]);
 
-  const handleRemind = async (taskId) => {
-    setReminding(taskId);
-    try {
-      const res = await api.post(`/tasks/${taskId}/reminder`);
-      toast.success(res.data.message || 'Reminder sent!');
-    } catch (err) { toast.error(err.response?.data?.message || 'Failed to send reminder'); }
-    finally { setReminding(null); }
-  };
-
   const openCreate = () => {
     setEditingTask(null);
     setForm(EMPTY_FORM);
@@ -65,6 +55,15 @@ const HRTasks = () => {
       deadline: task.deadline ? task.deadline.split('T')[0] : '',
     });
     setShowModal(true);
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Delete this task?')) return;
+    try {
+      await api.delete(`/tasks/${id}`);
+      setTasks(prev => prev.filter(t => t._id !== id));
+      toast.success('Task deleted');
+    } catch { toast.error('Failed to delete'); }
   };
 
   const handleSubmit = async (e) => {
@@ -116,60 +115,87 @@ const HRTasks = () => {
             <EmptyState icon={<SI d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" size={40} color="text-violet-400" />} title="No tasks" message="Assign work to employees."
               action={{ label: 'Assign Task', onClick: openCreate }} />
           ) : (
-            <div className="overflow-x-auto -mx-5 px-5">
-              <table className="data-table min-w-[700px]">
-                <thead>
-                  <tr><th>Task</th><th>Assigned To</th><th>Priority</th><th>Deadline</th><th>Status</th><th>Remarks</th><th>Actions</th></tr>
-                </thead>
-                <tbody>
-                  {tasks.map(t => (
-                    <tr key={t._id}>
-                      <td>
-                        <p className="font-medium text-violet-900">{t.title}</p>
-                        {t.description && <p className="text-xs text-violet-400 mt-0.5 truncate max-w-[200px]">{t.description}</p>}
-                      </td>
-                      <td>
-                        <p className="font-medium">{t.assignedTo?.name}</p>
-                        <p className="text-xs text-violet-400">{t.assignedTo?.employeeId}</p>
-                      </td>
-                      <td><Badge status={t.priority} /></td>
-                      <td>{formatDate(t.deadline)}</td>
-                      <td><Badge status={t.status} /></td>
-                      <td>
-                        {t.remarks
-                          ? <p className="text-xs text-gray-600 max-w-[140px] truncate" title={t.remarks}>{t.remarks}</p>
-                          : <span className="text-xs text-violet-300">—</span>}
-                      </td>
-                      <td>
-                        <div className="flex items-center gap-1.5">
-                          {/* Edit button — always available */}
-                          <button
-                            onClick={() => openEdit(t)}
-                            title="Edit task"
-                            className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg bg-violet-50 text-violet-700 border border-violet-200 hover:bg-violet-100 transition-colors"
-                          >
-                            <SI d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" size={12} />
-                            Edit
-                          </button>
-                          {/* Remind button — only for incomplete tasks */}
-                          {t.status !== 'completed' && (
-                            <button
-                              onClick={() => handleRemind(t._id)}
-                              disabled={reminding === t._id}
-                              title="Send reminder"
-                              className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition-colors disabled:opacity-50"
-                            >
-                              <SI d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" size={12} />
-                              {reminding === t._id ? '...' : 'Remind'}
+            <>
+              {/* Mobile card list */}
+              <div className="sm:hidden space-y-3">
+                {tasks.map(t => (
+                  <div key={t._id} className="border border-violet-100 rounded-xl p-3 space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-violet-900 text-sm truncate">{t.title}</p>
+                        {t.description && <p className="text-xs text-violet-400 mt-0.5 line-clamp-1">{t.description}</p>}
+                      </div>
+                      <Badge status={t.status} />
+                    </div>
+                    <div className="flex flex-wrap gap-2 text-xs">
+                      <span className="text-gray-600">
+                        <span className="text-violet-400">To: </span>
+                        <strong>{t.assignedTo?.name}</strong>
+                        {t.assignedTo?.employeeId && <span className="text-violet-400"> ({t.assignedTo.employeeId})</span>}
+                      </span>
+                      <span className="text-gray-500">Due: {formatDate(t.deadline)}</span>
+                      <Badge status={t.priority} />
+                    </div>
+                    {t.remarks && <p className="text-xs text-gray-500 italic line-clamp-1">{t.remarks}</p>}
+                    <div className="flex gap-2 pt-1 border-t border-violet-50">
+                      <button onClick={() => openEdit(t)}
+                        className="flex-1 text-xs py-1.5 rounded-lg bg-violet-50 text-violet-700 hover:bg-violet-100 font-semibold transition-colors">
+                        Edit
+                      </button>
+                      <button onClick={() => handleDelete(t._id)}
+                        className="flex-1 text-xs py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 font-semibold transition-colors">
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop table */}
+              <div className="hidden sm:block overflow-x-auto -mx-5 px-5">
+                <table className="data-table min-w-[700px]">
+                  <thead>
+                    <tr><th>Task</th><th>Assigned To</th><th>Priority</th><th>Deadline</th><th>Status</th><th>Remarks</th><th>Actions</th></tr>
+                  </thead>
+                  <tbody>
+                    {tasks.map(t => (
+                      <tr key={t._id}>
+                        <td>
+                          <p className="font-medium text-violet-900">{t.title}</p>
+                          {t.description && <p className="text-xs text-violet-400 mt-0.5 truncate max-w-[200px]">{t.description}</p>}
+                        </td>
+                        <td>
+                          <p className="font-medium">{t.assignedTo?.name}</p>
+                          <p className="text-xs text-violet-400">{t.assignedTo?.employeeId}</p>
+                        </td>
+                        <td><Badge status={t.priority} /></td>
+                        <td>{formatDate(t.deadline)}</td>
+                        <td><Badge status={t.status} /></td>
+                        <td>
+                          {t.remarks
+                            ? <p className="text-xs text-gray-600 max-w-[140px] truncate" title={t.remarks}>{t.remarks}</p>
+                            : <span className="text-xs text-violet-300">—</span>}
+                        </td>
+                        <td>
+                          <div className="flex items-center gap-1.5">
+                            <button onClick={() => openEdit(t)} title="Edit task"
+                              className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg bg-violet-50 text-violet-700 border border-violet-200 hover:bg-violet-100 transition-colors">
+                              <SI d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" size={12} />
+                              Edit
                             </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                            <button onClick={() => handleDelete(t._id)} title="Delete task"
+                              className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-colors">
+                              <SI d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" size={12} />
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </Card>
       ) : (

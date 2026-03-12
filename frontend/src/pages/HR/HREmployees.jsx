@@ -13,7 +13,7 @@ const Ico = ({ d, d2, className = 'w-4 h-4' }) => (
   </svg>
 );
 
-const ROLE_COLORS = { employee: 'bg-violet-100 text-violet-700', sales: 'bg-amber-100 text-amber-700', hr: 'bg-violet-100 text-violet-700', admin: 'bg-gray-100 text-gray-900' };
+const ROLE_COLORS = { employee: 'bg-violet-100 text-violet-700', sales: 'bg-amber-100 text-amber-700', field_sales: 'bg-golden-100 text-golden-700', hr: 'bg-violet-100 text-violet-700', admin: 'bg-gray-100 text-gray-900' };
 const TYPE_COLORS = { fresher: 'bg-violet-100 text-violet-700', experienced: 'bg-violet-100 text-violet-700' };
 const DOC_STATUS  = { pending_upload: 'bg-gray-100 text-gray-600', uploaded: 'bg-violet-100 text-violet-700', approved: 'bg-violet-100 text-violet-700', rejected: 'bg-gray-100 text-gray-900' };
 const DOC_LABEL   = { pending_upload: 'Pending Upload', uploaded: 'Uploaded', approved: 'Approved', rejected: 'Rejected' };
@@ -300,6 +300,7 @@ export default function HREmployees() {
             <SelectField label="Role *" value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))}>
               <option value="employee">Employee</option>
               <option value="sales">Sales Employee</option>
+              <option value="field_sales">Field Sales Executive</option>
               <option value="hr">HR</option>
             </SelectField>
             <SelectField label="Department" value={form.departmentId} onChange={e => setForm(f => ({ ...f, departmentId: e.target.value }))}>
@@ -427,6 +428,7 @@ function EditForm({ emp, departments, onDone }) {
       <SelectField label="Role" value={form.role} onChange={f('role')}>
         <option value="employee">Employee</option>
         <option value="sales">Sales</option>
+        <option value="field_sales">Field Sales Executive</option>
         <option value="hr">HR</option>
       </SelectField>
       <div className="flex flex-col sm:flex-row gap-2 pt-2">
