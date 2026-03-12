@@ -72,6 +72,7 @@ app.use('/api/recruitment', require('./routes/recruitment'));
 app.use('/api/products',    require('./routes/products'));
 app.use('/api/field-leads', require('./routes/fieldLeads'));
 app.use('/api/automation', require('./routes/automation'));
+app.use('/api/kt',         require('./routes/kt'));
 
 // =======================
 // ❤️ HEALTH CHECK
